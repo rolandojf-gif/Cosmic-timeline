@@ -2,11 +2,22 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#05060a" />
+    <meta
+      name="description"
+      content="Recorrido interactivo por la historia del universo con los valores físicos de cada instante, calculados con el modelo cosmológico de Planck 2018."
+    />
     <title>Cosmic Timeline</title>
   </head>
   <body>
-    <main id="app"><p>Cosmic Timeline: en construcción.</p></main>
+    <div id="app">
+      <noscript>
+        <p lang="es">Esta página necesita JavaScript para calcular el modelo cosmológico.</p>
+        <p lang="en">This page needs JavaScript to compute the cosmological model.</p>
+      </noscript>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -1,10 +1,5 @@
-import { createCosmology } from './physics';
+import { startApp } from './ui/app';
+import './styles/main.css';
 
-// The background model is precomputed once at load. The interface arrives in
-// later milestones (timeline, ui, scene).
-const cosmology = createCosmology();
-
-const app = document.querySelector<HTMLElement>('#app');
-if (app) {
-  app.dataset['ageSeconds'] = String(cosmology.age);
-}
+const root = document.querySelector<HTMLElement>('#app');
+if (root) startApp(root);

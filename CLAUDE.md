@@ -10,7 +10,7 @@ Web interactiva sobre la historia del universo desde la época de Planck hasta h
 
 1. Los datos son siempre reales; la imagen es una interpretación; la web dice cuándo interpreta.
 2. **Sin licencia**: tiempos, temperaturas, factor de escala, z, H, radio de la región que hoy observamos, orden de los eventos. Nunca se ajustan para que algo "se vea mejor".
-3. **Con licencia declarada**: colores, densidad de partículas, cámara, ritmo de transiciones, escala del control. Toda licencia nueva se registra en `src/scene/visualMap.ts` y aparece en la línea de licencias y en `docs/licencias-visuales.md` (ambos llegan con la UI y la escena).
+3. **Con licencia declarada**: colores, densidad de partículas, cámara, ritmo de transiciones, escala del control. Toda licencia nueva se registra en `src/scene/visualMap.ts` (`VISUAL_LICENCES`) y aparece en la línea de licencias, con texto en `src/i18n/`, y en `docs/licencias-visuales.md`. Los tests lo comprueban.
 4. Nunca representar el Big Bang como una explosión vista desde fuera ni con un centro. La cámara está dentro de un campo sin borde que se expande uniformemente.
 5. Cinematográfico pero sobrio: nada de gamificación, puntuaciones, logros ni cuentas.
 6. Nunca decir "tamaño del universo" (puede ser infinito). La etiqueta es "Radio de la región que hoy observamos" / "Radius of the region we observe today".

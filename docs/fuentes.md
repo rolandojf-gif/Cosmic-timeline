@@ -84,6 +84,25 @@ Dalrymple, G. B. (2001). The age of the Earth in the twentieth century: a proble
 
 Edad de la Tierra: 4,54 ± 0,05 Gyr.
 
+## Referencias de comparación
+
+Valores que la interfaz usa solo para traducir cifras del modelo a términos cotidianos (cocientes como "116.000 veces la temperatura del centro del Sol"). Viven en `src/physics/references.ts`.
+
+### `si-brochure-2019`
+Bureau International des Poids et Mesures (2019). *The International System of Units (SI)*, 9.ª ed. [bipm.org](https://www.bipm.org/en/publications/si-brochure)
+
+Definición del grado Celsius: t/°C = T/K − 273,15. Valor definido, no medido.
+
+### `iau-2015-b3`
+Prša, A. et al. (2016). Nominal values for selected solar and planetary quantities: IAU 2015 Resolution B3. *The Astronomical Journal* 152, 41. [doi:10.3847/0004-6256/152/2/41](https://doi.org/10.3847/0004-6256/152/2/41) · [arXiv:1605.09788](https://arxiv.org/abs/1605.09788)
+
+Temperatura efectiva nominal del Sol: 5772 K (Tabla 1); mejor estimación medida, 5772,0 ± 0,8 K.
+
+### `bahcall-2001`
+Bahcall, J. N., Pinsonneault, M. H. y Basu, S. (2001). Solar models: current epoch and time dependences, neutrinos, and helioseismological properties. *The Astrophysical Journal* 555, 990–1012. [doi:10.1086/321493](https://doi.org/10.1086/321493) · [arXiv:astro-ph/0010346](https://arxiv.org/abs/astro-ph/0010346)
+
+Temperatura central del Sol actual en el modelo solar estándar: 15,696 × 10⁶ K (Tabla 5). Es un valor calculado por un modelo, no medido. Coincide con la ficha del Sol de la NASA (1,571 × 10⁷ K, [NSSDC](https://nssdc.gsfc.nasa.gov/planetary/factsheet/sunfact.html)). La versión de texto del PDF de arXiv muestra mal la unidad de la tabla; el valor se comprobó con ambas fuentes.
+
 ## Constantes y unidades
 
 ### `codata2018`

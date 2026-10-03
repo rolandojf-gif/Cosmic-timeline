@@ -1,4 +1,4 @@
-// physics/ and timeline/ must stay pure TypeScript: no DOM, no three.js,
+// physics/, timeline/ and i18n/ must stay pure TypeScript: no DOM, no three.js,
 // no imports from ui/ or scene/.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -17,7 +17,7 @@ function tsFiles(dir: string): string[] {
 }
 
 describe('pure modules', () => {
-  for (const area of ['physics', 'timeline']) {
+  for (const area of ['physics', 'timeline', 'i18n']) {
     it(`${area}/ has no DOM, three.js, ui/ or scene/ dependencies`, () => {
       for (const file of tsFiles(join(root, area))) {
         const source = readFileSync(file, 'utf8');
