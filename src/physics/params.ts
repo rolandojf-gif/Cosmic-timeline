@@ -13,19 +13,30 @@ export interface CosmologyParams {
   readonly H0: number;
   /** Total matter density today (CDM + baryons + massive ν). */
   readonly omegaM: number;
+  /** Baryon density × h². */
+  readonly omegaBh2: number;
   /** CMB temperature today [K]. */
   readonly TCMB0: number;
   /** Effective number of neutrino species. */
   readonly Neff: number;
+  /** Scalar spectral index of primordial perturbations. */
+  readonly ns: number;
+  /** RMS linear density contrast in spheres of 8 Mpc/h today. */
+  readonly sigma8: number;
 }
 
 export const PLANCK2018: CosmologyParams = {
   H0: 67.66,
   omegaM: 0.3111,
+  // Planck 2018 VI, Table 2, TT,TE,EE+lowE+lensing+BAO.
+  omegaBh2: 0.02242,
   // Fixsen 2009, ApJ 707, 916.
   TCMB0: 2.7255,
   // Standard-model value used by Planck 2018.
   Neff: 3.046,
+  // Planck 2018 VI, Table 2, TT,TE,EE+lowE+lensing+BAO.
+  ns: 0.9665,
+  sigma8: 0.8102,
 };
 
 export interface MeasuredValue {

@@ -24,11 +24,16 @@ export function licenceVars(locale: Locale, m: Messages, growth: number): Licenc
     colour: { saturation: count(COLOUR_SATURATION_K) },
     brightness: { draper: formatNumber(DRAPER_POINT_K, locale), celsius: formatCelsius(DRAPER_POINT_K, locale) },
     haze: { zStar: formatNumber(PLANCK2018_DERIVED.zStar.value, locale) },
+    plasma: {},
+    cmbContrast: {},
     separation: { range: count(growth) },
     motion: { drift: formatDuration(DRIFT_SECONDS, locale, m.units) },
     structure: {},
     density: { desktop: formatNumber(PARTICLES_DESKTOP, locale), mobile: formatNumber(PARTICLES_MOBILE, locale) },
+    peaks: {},
+    galaxySize: {},
     camera: {},
     transitions: { duration: formatDuration(TRANSITION_SECONDS, locale, m.units) },
+    grading: {},
   };
 }

@@ -46,26 +46,46 @@ Resultado: la radiación deja de verse hacia los 3,15 millones de años (z ≈ 2
 
 **Bruma.** Antes de la última dispersión (z\* = 1089,8, Planck 2018) la luz no viaja libre: la escena es una bruma luminosa en la que las partículas apenas se distinguen y el fondo brilla. Después, la bruma se despeja mientras 1 + z cae en un factor 1,5 (`HAZE_CLEARING_FACTOR`). El momento es dato; la duración del fundido es elección.
 
+## `plasma`
+
+**Plasma y turbulencia.** En las épocas de radiación previas a la recombinación (quarks, hadrones, nucleosíntesis), el medio se muestra mediante un raymarching volumétrico continuo sobre una textura periódica de ruido tridimensional (`src/scene/noise3d.ts`). Las contorsiones y filamentos reflejan el régimen turbulento del fluido caliente, volviéndose más rápidos y contorsionados a temperaturas más altas. No pretenden ser filamentos de materia individuales medidos.
+
+## `cmbContrast`
+
+**Contraste del fondo de microondas.** Las fluctuaciones de temperatura en el fondo cósmico de microondas tienen una amplitud real de apenas una parte en 100 000 ($\Delta T / T \sim 10^{-5}$). En la escena, las manchas en el cielo siguen la escala angular del primer pico acústico ($\ell \approx 220$) y armónicos superiores, pero su contraste térmico está muy exagerado para que las regiones frías y calientes se distingan visualmente.
+
 ## `separation`
 
-**Separación.** Entre el primer instante con valores del modelo (el cruce electrodébil) y hoy, el factor de escala crece unas 2·10¹⁵ veces. En pantalla, el lado de la caja periódica crece de forma lineal con ln a, hasta el doble (`SEPARATION_GAIN`), y la región visible crece con la raíz cuadrada de ese lado: hoy se ven unas tres veces menos partículas que al principio.
+**Separación.** Entre el primer instante con valores del modelo y hoy, el factor de escala crece unas 2·10¹⁵ veces. El campo se evalúa en una caja periódica comóvil de 200 Mpc/h, donde los desplazamientos de materia $\psi(q)$ se escalan linealmente con el factor de crecimiento $D(a)$.
 
 ## `motion`
 
-**Movimiento.** La escena está quieta salvo al cambiar de instante (decisión de Rolando, 2026-10-03, para no gastar batería). Tras cada paso, las partículas siguen separándose durante 3 s (`DRIFT_SECONDS`), con un desplazamiento proporcional a H·t: cuánto crecen las distancias por unidad de edad del universo, ½ en la era de radiación, ⅔ en la de materia y 0,95 hoy. Con `prefers-reduced-motion` no hay deriva.
+**Movimiento.** La cámara recorre el campo periódico con una deriva lenta y continua mientras la página está visible, mostrando la profundidad y el paralaje de las estructuras cósmicas sin bordes ni centro. Si la pestaña se oculta o si el sistema tiene activada la preferencia de movimiento reducido (`prefers-reduced-motion`), la cámara permanece fija.
 
 ## `structure`
 
-**Estructura.** Desde el ancla de las primeras estrellas (`epochs.ts`), cada partícula se desplaza hacia el filamento o el nudo más cercano de una red cósmica ilustrativa (`src/scene/field.ts`: 160 nudos unidos con sus tres vecinos más próximos). El grado de avance sigue ln(t/t₁) / ln(t₀/t₁), con t₁ el ancla de las primeras estrellas y t₀ la edad del universo. Un 7 % de las partículas se encienden como estrellas a lo largo de un factor 3 en el tiempo. El dibujo no es un mapa de objetos reales, y la estructura empieza a crecer antes de las primeras estrellas; mostrarla desde ese ancla es la elección aprobada.
+**Estructura.** La distribución de materia se calcula a partir de un campo gaussiano aleatorio con el espectro de potencia lineal $P(k) \propto k^{n_s} T(k)^2$ de Eisenstein y Hu (1998), normalizado a $\sigma_8 = 0,8102$ hoy (Planck 2018). Las posiciones y densidades siguen la aproximación truncada de Zel'dovich (Coles et al. 1993) y los autovalores del tensor de deformación, modulados por el factor de crecimiento lineal $D(a)$ (Heath 1977).
 
 ## `density`
 
-**Número de partículas.** 30 000 partículas en escritorio y 12 000 en móvil (`PARTICLES_DESKTOP`, `PARTICLES_MOBILE`), un nivel fijo y prudente para la v1. No son átomos, estrellas ni galaxias concretos. La calidad adaptativa por fps queda para la siguiente fase ([`plan.md`](plan.md), §8).
+**Número de partículas.** 2 097 152 partículas ($128^3$) en escritorio y 262 144 ($64^3$) en móvil (`PARTICLES_DESKTOP`, `PARTICLES_MOBILE`). Representan elementos de fluido de materia en la red de Zel'dovich.
+
+## `peaks`
+
+**Encendido de galaxias.** Las galaxias y cúmulos se encienden en los picos de densidad lineal cuando la sobredensidad colapsada supera el umbral esférico $\delta_c = 1,686$. La escala de masa se calibra para que el pico más prominente empiece a brillar en el ancla de las primeras estrellas.
+
+## `galaxySize`
+
+**Tamaño de las galaxias.** Las galaxias en los picos se dibujan como sprites procedimentales orientados al azar (espirales o elípticas) cuyo tamaño aparente, concentración central y tono evolucionan con la edad, facilitando su identificación visual en la red de filamentos.
 
 ## `camera`
 
-**Cámara.** La cámara está quieta dentro de un campo periódico: las posiciones se repiten en todas direcciones y las partículas se desvanecen antes de llegar al borde de la caja, así que no se ve ni un borde ni un centro. Todo se aleja de todo. La cámara mira hacia la dirección con más estructura hoy, para no empezar dentro de un vacío, y en pantallas anchas el centro de la vista se desplaza a la derecha, fuera de la columna de texto.
+**Cámara.** La cámara está situada dentro de la caja periódica, mirando hacia el pico de densidad más masivo. El espacio se repite periódicamente en todas direcciones y los puntos se atenúan suavemente con la distancia, garantizando que no se aprecie ningún borde ni centro.
 
 ## `transitions`
 
-**Pasos entre instantes.** Al cambiar de instante, la escena recorre el camino en 1,75 s (`TRANSITION_SECONDS`, dentro de los 1,5–2 s que pidió Rolando) con una curva suave de aceleración y frenado. Si el control se mueve durante el paso, el recorrido se redirige sin saltos de posición ni de velocidad. En el camino se calculan los estados intermedios del modelo, así que un salto largo pasa por las épocas que hay entre medias. Con `prefers-reduced-motion` el cambio es instantáneo. El panel no espera: siempre muestra el instante elegido.
+**Pasos entre instantes.** Al cambiar de instante, la escena recorre el camino en 1,75 s (`TRANSITION_SECONDS`) con una curva suave de aceleración y frenado (`tween.ts`). Si el control se mueve durante el paso, el recorrido se redirige sin saltos de posición ni de velocidad. Con `prefers-reduced-motion` el cambio es instantáneo. El panel no espera: siempre muestra el instante elegido.
+
+## `grading`
+
+**Etalonaje y postproceso.** La composición en pantalla utiliza mapeo de tonos ACES Filmic para preservar los matices de luminosidad sin saturar bruscamente en blanco, viñeteado óptico suave hacia las esquinas y un grano muy fino (0,02) para evitar bandas de color en los degradados del plasma.

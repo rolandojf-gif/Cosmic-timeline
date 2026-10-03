@@ -1,57 +1,64 @@
-// The particle scene: one THREE.Points with a raw shader, drawn on demand.
-//
-// It follows the control with a pause (licence `transitions`): the control
-// position shown by the scene eases towards the chosen one, and the visual
-// state is recomputed from the model at the eased position, so a long step
-// passes through the epochs in between. After each step the field keeps
-// drifting apart for a moment (licence `motion`), then the scene stops
-// drawing until something changes.
+// The redesigned 5-regime scene: raymarched plasma background, Zel'dovich
+// matter particles, peak galaxies, and ACES tone mapping with bloom and grading.
+// Follows visualState() strictly for all visual properties. Pure WebGL/three.js.
 
 import {
+  ACESFilmicToneMapping,
   AdditiveBlending,
-  BufferAttribute,
   BufferGeometry,
   Color,
+  Data3DTexture,
+  Float32BufferAttribute,
+  GLSL3,
+  HalfFloatType,
+  Int16BufferAttribute,
+  LinearFilter,
+  Mesh,
   PerspectiveCamera,
+  PlaneGeometry,
   Points,
-  RawShaderMaterial,
+  RedFormat,
+  RepeatWrapping,
   Scene,
+  ShaderMaterial,
   SRGBColorSpace,
+  Vector2,
+  Vector3,
   WebGLRenderer,
 } from 'three';
-import { busiestDirection, createField } from './field';
-import { FRAGMENT_SHADER, VERTEX_SHADER } from './shaders';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { PLANCK2018 } from '../physics';
+import type { CosmicWeb } from './cosmicWeb';
+import { generateCosmicWeb } from './cosmicWebLoader';
+import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
 import {
-  DRIFT_SECONDS,
+  BACKGROUND_FRAGMENT_SHADER,
+  BACKGROUND_VERTEX_SHADER,
+  GALAXIES_FRAGMENT_SHADER,
+  GALAXIES_VERTEX_SHADER,
+  GRADING_FRAGMENT_SHADER,
+  GRADING_VERTEX_SHADER,
+  MATTER_FRAGMENT_SHADER,
+  MATTER_VERTEX_SHADER,
+} from './sceneShaders';
+import {
   PARTICLES_DESKTOP,
   PARTICLES_MOBILE,
   TRANSITION_SECONDS,
   type VisualState,
 } from './visualMap';
 
-/** Side of the periodic box at the start, in world units (licence `separation`). */
-const BOX = 4;
-/** The box grows to BOX × (1 + SEPARATION_GAIN) today. */
-const SEPARATION_GAIN = 1.0;
-/**
- * Particles fade out before half the box, so no edge is ever visible. The fade
- * radius grows with the square root of the box, so the field thins out as it
- * expands (about four times fewer particles in view today) without emptying.
- */
-const FADE_RADIUS = 0.48 * BOX;
-/** Extra growth during the drift after a step, per unit of H·t (licence `motion`). */
-const DRIFT_GAIN = 0.04;
-/** From this width [CSS px] the view centre moves right by WIDE_SHIFT of the width. */
+const BOX = 200; // Mpc/h
+const PSI_SCALE = 0.25; // |ψ| < 0.25 box
+const LAMBDA_SCALE = 8;
+const COLLAPSE = 1.686;
 const WIDE_FROM_PX = 900;
 const WIDE_SHIFT = 0.1;
-/** Point size in CSS pixels at unit distance. */
-const POINT_SIZE = 6;
-/** Warm white of starlight (licence `structure`). */
-const STAR_COLOUR = [1, 0.93, 0.82] as const;
-/** Share of the radiation light that fills the background, more while the universe is opaque. */
-const SKY_CLEAR = 0.12;
-const SKY_HAZE = 0.4;
 
 export interface SceneOptions {
   /** Visual state at a control position u ∈ [0, 1]. */
@@ -62,175 +69,491 @@ export interface SceneOptions {
 
 export interface ParticleScene {
   readonly element: HTMLCanvasElement;
-  /** Ease towards control position u (or jump there, the first time and with reduced motion). */
+  /** Ease towards control position u (or jump with reduced motion). */
   show(u: number): void;
   dispose(): void;
 }
 
-const easeOut = (x: number): number => 1 - (1 - x) * (1 - x);
+function buildMatterGeometry(web: CosmicWeb, n: number): BufferGeometry {
+  const n3 = n * n * n;
+  const psi = new Int16Array(3 * n3);
+  const lambda = new Int16Array(3 * n3);
+  for (let i = 0; i < 3 * n3; i++) {
+    psi[i] = Math.round(Math.max(-1, Math.min(1, web.displacement[i]! / PSI_SCALE)) * 32767);
+    lambda[i] = Math.round(Math.max(-1, Math.min(1, web.eigenvalues[i]! / LAMBDA_SCALE)) * 32767);
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Int16BufferAttribute(psi, 3, true));
+  geometry.setAttribute('aLambda', new Int16BufferAttribute(lambda, 3, true));
+  return geometry;
+}
 
-/** The scene, or null when WebGL is not available. */
+function buildGalaxies(
+  web: CosmicWeb,
+  dFirstStars: number,
+  n: number,
+): { readonly geometry: BufferGeometry; readonly boost: number } {
+  const boost = COLLAPSE / (dFirstStars * web.peaks[Math.min(1500, web.peaks.length - 1)]!.delta);
+  const PEAKS = Math.min(6000, web.peaks.length);
+  const gal: number[] = [];
+  const galAttr: number[] = [];
+  let rng = 12345;
+  const rand = (): number => {
+    rng = (rng * 1664525 + 1013904223) >>> 0;
+    return rng / 4294967296;
+  };
+  for (let p = 0; p < PEAKS; p++) {
+    const { index, delta } = web.peaks[p]!;
+    const qx = ((index % n) + 0.5) / n;
+    const qy = ((Math.floor(index / n) % n) + 0.5) / n;
+    const qz = (Math.floor(index / (n * n)) + 0.5) / n;
+    const members = p < 12 ? 70 : p < 60 ? 14 : 1;
+    for (let m = 0; m < members; m++) {
+      const spread = m === 0 ? 0 : (0.004 + 0.01 * rand()) * (p < 12 ? 1.0 : 0.6);
+      const theta = 2 * Math.PI * rand();
+      const phi = Math.acos(2 * rand() - 1);
+      gal.push(
+        qx + spread * Math.sin(phi) * Math.cos(theta),
+        qy + spread * Math.sin(phi) * Math.sin(theta),
+        qz + spread * Math.cos(phi),
+      );
+      galAttr.push(delta * (m === 0 ? 1 : 0.92 - 0.25 * rand()), m === 0 ? 0 : 1, rand(), index);
+    }
+  }
+  const galCount = gal.length / 3;
+  const galPsi = new Float32Array(3 * galCount);
+  const galData = new Float32Array(4 * galCount);
+  for (let g = 0; g < galCount; g++) {
+    const index = galAttr[4 * g + 3]!;
+    galPsi[3 * g] = web.displacement[3 * index]!;
+    galPsi[3 * g + 1] = web.displacement[3 * index + 1]!;
+    galPsi[3 * g + 2] = web.displacement[3 * index + 2]!;
+    galData[4 * g] = galAttr[4 * g]!;
+    galData[4 * g + 1] = galAttr[4 * g + 1]!;
+    galData[4 * g + 2] = galAttr[4 * g + 2]!;
+    galData[4 * g + 3] = rand();
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new Float32BufferAttribute(gal, 3));
+  geometry.setAttribute('aPsi', new Float32BufferAttribute(galPsi, 3));
+  geometry.setAttribute('aData', new Float32BufferAttribute(galData, 4));
+  return { geometry, boost };
+}
+
 export function createParticleScene(options: SceneOptions): ParticleScene | null {
   let renderer: WebGLRenderer;
   try {
-    renderer = new WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'low-power' });
+    renderer = new WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   } catch {
     return null;
   }
+
   const canvas = renderer.domElement;
   canvas.setAttribute('aria-hidden', 'true');
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, options.mobile ? 1.5 : 2));
-
-  const field = createField(options.mobile ? PARTICLES_MOBILE : PARTICLES_DESKTOP);
-  const geometry = new BufferGeometry();
-  geometry.setAttribute('position', new BufferAttribute(field.uniform, 3));
-  geometry.setAttribute('aWeb', new BufferAttribute(field.web, 3));
-  geometry.setAttribute('aSeed', new BufferAttribute(field.seed, 1));
-  geometry.setAttribute('aStar', new BufferAttribute(field.star, 1));
-
-  const uniforms = {
-    uBox: { value: BOX },
-    uFadeRadius: { value: FADE_RADIUS },
-    uStructure: { value: 0 },
-    uStars: { value: 0 },
-    uPointSize: { value: POINT_SIZE * renderer.getPixelRatio() },
-    uColour: { value: new Color() },
-    uGlow: { value: 0 },
-    uHaze: { value: 0 },
-    uGas: { value: 0 },
-    uStarColour: { value: new Color(...STAR_COLOUR) },
-  };
-  const material = new RawShaderMaterial({
-    vertexShader: VERTEX_SHADER,
-    fragmentShader: FRAGMENT_SHADER,
-    uniforms,
-    blending: AdditiveBlending,
-    depthTest: false,
-    depthWrite: false,
-    transparent: true,
-  });
-  const points = new Points(geometry, material);
-  // Positions are wrapped in the shader: the CPU bounding sphere means nothing.
-  points.frustumCulled = false;
+  renderer.toneMapping = ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1;
 
   const scene = new Scene();
-  scene.add(points);
-  const camera = new PerspectiveCamera(60, 1, 0.01, 20);
-  // Look towards a populated part of today's web rather than into a void (licence `camera`).
-  const growthToday = 1 + SEPARATION_GAIN;
-  const look = busiestDirection(field, (FADE_RADIUS * Math.sqrt(growthToday)) / (BOX * growthToday), Math.PI / 6);
-  camera.lookAt(look[0], look[1], look[2]);
-  const sky = new Color();
+  const camera = new PerspectiveCamera(55, 1, 0.05, 400);
+  camera.position.set(0, 0, 0);
 
+  const baseCamBox = new Vector3(0.5, 0.5, 0.5);
+  const camBox = baseCamBox.clone();
+  const toTop = new Vector3(-0.17, -0.08, -0.14).normalize();
+  camera.lookAt(toTop.clone().add(new Vector3(0.12, 0.05, 0)));
+
+  // --- Background: 3D noise texture and raymarched plasma/CMB sky ---
+  const noiseSize = 64;
+  const noise = new Data3DTexture(tileableNoise(noiseSize), noiseSize, noiseSize, noiseSize);
+  noise.format = RedFormat;
+  noise.minFilter = noise.magFilter = LinearFilter;
+  noise.wrapS = noise.wrapT = noise.wrapR = RepeatWrapping;
+  noise.needsUpdate = true;
+
+  const bgUniforms = {
+    uNoise: { value: noise },
+    uCamera: { value: camera.matrixWorld },
+    uProjInv: { value: camera.projectionMatrixInverse },
+    uOrigin: { value: camBox.clone().multiplyScalar(4) },
+    uTime: { value: 0 },
+    uHaze: { value: 0 },
+    uColour: { value: new Color(1, 1, 1) },
+    uIntensity: { value: 1 },
+    uTurbulence: { value: 0 },
+    uCmbHot: { value: new Color(1, 1, 1) },
+    uCmbCold: { value: new Color(1, 1, 1) },
+    uCmbLevel: { value: 0 },
+    uLow: { value: 0.4 },
+    uHigh: { value: 0.85 },
+    uSigma: { value: 1 },
+    uEmit: { value: 3 },
+  };
+
+  const bgMaterial = new ShaderMaterial({
+    glslVersion: GLSL3,
+    depthTest: false,
+    depthWrite: false,
+    uniforms: bgUniforms,
+    vertexShader: BACKGROUND_VERTEX_SHADER,
+    fragmentShader: BACKGROUND_FRAGMENT_SHADER,
+  });
+
+  const background = new Mesh(new PlaneGeometry(2, 2), bgMaterial);
+  background.frustumCulled = false;
+  background.renderOrder = -1;
+  scene.add(background);
+
+  // --- Post-processing Composer ---
+  const composer = new EffectComposer(renderer);
+  composer.renderTarget1.texture.type = HalfFloatType;
+  composer.renderTarget2.texture.type = HalfFloatType;
+  composer.addPass(new RenderPass(scene, camera));
+
+  let bloomPass: UnrealBloomPass | null = null;
+  if (!options.mobile) {
+    bloomPass = new UnrealBloomPass(new Vector2(innerWidth, innerHeight), 0.6, 0.5, 0.7);
+    composer.addPass(bloomPass);
+  }
+  composer.addPass(new OutputPass());
+
+  const gradingPass = new ShaderPass({
+    uniforms: { tDiffuse: { value: null }, uSeed: { value: 0.37 } },
+    vertexShader: GRADING_VERTEX_SHADER,
+    fragmentShader: GRADING_FRAGMENT_SHADER,
+  });
+  composer.addPass(gradingPass);
+
+  // --- Matter & Galaxies: populated when Cosmic Web worker resolves ---
+  let matterGeometry: BufferGeometry | null = null;
+  let matterMaterial: ShaderMaterial | null = null;
+  let haloMaterial: ShaderMaterial | null = null;
+  let galaxiesGeometry: BufferGeometry | null = null;
+  let galaxiesMaterial: ShaderMaterial | null = null;
+
+  const N = options.mobile ? 64 : 128;
+  const initialProjScale = innerHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
+
+  void generateCosmicWeb(
+    {
+      omegaM: PLANCK2018.omegaM,
+      h: PLANCK2018.H0 / 100,
+      omegaBh2: PLANCK2018.omegaBh2,
+      TCMB0: PLANCK2018.TCMB0,
+      ns: PLANCK2018.ns,
+      sigma8: PLANCK2018.sigma8,
+    },
+    { n: N, boxMpcH: BOX, smoothingMpcH: 2.5, seed: 11 },
+  ).then((web) => {
+    if (disposed) return;
+
+    const top = web.peaks[0];
+    if (top) {
+      const topX = ((top.index % N) + 0.5) / N + web.displacement[3 * top.index]!;
+      const topY = ((Math.floor(top.index / N) % N) + 0.5) / N + web.displacement[3 * top.index + 1]!;
+      const topZ = (Math.floor(top.index / (N * N)) + 0.5) / N + web.displacement[3 * top.index + 2]!;
+      baseCamBox.set(topX + 0.17, topY + 0.08, topZ + 0.14);
+      baseCamBox.set(
+        baseCamBox.x - Math.floor(baseCamBox.x),
+        baseCamBox.y - Math.floor(baseCamBox.y),
+        baseCamBox.z - Math.floor(baseCamBox.z),
+      );
+      camBox.copy(baseCamBox);
+    }
+
+    matterGeometry = buildMatterGeometry(web, N);
+    const height = canvas.clientHeight || window.innerHeight;
+    const projScale = height / (2 * Math.tan((camera.fov * Math.PI) / 360));
+
+    matterMaterial = new ShaderMaterial({
+      glslVersion: GLSL3,
+      blending: AdditiveBlending,
+      depthTest: false,
+      depthWrite: false,
+      transparent: true,
+      uniforms: {
+        uN: { value: N },
+        uD: { value: 0 },
+        uCam: { value: camBox },
+        uBox: { value: BOX },
+        uPsiScale: { value: PSI_SCALE },
+        uLambdaScale: { value: LAMBDA_SCALE },
+        uGas: { value: 0 },
+        uGain: { value: 1 },
+        uProj: { value: projScale },
+        uPointScale: { value: 1 },
+        uHalo: { value: 0 },
+      },
+      vertexShader: MATTER_VERTEX_SHADER,
+      fragmentShader: MATTER_FRAGMENT_SHADER,
+    });
+
+    const matter = new Points(matterGeometry, matterMaterial);
+    matter.frustumCulled = false;
+    scene.add(matter);
+
+    haloMaterial = matterMaterial.clone();
+    haloMaterial.uniforms.uHalo!.value = 0.6;
+    const halo = new Points(matterGeometry, haloMaterial);
+    halo.frustumCulled = false;
+    scene.add(halo);
+
+    const firstState = options.stateAt(currentU);
+    const { geometry: galGeom, boost } = buildGalaxies(web, firstState.dFirstStars, N);
+    galaxiesGeometry = galGeom;
+
+    galaxiesMaterial = new ShaderMaterial({
+      glslVersion: GLSL3,
+      blending: AdditiveBlending,
+      depthTest: false,
+      depthWrite: false,
+      transparent: true,
+      uniforms: {
+        uD: { value: 0 },
+        uBoost: { value: boost },
+        uCam: { value: camBox },
+        uBox: { value: BOX },
+        uProj: { value: projScale },
+        uVisible: { value: 0 },
+        uDFirst: { value: firstState.dFirstStars },
+      },
+      vertexShader: GALAXIES_VERTEX_SHADER,
+      fragmentShader: GALAXIES_FRAGMENT_SHADER,
+    });
+
+    const galaxies = new Points(galaxiesGeometry, galaxiesMaterial);
+    galaxies.frustumCulled = false;
+    scene.add(galaxies);
+
+    scheduleFrame();
+  });
+
+  // --- Animation loop, tweens and camera drift ---
   const tween = createTween(0, TRANSITION_SECONDS);
-  let first = true;
-  let driftStart = -Infinity;
-  let drift = 0;
-  let driftFrom = 0;
-  let frame = 0;
-
-  const now = (): number => performance.now() / 1000;
+  let currentU = 0;
+  let isFirstJump = true;
+  let disposed = false;
+  let animFrameId = 0;
+  let isRunning = false;
 
   function resize(): void {
     const width = canvas.clientWidth || window.innerWidth;
     const height = canvas.clientHeight || window.innerHeight;
     renderer.setSize(width, height, false);
+    composer.setSize(width, height);
+    if (bloomPass) bloomPass.resolution.set(width, height);
     camera.aspect = width / Math.max(1, height);
-    // On wide screens the text column covers the left: centre the view in the open part.
-    if (width >= WIDE_FROM_PX) camera.setViewOffset(width, height, -WIDE_SHIFT * width, 0, width, height);
-    else camera.clearViewOffset();
+
+    if (width >= WIDE_FROM_PX) {
+      camera.setViewOffset(width, height, -WIDE_SHIFT * width, 0, width, height);
+    } else {
+      camera.clearViewOffset();
+    }
     camera.updateProjectionMatrix();
+
+    const projScale = height / (2 * Math.tan((camera.fov * Math.PI) / 360));
+    if (matterMaterial) matterMaterial.uniforms.uProj!.value = projScale;
+    if (haloMaterial) haloMaterial.uniforms.uProj!.value = projScale;
+    if (galaxiesMaterial) galaxiesMaterial.uniforms.uProj!.value = projScale;
+
+    scheduleFrame();
   }
 
-  function draw(time: number): void {
-    const u = Math.min(1, Math.max(0, tween.valueAt(time)));
+  function step(timestamp: number): void {
+    animFrameId = 0;
+    if (disposed) return;
+
+    const nowSec = timestamp / 1000;
+    const isTransitioning = !tween.doneAt(nowSec);
+    const u = options.reducedMotion ? currentU : Math.min(1, Math.max(0, tween.valueAt(nowSec)));
     const state = options.stateAt(u);
 
-    // While stepping, the drift of the previous instant fades out; afterwards a new one grows.
-    if (!tween.doneAt(time)) {
-      drift = driftFrom * (1 - Math.min(1, (time - (driftStart - TRANSITION_SECONDS)) / TRANSITION_SECONDS));
-    } else if (!options.reducedMotion) {
-      drift = DRIFT_GAIN * state.expansion * easeOut(Math.min(1, (time - driftStart) / DRIFT_SECONDS));
+    // Continuous subtle camera drift with parallax
+    if (!options.reducedMotion) {
+      const driftSpeed = 0.02;
+      const driftAngle = nowSec * driftSpeed;
+      const driftOffset = new Vector3(
+        Math.sin(driftAngle) * 0.006,
+        Math.cos(driftAngle * 0.7) * 0.004,
+        Math.sin(driftAngle * 0.5) * 0.006,
+      );
+      camBox.copy(baseCamBox).add(driftOffset);
+      camBox.set(
+        camBox.x - Math.floor(camBox.x),
+        camBox.y - Math.floor(camBox.y),
+        camBox.z - Math.floor(camBox.z),
+      );
+      const lookTarget = toTop.clone().add(
+        new Vector3(
+          0.12 + Math.sin(driftAngle * 0.5) * 0.012,
+          0.05 + Math.cos(driftAngle * 0.3) * 0.008,
+          0,
+        ),
+      );
+      camera.lookAt(lookTarget);
+    } else {
+      camBox.copy(baseCamBox);
+      camera.lookAt(toTop.clone().add(new Vector3(0.12, 0.05, 0)));
     }
 
-    const growth = (1 + SEPARATION_GAIN * state.separation) * Math.exp(drift);
-    uniforms.uBox.value = BOX * growth;
-    uniforms.uFadeRadius.value = FADE_RADIUS * Math.sqrt(growth);
-    uniforms.uStructure.value = state.structure;
-    uniforms.uStars.value = state.stars;
-    uniforms.uGlow.value = state.glow;
-    uniforms.uHaze.value = state.haze;
-    uniforms.uGas.value = state.gas;
-    // The shader writes sRGB values directly; the sky goes through three's colour management.
-    uniforms.uColour.value.setRGB(state.colour[0], state.colour[1], state.colour[2]);
-    const skyLevel = state.glow * (SKY_CLEAR + SKY_HAZE * state.haze);
-    sky.setRGB(state.colour[0] * skyLevel, state.colour[1] * skyLevel, state.colour[2] * skyLevel, SRGBColorSpace);
-    renderer.setClearColor(sky);
-    renderer.render(scene, camera);
+    camera.updateMatrixWorld();
+
+    // Background uniforms
+    bgMaterial.uniforms.uCamera!.value = camera.matrixWorld;
+    bgMaterial.uniforms.uProjInv!.value = camera.projectionMatrixInverse;
+    bgMaterial.uniforms.uOrigin!.value.copy(camBox).multiplyScalar(4);
+    bgMaterial.uniforms.uTime!.value = nowSec;
+    bgMaterial.uniforms.uHaze!.value = state.haze;
+    (bgMaterial.uniforms.uColour!.value as Color).setRGB(
+      state.colour[0],
+      state.colour[1],
+      state.colour[2],
+      SRGBColorSpace,
+    );
+    bgMaterial.uniforms.uIntensity!.value = state.intensity;
+    bgMaterial.uniforms.uTurbulence!.value = state.turbulence;
+    (bgMaterial.uniforms.uCmbHot!.value as Color).setRGB(
+      state.cmbHot[0],
+      state.cmbHot[1],
+      state.cmbHot[2],
+      SRGBColorSpace,
+    );
+    (bgMaterial.uniforms.uCmbCold!.value as Color).setRGB(
+      state.cmbCold[0],
+      state.cmbCold[1],
+      state.cmbCold[2],
+      SRGBColorSpace,
+    );
+    bgMaterial.uniforms.uCmbLevel!.value = state.cmbLevel;
+
+    // Matter uniforms
+    if (matterMaterial && haloMaterial) {
+      matterMaterial.uniforms.uD!.value = state.growthD;
+      matterMaterial.uniforms.uCam!.value.copy(camBox);
+      matterMaterial.uniforms.uGas!.value = state.gasLevel;
+      matterMaterial.uniforms.uGain!.value = state.contrastGain;
+
+      haloMaterial.uniforms.uD!.value = state.growthD;
+      haloMaterial.uniforms.uCam!.value.copy(camBox);
+      haloMaterial.uniforms.uGas!.value = state.gasLevel;
+      haloMaterial.uniforms.uGain!.value = state.contrastGain;
+      haloMaterial.uniforms.uHalo!.value = state.halo;
+    }
+
+    // Galaxy uniforms
+    if (galaxiesMaterial) {
+      galaxiesMaterial.uniforms.uD!.value = state.growthD;
+      galaxiesMaterial.uniforms.uCam!.value.copy(camBox);
+      galaxiesMaterial.uniforms.uVisible!.value = state.galaxiesVisible;
+    }
+
+    // Bloom parameters
+    if (bloomPass) {
+      bloomPass.strength = state.bloomStrength;
+      bloomPass.threshold = state.bloomThreshold;
+    }
+
+    composer.render();
+
+    // Dev FPS counter
+    frameCount++;
+    if (timestamp - lastFpsTime >= 500) {
+      if (fpsVisible) {
+        const fps = Math.round((frameCount * 1000) / (timestamp - lastFpsTime));
+        const ms = ((timestamp - lastFpsTime) / frameCount).toFixed(1);
+        fpsEl.textContent = `${fps} fps · ${ms} ms`;
+      }
+      frameCount = 0;
+      lastFpsTime = timestamp;
+    }
+
+    // Render loop continuation: keep running if transitioning or continuous drift is active
+    if (!document.hidden && (!options.reducedMotion || isTransitioning)) {
+      animFrameId = requestAnimationFrame(step);
+      isRunning = true;
+    } else {
+      isRunning = false;
+    }
   }
 
-  function animating(time: number): boolean {
-    return !tween.doneAt(time) || (!options.reducedMotion && time - driftStart < DRIFT_SECONDS);
+  function scheduleFrame(): void {
+    if (!isRunning && !document.hidden) {
+      animFrameId = requestAnimationFrame(step);
+      isRunning = true;
+    }
   }
 
-  function loop(): void {
-    frame = 0;
-    const time = now();
-    draw(time);
-    if (animating(time) && !document.hidden) frame = requestAnimationFrame(loop);
+  function onVisibilityChange(): void {
+    if (document.hidden) {
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+        animFrameId = 0;
+      }
+      isRunning = false;
+    } else {
+      scheduleFrame();
+    }
   }
 
-  function request(): void {
-    if (frame === 0) frame = requestAnimationFrame(loop);
+  // --- Development FPS counter (?fps in URL or press 'f' key) ---
+  let fpsVisible = typeof location !== 'undefined' && new URLSearchParams(location.search).has('fps');
+  const fpsEl = document.createElement('div');
+  fpsEl.className = 'scene-fps';
+  fpsEl.style.cssText =
+    'position:fixed;bottom:12px;right:12px;padding:4px 8px;background:rgba(0,0,0,0.8);color:#4ade80;font:11px monospace;border-radius:4px;z-index:9999;pointer-events:none;letter-spacing:0.05em;border:1px solid rgba(255,255,255,0.1);';
+  fpsEl.hidden = !fpsVisible;
+  document.body.appendChild(fpsEl);
+
+  let lastFpsTime = performance.now();
+  let frameCount = 0;
+
+  function onKeyDown(e: KeyboardEvent): void {
+    if (e.key === 'f' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+      fpsVisible = !fpsVisible;
+      fpsEl.hidden = !fpsVisible;
+    }
   }
 
-  const onResize = (): void => {
-    resize();
-    request();
-  };
-  const onVisibility = (): void => {
-    if (!document.hidden) request();
-  };
-  const onLost = (event: Event): void => {
-    event.preventDefault();
-    cancelAnimationFrame(frame);
-    frame = 0;
-  };
-  const onRestored = (): void => {
-    resize();
-    request();
-  };
-  window.addEventListener('resize', onResize);
-  document.addEventListener('visibilitychange', onVisibility);
-  canvas.addEventListener('webglcontextlost', onLost);
-  canvas.addEventListener('webglcontextrestored', onRestored);
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', onVisibilityChange);
   resize();
 
   return {
     element: canvas,
-    show(u) {
-      const time = now();
-      if (first || options.reducedMotion) {
-        first = false;
+    show(u: number) {
+      currentU = u;
+      const nowSec = performance.now() / 1000;
+      if (options.reducedMotion || isFirstJump) {
         tween.jump(u);
-        driftStart = options.reducedMotion ? -Infinity : time;
-        drift = 0;
-      } else if (u !== tween.target) {
-        driftFrom = drift;
-        tween.retarget(u, time);
-        // The new drift starts when the step ends.
-        driftStart = time + TRANSITION_SECONDS;
+        isFirstJump = false;
+      } else {
+        tween.retarget(u, nowSec);
       }
-      request();
+      scheduleFrame();
     },
     dispose() {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('resize', onResize);
-      document.removeEventListener('visibilitychange', onVisibility);
-      canvas.removeEventListener('webglcontextlost', onLost);
-      canvas.removeEventListener('webglcontextrestored', onRestored);
-      geometry.dispose();
-      material.dispose();
+      disposed = true;
+      if (animFrameId) {
+        cancelAnimationFrame(animFrameId);
+        animFrameId = 0;
+      }
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      fpsEl.remove();
+
+      noise.dispose();
+      bgMaterial.dispose();
+      background.geometry.dispose();
+
+      matterGeometry?.dispose();
+      matterMaterial?.dispose();
+      haloMaterial?.dispose();
+      galaxiesGeometry?.dispose();
+      galaxiesMaterial?.dispose();
+
+      composer.dispose();
       renderer.dispose();
     },
   };

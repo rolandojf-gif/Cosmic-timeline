@@ -9,7 +9,7 @@ Una fuente nueva entra aquí antes de usarse en el código, con su DOI o identif
 ### `planck2018-vi`
 Planck Collaboration (2020). Planck 2018 results. VI. Cosmological parameters. *Astronomy & Astrophysics* 641, A6. [doi:10.1051/0004-6361/201833910](https://doi.org/10.1051/0004-6361/201833910) · [arXiv:1807.06209](https://arxiv.org/abs/1807.06209)
 
-Se usa la Tabla 2, última columna (TT,TE,EE+lowE+lensing+BAO): H₀ = 67,66 ± 0,42 km s⁻¹ Mpc⁻¹; Ω_m = 0,3111 ± 0,0056 (entradas del modelo). Valores con los que se contrasta el modelo: Ω_Λ = 0,6889 ± 0,0056; edad 13,787 ± 0,020 Gyr; z\* = 1089,80 ± 0,21; z_eq = 3387 ± 21; z_re = 7,82 ± 0,71.
+Se usa la Tabla 2, última columna (TT,TE,EE+lowE+lensing+BAO): H₀ = 67,66 ± 0,42 km s⁻¹ Mpc⁻¹; Ω_m = 0,3111 ± 0,0056; Ω_b h² = 0,02242 ± 0,00014; n_s = 0,9665 ± 0,0038; σ₈ = 0,8102 ± 0,0060 (entradas del modelo y de la red cósmica). Valores con los que se contrasta el modelo: Ω_Λ = 0,6889 ± 0,0056; edad 13,787 ± 0,020 Gyr; z\* = 1089,80 ± 0,21; z_eq = 3387 ± 21; z_re = 7,82 ± 0,71.
 
 ### `fixsen2009`
 Fixsen, D. J. (2009). The temperature of the cosmic microwave background. *The Astrophysical Journal* 707, 916–920. [doi:10.1088/0004-637X/707/2/916](https://doi.org/10.1088/0004-637X/707/2/916)
@@ -83,6 +83,28 @@ Edad de los CAI: 4567,30 ± 0,16 Myr. Hay determinaciones posteriores algo más 
 Dalrymple, G. B. (2001). The age of the Earth in the twentieth century: a problem (mostly) solved. *Geological Society, London, Special Publications* 190, 205–221. [doi:10.1144/GSL.SP.2001.190.01.14](https://doi.org/10.1144/GSL.SP.2001.190.01.14)
 
 Edad de la Tierra: 4,54 ± 0,05 Gyr.
+
+## Estructura a gran escala y red cósmica
+
+### `heath1977`
+Heath, D. J. (1977). The growth of density perturbations in zero pressure cosmologies. *Monthly Notices of the Royal Astronomical Society* 179, 351–358. [doi:10.1093/mnras/179.3.351](https://doi.org/10.1093/mnras/179.3.351)
+
+Integral del factor de crecimiento lineal D(a) en cosmologías con materia y constante cosmológica (`src/physics/growth.ts`).
+
+### `eisenstein-hu-1998`
+Eisenstein, D. J. y Hu, W. (1998). Baryonic features in the matter transfer function. *The Astrophysical Journal* 496, 605–614. [doi:10.1086/305342](https://doi.org/10.1086/305342) · [arXiv:astro-ph/9709112](https://arxiv.org/abs/astro-ph/9709112)
+
+Función de transferencia de materia sin oscilaciones («no-wiggle», ecuaciones 26, 28–31) para el espectro de potencia lineal P(k) (`src/scene/cosmicWeb.ts`).
+
+### `zeldovich1970`
+Zel'dovich, Ya. B. (1970). Gravitational instability: an approximate theory for large density perturbations. *Astronomy and Astrophysics* 5, 84–89. [ADS](https://ui.adsabs.harvard.edu/abs/1970A%26A.....5...84Z)
+
+Aproximación cinemática de Zel'dovich para el desplazamiento de partículas y clasificación de estructuras (vacíos, hojas, filamentos, nudos) a partir de los autovalores del tensor de deformación.
+
+### `coles-1993`
+Coles, P., Melott, A. L. y Shandarin, S. F. (1993). Testing approximations for non-linear gravitational clustering. *Monthly Notices of the Royal Astronomical Society* 260, 765–776. [doi:10.1093/mnras/260.4.765](https://doi.org/10.1093/mnras/260.4.765)
+
+Aproximación truncada de Zel'dovich (TZA): filtrado gaussiano del campo de densidad en la escala no lineal para evitar el cruce excesivo de trayectorias en filamentos y nudos.
 
 ## Referencias de comparación
 

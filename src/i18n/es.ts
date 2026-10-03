@@ -238,6 +238,16 @@ export const es = {
       detail:
         'Hasta la última dispersión, a z = {zStar}, la luz no viaja libre y la escena se ve como una bruma luminosa. Después la bruma se despeja; la rapidez con que lo hace es una elección.',
     },
+    plasma: {
+      name: 'plasma',
+      detail:
+        'Antes de la recombinación, el plasma primordial se muestra mediante una turbulencia ilustrativa tridimensional que se vuelve más agitada a mayor temperatura. No representa filamentos individuales medidos, sino el régimen turbulento del medio.',
+    },
+    cmbContrast: {
+      name: 'contraste del fondo de microondas',
+      detail:
+        'En el cielo, las fluctuaciones de temperatura del fondo cósmico de microondas se dibujan con su escala angular característica pero con un contraste muy exagerado para que las zonas más frías y más cálidas sean visibles a simple vista.',
+    },
     separation: {
       name: 'separación',
       detail:
@@ -246,17 +256,27 @@ export const es = {
     motion: {
       name: 'movimiento',
       detail:
-        'La escena está quieta salvo al cambiar de instante. Tras cada paso, las partículas siguen separándose durante {drift}, más deprisa cuanto mayor es H·t: cuánto crecen las distancias por unidad de edad del universo.',
+        'La cámara recorre el campo periódico con una deriva lenta y continua mientras la página está visible, mostrando la profundidad y el paralaje de las estructuras. Con preferencia de movimiento reducido, la cámara permanece fija.',
     },
     structure: {
       name: 'estructura',
       detail:
-        'Desde las primeras estrellas la materia se agrupa en filamentos y nudos, y aparecen estrellas y galaxias. El dibujo es ilustrativo, no un mapa de objetos reales; cuánto ha avanzado sigue el logaritmo del tiempo transcurrido desde las primeras estrellas.',
+        'La distribución de materia se calcula mediante la aproximación de Zel\'dovich truncada a partir del espectro lineal de potencias normalizado con Planck 2018. Las partículas siguen los desplazamientos y densidades derivados del tensor de deformación.',
     },
     density: {
       name: 'número de partículas',
       detail:
         'La escena dibuja {desktop} partículas en escritorio y {mobile} en móvil. No son átomos, estrellas ni galaxias concretos.',
+    },
+    peaks: {
+      name: 'encendido de galaxias',
+      detail:
+        'Las galaxias y cúmulos se encienden en los picos de densidad lineal cuando superan el umbral de colapso esférico. La escala de masa se calibra para que el pico más alto comience a brillar en el ancla de las primeras estrellas.',
+    },
+    galaxySize: {
+      name: 'tamaño de las galaxias',
+      detail:
+        'Las galaxias se representan como pequeñas formas procedimentales elípticas o espirales cuyo tamaño aparente y tono evolucionan con la edad, facilitando distinguir su morfología en el campo cósmico.',
     },
     camera: {
       name: 'cámara',
@@ -267,6 +287,11 @@ export const es = {
       name: 'pasos entre instantes',
       detail:
         'Al cambiar de instante la escena tarda {duration} en llegar, acelerando y frenando con suavidad. Si el sistema pide menos movimiento, el cambio es instantáneo. El panel muestra siempre los valores del instante elegido, sin retraso.',
+    },
+    grading: {
+      name: 'etalonaje y postproceso',
+      detail:
+        'La imagen final pasa por un mapeo de tonos para comprimir el rango dinámico del resplandor, un ligero viñeteado en los bordes y un grano sutil para evitar bandas de color en los degradados suaves.',
     },
   },
   scene: {

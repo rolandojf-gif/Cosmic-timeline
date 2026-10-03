@@ -13,10 +13,12 @@
 import {
   DRAPER_POINT_K,
   ELECTROWEAK_CROSSOVER_GEV,
+  PLANCK2018,
   PLANCK2018_DERIVED,
   gevToKelvin,
   type Cosmology,
 } from '../physics';
+import { createGrowthFactor } from '../physics/growth';
 import type { ResolvedEpoch } from '../timeline';
 import { blackbodySrgb, type Triple } from './blackbody';
 
@@ -25,24 +27,34 @@ export type LicenceId =
   | 'colour'
   | 'brightness'
   | 'haze'
+  | 'plasma'
+  | 'cmbContrast'
   | 'separation'
   | 'motion'
   | 'structure'
   | 'density'
+  | 'peaks'
+  | 'galaxySize'
   | 'camera'
-  | 'transitions';
+  | 'transitions'
+  | 'grading';
 
 export const VISUAL_LICENCES: readonly LicenceId[] = [
   'controlScale',
   'colour',
   'brightness',
   'haze',
+  'plasma',
+  'cmbContrast',
   'separation',
   'motion',
   'structure',
   'density',
+  'peaks',
+  'galaxySize',
   'camera',
   'transitions',
+  'grading',
 ];
 
 // ---------------------------------------------------------------------------
@@ -72,9 +84,9 @@ export const HAZE_CLEARING_FACTOR = 1.5;
 /** structure: stars switch on over this factor in time after the first-stars anchor. */
 export const STARS_RAMP_FACTOR = 3;
 
-/** density: number of particles (fixed quality level of v1). */
-export const PARTICLES_DESKTOP = 30_000;
-export const PARTICLES_MOBILE = 12_000;
+/** density: number of particles (128³ desktop, 64³ mobile). */
+export const PARTICLES_DESKTOP = 2_097_152;
+export const PARTICLES_MOBILE = 262_144;
 
 /** transitions: duration of a step between instants [s], with ease-in-out. */
 export const TRANSITION_SECONDS = 1.75;
@@ -104,6 +116,21 @@ export interface VisualState {
   readonly structure: number;
   /** How many stars shine, 0 to 1. */
   readonly stars: number;
+
+  // Visual parameters for the 5-regime scene architecture:
+  readonly intensity: number;
+  readonly turbulence: number;
+  readonly contrastGain: number;
+  readonly cmbHot: Triple;
+  readonly cmbCold: Triple;
+  readonly cmbLevel: number;
+  readonly gasLevel: number;
+  readonly halo: number;
+  readonly growthD: number;
+  readonly bloomStrength: number;
+  readonly bloomThreshold: number;
+  readonly dFirstStars: number;
+  readonly galaxiesVisible: number;
 }
 
 export interface VisualMap {
@@ -128,6 +155,10 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
   const tStars = firstStars.anchor;
   const lnStarsToToday = Math.log(cosmology.age / tStars);
 
+  const growthFactor = createGrowthFactor(PLANCK2018.omegaM);
+  const pStars = cosmology.stateAt(tStars).physical;
+  const dFirstStars = pStars ? growthFactor(pStars.a) : 0.04;
+
   return {
     growth: Math.exp(-lnAStart),
     visualState(t) {
@@ -143,11 +174,25 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
           expansion: 0,
           structure: 0,
           stars: 0,
+          intensity: SPECULATIVE_GLOW,
+          turbulence: 0,
+          contrastGain: 1,
+          cmbHot: SPECULATIVE_COLOUR,
+          cmbCold: SPECULATIVE_COLOUR,
+          cmbLevel: 0,
+          gasLevel: 0,
+          halo: 0,
+          growthD: 0,
+          bloomStrength: 0.8,
+          bloomThreshold: 0.6,
+          dFirstStars,
+          galaxiesVisible: 0,
         };
       }
       const p = state.physical;
       const T = p.temperatureK;
       const lnT = Math.log(T);
+      const D = growthFactor(p.a);
 
       // Below the Draper point a black body does not glow visibly.
       const visible = smoothstep((lnT - Math.log(DRAPER_POINT_K)) / Math.log(GLOW_FULL_FROM_K / DRAPER_POINT_K));
@@ -155,6 +200,23 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
 
       // Opaque until last scattering (z*), then the fog clears.
       const haze = p.z >= zStar ? 1 : 1 - smoothstep(Math.log((1 + zStar) / (1 + p.z)) / Math.log(HAZE_CLEARING_FACTOR));
+
+      const intensity = visible * (0.3 + 0.025 * Math.max(0, Math.log10(T / 3000)));
+      const log10T = Math.log10(T);
+      const turbulence = clamp01((log10T - 3.4) / 12);
+      const contrastGain = 1 + 7 * (1 - smoothstep((D - 0.05) / 0.25));
+
+      const cmbHot = blackbodySrgb(Math.min(Math.max(T * 1.3, DRAPER_POINT_K), COLOUR_SATURATION_K));
+      const cmbCold = blackbodySrgb(Math.min(Math.max(T * 0.75, DRAPER_POINT_K), COLOUR_SATURATION_K));
+      const cmbLevel = 3 * intensity * (1 - haze);
+
+      const lateness = smoothstep(Math.log(Math.max(D, 1e-4) / 0.05) / Math.log(1 / 0.05));
+      const gasLevel = (2 - 1.55 * lateness) * (haze >= 0.3 ? 0 : 1 - haze / 0.3) * (D < 0.03 ? 2.5 : 1.6 - 0.6 * smoothstep((D - 0.05) / 0.5));
+      const halo = 0.6 - 0.25 * lateness;
+
+      const bloomStrength = haze > 0.5 ? 0.9 : haze > 0.05 ? 0.6 : 0.5 - 0.2 * lateness;
+      const bloomThreshold = haze > 0.5 ? 0.55 : haze > 0.05 ? 0.7 : 0.8;
+      const galaxiesVisible = haze < 0.5 ? 1 : 0;
 
       const sinceStars = t <= tStars ? 0 : Math.log(t / tStars);
       return {
@@ -170,6 +232,19 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
         expansion: p.hubble * t,
         structure: clamp01(sinceStars / lnStarsToToday),
         stars: smoothstep(sinceStars / Math.log(STARS_RAMP_FACTOR)),
+        intensity,
+        turbulence,
+        contrastGain,
+        cmbHot,
+        cmbCold,
+        cmbLevel,
+        gasLevel,
+        halo,
+        growthD: D,
+        bloomStrength,
+        bloomThreshold,
+        dFirstStars,
+        galaxiesVisible,
       };
     },
   };

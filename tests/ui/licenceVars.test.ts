@@ -25,7 +25,7 @@ describe('licence line figures', () => {
   it('quotes the transition time, the particle counts and the Draper point', () => {
     const vars = licenceVars('es', MESSAGES.es, growth);
     expect(vars.transitions.duration).toBe('1,75 s');
-    expect(vars.density).toEqual({ desktop: '30.000', mobile: '12.000' });
+    expect(vars.density).toEqual({ desktop: '2,1 × 10⁶', mobile: '262.000' });
     expect(vars.brightness).toEqual({ draper: '798', celsius: '525' });
     expect(vars.separation.range).toBe('2,02 mil billones de');
   });

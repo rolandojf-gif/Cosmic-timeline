@@ -216,6 +216,16 @@ export const en = {
       detail:
         'Until last scattering, at z = {zStar}, light cannot travel freely and the scene looks like a glowing haze. Afterwards the haze clears; how quickly it clears is a choice.',
     },
+    plasma: {
+      name: 'plasma',
+      detail:
+        'Before recombination, primordial plasma is drawn using illustrative three-dimensional turbulence that becomes more agitated at higher temperatures. It does not represent measured individual filaments, but the turbulent regime of the medium.',
+    },
+    cmbContrast: {
+      name: 'microwave background contrast',
+      detail:
+        'On the sky, temperature fluctuations of the cosmic microwave background are drawn with their characteristic angular scale but with greatly exaggerated contrast so colder and hotter patches are visible to the eye.',
+    },
     separation: {
       name: 'separation',
       detail:
@@ -224,17 +234,27 @@ export const en = {
     motion: {
       name: 'motion',
       detail:
-        'The scene is still except when the instant changes. After each step the particles keep moving apart for {drift}, faster the larger H·t is: how much distances grow per unit of the age of the universe.',
+        'The camera drifts slowly and continuously through the periodic box while the page is visible, showing depth and parallax across structures. With reduced motion preference, the camera stays fixed.',
     },
     structure: {
       name: 'structure',
       detail:
-        'From the first stars on, matter gathers into filaments and knots, and stars and galaxies appear. The drawing is illustrative, not a map of real objects; how far it has advanced follows the logarithm of the time since the first stars.',
+        'The distribution of matter is computed using the truncated Zel\'dovich approximation from the linear power spectrum normalised with Planck 2018. Particles follow displacements and densities derived from the deformation tensor.',
     },
     density: {
       name: 'number of particles',
       detail:
         'The scene draws {desktop} particles on desktop and {mobile} on mobile. They are not specific atoms, stars or galaxies.',
+    },
+    peaks: {
+      name: 'galaxy lighting',
+      detail:
+        'Galaxies and clusters light up at linear density peaks when they exceed the spherical collapse threshold. The mass scale is calibrated so that the highest peak begins shining at the first-stars anchor.',
+    },
+    galaxySize: {
+      name: 'galaxy size',
+      detail:
+        'Galaxies are drawn as small procedural elliptical or spiral shapes whose apparent size and hue evolve with age, making their morphology distinguishable in the cosmic field.',
     },
     camera: {
       name: 'camera',
@@ -245,6 +265,11 @@ export const en = {
       name: 'steps between instants',
       detail:
         'When the instant changes, the scene takes {duration} to arrive, speeding up and slowing down gently. If the system asks for less motion, the change is instant. The panel always shows the values of the chosen instant, without delay.',
+    },
+    grading: {
+      name: 'grading and post-processing',
+      detail:
+        'The final image undergoes tone mapping to compress the dynamic range of glowing light, subtle edge vignetting, and fine grain to prevent colour banding across soft gradients.',
     },
   },
   scene: {
