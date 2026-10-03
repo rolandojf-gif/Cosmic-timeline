@@ -385,6 +385,33 @@ Valores del modelo implementado (con g\*):
 - **Licencias**: `src/scene/visualMap.ts` registra `controlScale`, la única licencia de esta PR; la línea de licencias se genera desde ese registro y [`licencias-visuales.md`](licencias-visuales.md) la documenta.
 - **Precálculo en navegador** (Chromium del contenedor de desarrollo, mediana de cinco cargas, medida `cosmic-timeline:model`): 38 ms sin limitar la CPU, 149 ms con la CPU limitada ×4 y 228 ms con ×6. Supera el objetivo de 30 ms en móvil medio (§2.4). Casi todo el coste (24 de 28 ms en Node) es evaluar g\*(T) en los puntos de cuadratura; con g\* constante el precálculo baja a 4 ms. **Pendiente** (decisión de Rolando, 2026-10-03): no se optimiza ahora. Se vuelve a medir cuando exista la escena, con el coste de arranque completo, y entonces se decide.
 
+### 7.3 Escena (feat/scene)
+
+Diseño aprobado por Rolando el 2026-10-03, con cuatro decisiones: la escena está quieta salvo al cambiar de instante (paso de 1,5 a 2 s con aceleración y frenada suaves; instantáneo con `prefers-reduced-motion`); en móvil, franja de escena sobre el texto; edad oscura casi negra con gas tenue, como licencia; filamentos y galaxias ilustrativos desde las primeras estrellas, licencia `structure`.
+
+- **Mapa visual** (`src/scene/visualMap.ts`): único punto donde un dato del modelo se convierte en parámetro visual. Registra diez licencias (`controlScale`, `colour`, `brightness`, `haze`, `separation`, `motion`, `structure`, `density`, `camera`, `transitions`), cada una con sus textos en `i18n` y su entrada en [`licencias-visuales.md`](licencias-visuales.md); las cifras de los textos se interpolan desde las constantes (`src/ui/licenceVars.ts`).
+- **Color**: cuerpo negro a la temperatura del modelo, integrado con las funciones de igualación de color CIE 1931 (ajuste de Wyman, Sloan y Shirley 2013) y convertido a sRGB (`src/scene/blackbody.ts`, con tests frente al iluminante A y el límite de Rayleigh-Jeans). La luz se apaga por debajo del punto de Draper (798 K), hacia los 3,15 millones de años; por debajo, el tono se mantiene en el del punto de Draper porque las colas del ajuste dan tonos sin sentido.
+- **Campo**: un único `THREE.Points` con `RawShaderMaterial` en `mediump`; solo llegan a la GPU valores normalizados. Caja periódica alrededor de la cámara con desvanecimiento antes de su mitad: sin borde ni centro (principio 4). Cada partícula tiene una posición uniforme y otra en una red ilustrativa de filamentos y nudos cercana a ella; el sombreador mezcla las dos por el camino periódico más corto.
+- **Movimiento**: el panel muestra al instante los valores elegidos; la escena llega en 1,75 s con una curva de Hermite en la posición del control (si se cambia de destino a mitad de camino, posición y velocidad siguen siendo continuas). Después, 3 s de deriva proporcional a H·t, y la escena deja de dibujar. Con `prefers-reduced-motion`, cambio instantáneo y sin deriva.
+- **Carga**: three.js llega en un fragmento aparte (`import()` dinámico) después de que el panel ya está pintado. Sin WebGL, el panel y el control siguen funcionando y una nota lo dice.
+- **Calidad fija** (v1): 30 000 partículas en escritorio y 12 000 en móvil, DPR limitado a 2 y 1,5. Es menos que los niveles orientativos de §4.1; la calidad adaptativa queda para la siguiente fase (§8).
+
+**Medidas** (Chromium sin interfaz del contenedor de desarrollo, con WebGL por software, SwiftShader; móvil emulado a 360 × 740, DPR 2 y CPU limitada ×4):
+
+| Medida | Escritorio | Móvil emulado |
+|---|---|---|
+| Precálculo del modelo (`cosmic-timeline:model`) | 40 ms | 160 ms |
+| Arranque de la escena (`cosmic-timeline:scene`: campo y WebGL) | 250–270 ms | 280–310 ms |
+| JS por fotograma durante un paso (mediana / p95) | 0,2 / 0,9 ms | 0,8 / 2,8 ms |
+| Fotogramas por segundo durante un paso | ≈ 21 | ≈ 20 |
+| Dibujos con la escena en reposo | 0 | 0 |
+| Duración de un paso con su deriva | 4,8 s | 4,8 s |
+
+- Los fps no son representativos: con WebGL por software la GPU la emula la CPU del contenedor, y el JS de cada fotograma no llega a 3 ms. Hay que comprobarlos en un móvil real.
+- El arranque de la escena se redujo de 855 a 250 ms en escritorio buscando el filamento más cercano solo entre los candidatos de cada celda de una rejilla (resultado idéntico, comprobado bit a bit frente a la búsqueda completa). Ocurre después de pintar el panel, pero bloquea el hilo principal ese tiempo.
+- **Bundle** (gzip): 27,5 kB el fragmento principal y 133,7 kB el de la escena (three.js incluido), unos 161 kB en total, por debajo del objetivo de 200 kB (§4.1).
+- **Precálculo**: 40 ms y 160 ms, como en §7.2. Sigue por encima del objetivo de 30 ms en móvil medio. Decisión pendiente de Rolando.
+
 ---
 
 ## 8. Alcance de la v1 y siguiente fase

@@ -15,6 +15,15 @@ export const STEFAN_BOLTZMANN = 5.670374419e-8;
 /** Boltzmann constant [GeV K^-1] (CODATA 2018, exact in the 2019 SI). */
 export const BOLTZMANN_GEV_PER_K = 8.617333262e-14;
 
+/** Planck constant [J s] (exact in the 2019 SI). */
+export const PLANCK_CONSTANT = 6.62607015e-34;
+
+/** Boltzmann constant [J K^-1] (exact in the 2019 SI). */
+export const BOLTZMANN_CONSTANT = 1.380649e-23;
+
+/** Second radiation constant c₂ = hc/k [m K], the scale of Planck's law in λT. */
+export const SECOND_RADIATION_CONSTANT = (PLANCK_CONSTANT * SPEED_OF_LIGHT) / BOLTZMANN_CONSTANT;
+
 /** Planck time [s] (CODATA 2018). */
 export const PLANCK_TIME = 5.391247e-44;
 

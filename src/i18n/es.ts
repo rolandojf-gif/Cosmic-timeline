@@ -223,6 +223,80 @@ export const es = {
       detail:
         'El control es logarítmico por tramos: cada parada tiene una posición fija y, entre dos paradas, el tiempo avanza de forma logarítmica. El {equalShare} del recorrido se reparte a partes iguales entre los tramos y el resto sigue su duración logarítmica real. La regla bajo el control muestra la escala real.',
     },
+    colour: {
+      name: 'color de la luz',
+      detail:
+        'El color es el que tendría un cuerpo negro a la temperatura del modelo, calculado con las funciones de color del observador patrón CIE. Por encima de {saturation} kelvin el tono ya no cambia: esa luz es sobre todo ultravioleta, rayos X o gamma, y la pantalla solo muestra su parte visible. En Planck e inflación no hay temperatura del modelo; el violeta indica que la escena es una interpretación.',
+    },
+    brightness: {
+      name: 'brillo',
+      detail:
+        'El brillo real cambia en decenas de órdenes de magnitud; aquí sigue una escala logarítmica de la temperatura. La luz se apaga del todo por debajo de {draper} K ({celsius} °C), donde un cuerpo negro deja de verse a simple vista. Desde que el universo se vuelve transparente, la materia se dibuja como un gas gris muy tenue para que la edad oscura no parezca una pantalla vacía.',
+    },
+    haze: {
+      name: 'bruma',
+      detail:
+        'Hasta la última dispersión, a z = {zStar}, la luz no viaja libre y la escena se ve como una bruma luminosa. Después la bruma se despeja; la rapidez con que lo hace es una elección.',
+    },
+    plasma: {
+      name: 'plasma',
+      detail:
+        'Antes de la recombinación, el plasma primordial se muestra mediante una turbulencia ilustrativa tridimensional que se vuelve más agitada a mayor temperatura. No representa filamentos individuales medidos, sino el régimen turbulento del medio.',
+    },
+    cmbContrast: {
+      name: 'contraste del fondo de microondas',
+      detail:
+        'En el cielo, las fluctuaciones de temperatura del fondo cósmico de microondas se dibujan con su escala angular característica pero con un contraste muy exagerado para que las zonas más frías y más cálidas sean visibles a simple vista.',
+    },
+    separation: {
+      name: 'separación',
+      detail:
+        'Entre el primer instante con valores del modelo y hoy las distancias crecen unas {range} veces. En pantalla, la separación entre partículas sigue el logaritmo de ese crecimiento, no su valor.',
+    },
+    motion: {
+      name: 'movimiento',
+      detail:
+        'La cámara recorre el campo periódico con una deriva lenta y continua mientras la página está visible, mostrando la profundidad y el paralaje de las estructuras. Con preferencia de movimiento reducido, la cámara permanece fija.',
+    },
+    structure: {
+      name: 'estructura',
+      detail:
+        'La distribución de materia se calcula mediante la aproximación de Zel\'dovich truncada a partir del espectro lineal de potencias normalizado con Planck 2018. Las partículas siguen los desplazamientos y densidades derivados del tensor de deformación.',
+    },
+    density: {
+      name: 'número de partículas',
+      detail:
+        'La escena dibuja {desktop} partículas en escritorio y {mobile} en móvil. No son átomos, estrellas ni galaxias concretos.',
+    },
+    peaks: {
+      name: 'encendido de galaxias',
+      detail:
+        'Las galaxias y cúmulos se encienden en los picos de densidad lineal cuando superan el umbral de colapso esférico. La escala de masa se calibra para que el pico más alto comience a brillar en el ancla de las primeras estrellas.',
+    },
+    galaxySize: {
+      name: 'tamaño de las galaxias',
+      detail:
+        'Las galaxias se representan como pequeñas formas procedimentales elípticas o espirales cuyo tamaño aparente y tono evolucionan con la edad, facilitando distinguir su morfología en el campo cósmico.',
+    },
+    camera: {
+      name: 'cámara',
+      detail:
+        'La cámara está dentro de un campo sin centro ni borde: el espacio se repite en todas direcciones y todo se aleja de todo. No hay un punto desde el que el universo explote.',
+    },
+    transitions: {
+      name: 'pasos entre instantes',
+      detail:
+        'Al cambiar de instante la escena tarda {duration} en llegar, acelerando y frenando con suavidad. Si el sistema pide menos movimiento, el cambio es instantáneo. El panel muestra siempre los valores del instante elegido, sin retraso.',
+    },
+    grading: {
+      name: 'etalonaje y postproceso',
+      detail:
+        'La imagen final pasa por un mapeo de tonos para comprimir el rango dinámico del resplandor, un ligero viñeteado en los bordes y un grano sutil para evitar bandas de color en los degradados suaves.',
+    },
+  },
+  scene: {
+    unavailable: 'La escena no está disponible en este navegador: necesita WebGL.',
+    loadFailed: 'No se ha podido cargar la escena. El panel y el control funcionan igual; recarga la página para volver a intentarlo.',
   },
 };
 

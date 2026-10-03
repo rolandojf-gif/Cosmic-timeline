@@ -71,6 +71,47 @@ a:hover {
   display: none !important;
 }
 
+/* Scene: behind everything, full screen. The page layers sit above it. */
+
+.scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.scene canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.site-header,
+.stage,
+.dock {
+  position: relative;
+  z-index: 1;
+}
+
+.has-scene .site-header {
+  background: var(--surface);
+  backdrop-filter: blur(6px);
+}
+
+/* On wide screens the text column keeps a dark backing; the right side is open scene. */
+.has-scene .stage {
+  background: linear-gradient(90deg, rgb(5 6 10 / 0.9) 0, rgb(5 6 10 / 0.82) 34rem, rgb(5 6 10 / 0) 52rem);
+}
+
+.scene-window {
+  display: none;
+}
+
+.scene-note {
+  margin: 0 0 4px;
+  color: var(--faint);
+  font-size: 0.72rem;
+}
+
 /* Header */
 
 .site-header {
@@ -439,6 +480,29 @@ a:hover {
 @media (max-width: 599px) {
   .ruler-label.crowded {
     display: none;
+  }
+
+  /* A third of the scrolling area is a window onto the scene; the text scrolls up over it. */
+  .stage {
+    container-type: size;
+  }
+
+  .has-scene .stage {
+    background: none;
+  }
+
+  .has-scene .scene-window {
+    display: block;
+    height: 33cqh;
+  }
+
+  .has-scene .panel {
+    margin: 0 calc(-1 * var(--gutter));
+    padding: 12px var(--gutter) 0;
+    min-height: 67cqh;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: rgb(5 6 10 / 0.88);
+    backdrop-filter: blur(4px);
   }
 
   /* Keep the fixed header short so the content keeps room to scroll. */

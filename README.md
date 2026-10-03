@@ -34,7 +34,7 @@ Fuentes completas en [`docs/fuentes.md`](docs/fuentes.md). Plan aprobado y sigui
 
 ## Estado
 
-En construcción. La versión 1 llega en cuatro pasos: física, épocas y control, interfaz (control, panel y textos en español e inglés) y escena de partículas. Ya están los tres primeros; falta la escena. Ver [`docs/plan.md`](docs/plan.md).
+En construcción. La versión 1 llega en cuatro pasos: física, épocas y control, interfaz (control, panel y textos en español e inglés) y escena de partículas. Los cuatro están hechos; la escena espera revisión. Ver [`docs/plan.md`](docs/plan.md).
 
 Lo que la web interpreta, y por qué, está en [`docs/licencias-visuales.md`](docs/licencias-visuales.md).
 

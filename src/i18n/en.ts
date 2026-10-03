@@ -201,5 +201,79 @@ export const en = {
       detail:
         'The control is logarithmic by segments: each stop has a fixed position and, between two stops, time advances logarithmically. {equalShare} of the track is shared equally between segments and the rest follows their true logarithmic length. The ruler under the control shows the true scale.',
     },
+    colour: {
+      name: 'colour of the light',
+      detail:
+        'The colour is that of a black body at the model temperature, computed with the colour-matching functions of the CIE standard observer. Above {saturation} kelvin the hue no longer changes: that light is mostly ultraviolet, X-rays or gamma rays, and the screen only shows its visible part. At the Planck and inflation stops the model gives no temperature; the violet says the scene is an interpretation.',
+    },
+    brightness: {
+      name: 'brightness',
+      detail:
+        'True brightness changes by tens of orders of magnitude; here it follows a logarithmic scale of temperature. The light goes out completely below {draper} K ({celsius} °C), where a black body stops being visible to the eye. Once the universe is transparent, matter is drawn as a very faint grey gas so that the dark ages do not look like an empty screen.',
+    },
+    haze: {
+      name: 'haze',
+      detail:
+        'Until last scattering, at z = {zStar}, light cannot travel freely and the scene looks like a glowing haze. Afterwards the haze clears; how quickly it clears is a choice.',
+    },
+    plasma: {
+      name: 'plasma',
+      detail:
+        'Before recombination, primordial plasma is drawn using illustrative three-dimensional turbulence that becomes more agitated at higher temperatures. It does not represent measured individual filaments, but the turbulent regime of the medium.',
+    },
+    cmbContrast: {
+      name: 'microwave background contrast',
+      detail:
+        'On the sky, temperature fluctuations of the cosmic microwave background are drawn with their characteristic angular scale but with greatly exaggerated contrast so colder and hotter patches are visible to the eye.',
+    },
+    separation: {
+      name: 'separation',
+      detail:
+        'Between the first instant with model values and today, distances grow about {range} times. On screen, the separation between particles follows the logarithm of that growth, not its value.',
+    },
+    motion: {
+      name: 'motion',
+      detail:
+        'The camera drifts slowly and continuously through the periodic box while the page is visible, showing depth and parallax across structures. With reduced motion preference, the camera stays fixed.',
+    },
+    structure: {
+      name: 'structure',
+      detail:
+        'The distribution of matter is computed using the truncated Zel\'dovich approximation from the linear power spectrum normalised with Planck 2018. Particles follow displacements and densities derived from the deformation tensor.',
+    },
+    density: {
+      name: 'number of particles',
+      detail:
+        'The scene draws {desktop} particles on desktop and {mobile} on mobile. They are not specific atoms, stars or galaxies.',
+    },
+    peaks: {
+      name: 'galaxy lighting',
+      detail:
+        'Galaxies and clusters light up at linear density peaks when they exceed the spherical collapse threshold. The mass scale is calibrated so that the highest peak begins shining at the first-stars anchor.',
+    },
+    galaxySize: {
+      name: 'galaxy size',
+      detail:
+        'Galaxies are drawn as small procedural elliptical or spiral shapes whose apparent size and hue evolve with age, making their morphology distinguishable in the cosmic field.',
+    },
+    camera: {
+      name: 'camera',
+      detail:
+        'The camera is inside a field with no centre and no edge: space repeats in every direction and everything moves away from everything else. There is no point from which the universe explodes.',
+    },
+    transitions: {
+      name: 'steps between instants',
+      detail:
+        'When the instant changes, the scene takes {duration} to arrive, speeding up and slowing down gently. If the system asks for less motion, the change is instant. The panel always shows the values of the chosen instant, without delay.',
+    },
+    grading: {
+      name: 'grading and post-processing',
+      detail:
+        'The final image undergoes tone mapping to compress the dynamic range of glowing light, subtle edge vignetting, and fine grain to prevent colour banding across soft gradients.',
+    },
+  },
+  scene: {
+    unavailable: 'The scene is not available in this browser: it needs WebGL.',
+    loadFailed: 'The scene could not be loaded. The panel and the control work as usual; reload the page to try again.',
   },
 } satisfies Messages;
