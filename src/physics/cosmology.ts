@@ -17,7 +17,6 @@ import {
   SPEED_OF_LIGHT,
   STEFAN_BOLTZMANN,
   gevToKelvin,
-  kelvinToGeV,
 } from './constants';
 import {
   DOF_T_MAX_GEV,
@@ -28,7 +27,7 @@ import {
 import { compositeGaussLegendre5, gaussLegendre5 } from './integrate';
 import { findInterval, hermite, hermiteDerivative } from './interp';
 import { PLANCK2018, type CosmologyParams } from './params';
-import { tierAtTemperatureGeV, type Tier } from './validity';
+import { ELECTROWEAK_CROSSOVER_GEV, NEUTRON_FREEZE_OUT_GEV, type Tier } from './validity';
 
 export interface CosmologyOptions {
   /** Use Standard Model g*(T) for radiation (default true). */
@@ -96,6 +95,8 @@ export interface Cosmology {
   timeAtTemperature(temperatureK: number): number;
   /** Cosmic time by direct quadrature, bypassing the table (for verification). */
   integrateTime(a: number): number;
+  /** Epistemic tier of instant t [s] (see validity.ts). */
+  tierAt(t: number): Tier;
   /** Everything the panel needs about instant t [s]. */
   stateAt(t: number): CosmicState;
 }
@@ -230,12 +231,19 @@ export function createCosmology(
   const timeAtTemperature = (temperatureK: number): number =>
     timeAtScaleFactor(thermal.scaleFactorAtTemperature(temperatureK));
 
+  // Tier boundaries as times, so that an instant defined by a boundary
+  // temperature (e.g. the electroweak crossover) falls on the known side
+  // regardless of rounding in the T ↔ t round trip.
+  const tElectroweak = timeAtTemperature(gevToKelvin(ELECTROWEAK_CROSSOVER_GEV));
+  const tFreezeOut = timeAtTemperature(gevToKelvin(NEUTRON_FREEZE_OUT_GEV));
+  const tierAt = (time: number): Tier =>
+    time < tElectroweak ? 'speculative' : time < tFreezeOut ? 'extrapolated' : 'observed';
+
   const stateAt = (time: number): CosmicState => {
-    if (time < tMin) return { t: time, tier: 'speculative', physical: null };
+    const tier = tierAt(time);
+    if (tier === 'speculative') return { t: time, tier, physical: null };
     const a = scaleFactorAtTime(time);
     const temperatureK = thermal.temperatureAtScaleFactor(a);
-    const tier = tierAtTemperatureGeV(kelvinToGeV(temperatureK));
-    if (tier === 'speculative') return { t: time, tier, physical: null };
     const hubble = hubbleAtScaleFactor(a);
     return {
       t: time,
@@ -272,6 +280,7 @@ export function createCosmology(
     timeAtRedshift,
     timeAtTemperature,
     integrateTime,
+    tierAt,
     stateAt,
   };
 }

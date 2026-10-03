@@ -360,6 +360,14 @@ Valores del modelo implementado (con g\*):
 | t(T = 156,5 MeV), cruce QCD | 1,9·10⁻⁵ s (5,4·10⁻⁵ s con g\* constante) |
 | t(T = 159,5 GeV), cruce electrodébil | 9,4·10⁻¹² s (5,2·10⁻¹¹ s con g\* constante) |
 
+### 7.1 Épocas y escala del control (feat/timeline)
+
+- **Épocas** (`src/timeline/epochs.ts`): cada parada tiene un ancla, un intervalo opcional, un grado de evidencia (`observed`, `established-physics`, `model-dependent` o `speculative`) y sus fuentes. Los instantes se dan por su criterio (tiempo, temperatura, z o "hace X años") y `resolve.ts` los convierte con el modelo. Las anclas de inflación, edad oscura y primeras estrellas llevan la marca `illustrativeAnchor`, porque son una elección dentro de un intervalo y no un suceso; la interfaz tendrá que decirlo.
+- **Hitos dentro de una época**: MoM-z14 (z = 14,44) y JADES-GS-z14-0 (z = 14,32) van como `landmarks` de primeras estrellas, no como paradas.
+- **Escala** (`src/timeline/scale.ts`): el ancho de cada tramo es wᵢ = 0,4·Δᵢ/ΣΔ + 0,6/12, con Δᵢ en décadas. Así ningún tramo baja del 5 % y el 40 % del recorrido conserva la proporción logarítmica real. Posiciones de las paradas: Planck 0 %, inflación 9,8 %, quarks 31,2 %, hadrones 40,3 %, nucleosíntesis 49,8 %, recombinación 62,0 %, edad oscura 68,1 %, primeras estrellas 73,7 %, reionización 79,1 %, Vía Láctea 84,2 %, Sistema Solar 89,9 %, Tierra 94,9 %, hoy 100 %. Con log puro, el Sistema Solar estaría en el 99,71 %.
+- **Niveles epistémicos**: las fronteras se fijan ahora como tiempos (t del cruce electrodébil y t de T = 1 MeV), de modo que un instante definido por la temperatura frontera cae siempre del lado conocido.
+- **Textos de las épocas**: llegan con la i18n en `feat/ui`, con el test de que existen en ES y EN.
+
 ---
 
 ## 8. Alcance de la v1 y siguiente fase

@@ -160,6 +160,12 @@ describe('epistemic tiers', () => {
     expect(c.stateAt(tEW * 2).tier).toBe('extrapolated');
   });
 
+  it('puts the boundary instants themselves on the known side', () => {
+    const tEW = c.timeAtTemperature(gevToKelvin(ELECTROWEAK_CROSSOVER_GEV));
+    expect(c.stateAt(tEW).tier).toBe('extrapolated');
+    expect(c.stateAt(c.timeAtTemperature(gevToKelvin(1e-3))).tier).toBe('observed');
+  });
+
   it('marks the universe after t ≈ 1 s as observed', () => {
     expect(c.stateAt(0.1).tier).toBe('extrapolated');
     expect(c.stateAt(10).tier).toBe('observed');
