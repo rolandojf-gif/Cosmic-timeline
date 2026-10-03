@@ -167,4 +167,13 @@ describe('Standard Model degrees of freedom', () => {
     const fine = maxJump(1600);
     expect(fine / coarse).toBeLessThan(0.35);
   });
+
+  it('reports no values before a shortened table instead of throwing', () => {
+    // lnAMin = -20 starts the table after the electroweak and freeze-out boundaries.
+    const short = createCosmology(PLANCK2018, { lnAMin: -20 });
+    const early = short.tMin / 10;
+    expect(short.tierAt(early)).not.toBe('speculative');
+    expect(short.stateAt(early)).toEqual({ t: early, tier: 'speculative', physical: null });
+    expect(short.stateAt(short.tMin).physical).not.toBeNull();
+  });
 });

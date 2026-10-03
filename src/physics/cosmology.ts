@@ -240,6 +240,9 @@ export function createCosmology(
     time < tElectroweak ? 'speculative' : time < tFreezeOut ? 'extrapolated' : 'observed';
 
   const stateAt = (time: number): CosmicState => {
+    // Before the tabulated range no values can be given, whatever the tier
+    // (only reachable when lnAMin is raised above an epistemic boundary).
+    if (time < tMin) return { t: time, tier: 'speculative', physical: null };
     const tier = tierAt(time);
     if (tier === 'speculative') return { t: time, tier, physical: null };
     const a = scaleFactorAtTime(time);
