@@ -2,7 +2,7 @@
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { EPOCHS, MODEL_SOURCES, SOURCES } from '../../src/timeline';
+import { COMPARISON_SOURCES, EPOCHS, MODEL_SOURCES, SOURCES } from '../../src/timeline';
 
 const doc = readFileSync(new URL('../../docs/fuentes.md', import.meta.url), 'utf8');
 const headings = new Set([...doc.matchAll(/^### `([^`]+)`/gm)].map((m) => m[1]!));
@@ -18,10 +18,11 @@ describe('sources shown in the interface', () => {
     }
   });
 
-  it('cover every source cited by the epochs and the model', () => {
+  it('cover every source cited by the epochs, the model and the comparisons', () => {
     const cited = [
       ...EPOCHS.flatMap((e) => [...e.sources, ...(e.landmarks ?? []).flatMap((l) => l.sources)]),
       ...MODEL_SOURCES,
+      ...COMPARISON_SOURCES,
     ];
     for (const id of cited) expect(Object.keys(SOURCES)).toContain(id);
   });

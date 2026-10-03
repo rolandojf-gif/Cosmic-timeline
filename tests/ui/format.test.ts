@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { MESSAGES } from '../../src/i18n';
 import { GYR, JULIAN_YEAR, LIGHT_YEAR, gevToKelvin } from '../../src/physics';
 import {
+  formatCelsius,
+  formatCount,
   formatDuration,
   formatHubble,
   formatLength,
@@ -54,7 +56,10 @@ describe('significant figures', () => {
 describe('durations', () => {
   it('chooses the unit by magnitude', () => {
     expect(formatDuration(5.391247e-44, 'en', en)).toBe('5.39 × 10⁻⁴⁴ s');
-    expect(formatDuration(0.746, 'en', en)).toBe('0.746 s');
+    expect(formatDuration(0.746, 'en', en)).toBe('746 milliseconds');
+    expect(formatDuration(1.95e-5, 'es', es)).toBe('19,5 microsegundos');
+    expect(formatDuration(3e-9, 'en', en)).toBe('3 nanoseconds');
+    expect(formatDuration(9.35e-12, 'en', en)).toBe('9.35 × 10⁻¹² s');
     expect(formatDuration(119, 'en', en)).toBe('1.98 min');
     expect(formatDuration(371_800 * JULIAN_YEAR, 'en', en)).toBe('372,000 years');
     expect(formatDuration(656.7e6 * JULIAN_YEAR, 'en', en)).toBe('657 million years');
@@ -104,5 +109,33 @@ describe('temperature, energy and expansion rate', () => {
   it('shows H in km s⁻¹ Mpc⁻¹', () => {
     const h0 = (67.66 * 1e3) / 3.0856775814913673e22;
     expect(formatHubble(h0, 'en', en)).toBe('67.7 km s⁻¹ Mpc⁻¹');
+  });
+});
+
+describe('counts in words', () => {
+  it('names large numbers on the long scale in Spanish and the short scale in English', () => {
+    expect(formatCount(116_000, 'es', es)).toBe('116.000');
+    expect(formatCount(1.27e12, 'es', es)).toBe('1,27 billones de');
+    expect(formatCount(1.27e12, 'en', en)).toBe('1.27 trillion');
+    expect(formatCount(1.85e15, 'es', es)).toBe('1,85 mil billones de');
+    expect(formatCount(1.85e15, 'en', en)).toBe('1.85 quadrillion');
+    expect(formatCount(4.55e8, 'es', es)).toBe('455 millones de');
+  });
+
+  it('moves to the next word when rounding reaches it', () => {
+    expect(formatCount(999_900, 'en', en)).toBe('1 million');
+  });
+
+  it('falls back to scientific notation beyond the named words', () => {
+    expect(formatCount(2e20, 'en', en)).toBe('2 × 10²⁰');
+  });
+});
+
+describe('degrees Celsius', () => {
+  it('converts from kelvin with the SI offset and a true minus sign', () => {
+    expect(formatCelsius(2970, 'es')).toBe('2697');
+    expect(formatCelsius(273.15, 'en')).toBe('0');
+    expect(formatCelsius(2.7255, 'es')).toBe('−270');
+    expect(formatCelsius(70.9, 'en')).toBe('−202');
   });
 });

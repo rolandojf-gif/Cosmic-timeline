@@ -8,6 +8,7 @@ import { fill, type Locale, type Messages, type Plural } from '../i18n';
 import {
   ASTRONOMICAL_UNIT,
   BOLTZMANN_GEV_PER_K,
+  CELSIUS_ZERO_K,
   JULIAN_YEAR,
   LIGHT_YEAR,
   MEGAPARSEC,
@@ -136,7 +137,12 @@ const DAY = 86_400;
 /** A duration in seconds, in the most readable unit. */
 export function formatDuration(seconds: number, locale: Locale, units: Units): string {
   const ladder: Rung[] = [
+    // Below a nanosecond: seconds in scientific notation.
     { unit: 1, from: 0, template: units.seconds },
+    { unit: 1e-9, from: 1e-9, template: units.nanoseconds },
+    { unit: 1e-6, from: 1e-6, template: units.microseconds },
+    { unit: 1e-3, from: 1e-3, template: units.milliseconds },
+    { unit: 1, from: 1, template: units.seconds },
     { unit: MINUTE, from: MINUTE, template: units.minutes },
     { unit: HOUR, from: HOUR, template: units.hours },
     { unit: DAY, from: DAY, template: units.days },
@@ -159,6 +165,31 @@ export function formatLength(meters: number, locale: Locale, units: Units): stri
     { unit: 1e9 * LIGHT_YEAR, from: 1e9 * LIGHT_YEAR, template: units.billionLightYears },
   ];
   return formatWithLadder(meters, ladder, locale, units);
+}
+
+/**
+ * A large count in words: "1,27 billones de" (es), "1.27 trillion" (en).
+ * Spanish forms end in "de" so that a noun can follow ("… de veces").
+ * Below a million, digits; from 10¹⁸ on, scientific notation.
+ */
+export function formatCount(x: number, locale: Locale, units: Units): string {
+  const ladder: Rung[] = [
+    { unit: 1, from: 0, template: '{value}' },
+    { unit: 1e6, from: 1e6, template: units.countMillion },
+    { unit: 1e9, from: 1e9, template: units.countBillion },
+    { unit: 1e12, from: 1e12, template: units.countTrillion },
+    { unit: 1e15, from: 1e15, template: units.countQuadrillion },
+    { unit: 1, from: 1e18, template: '{value}' },
+  ];
+  return formatWithLadder(x, ladder, locale, units);
+}
+
+/** Kelvin → whole degrees Celsius, with a true minus sign. */
+export function formatCelsius(kelvin: number, locale: Locale): string {
+  const celsius = Math.round(kelvin - CELSIUS_ZERO_K);
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 })
+    .format(celsius === 0 ? 0 : celsius)
+    .replace('-', '−');
 }
 
 export function formatTemperature(kelvin: number, locale: Locale, units: Units): string {

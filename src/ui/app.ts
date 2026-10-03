@@ -3,11 +3,11 @@
 // State is one number, the control position u, plus the locale. Every change
 // schedules a single render on the next animation frame.
 
-import { LOCALES, MESSAGES, detectLocale, fill, type Locale } from '../i18n';
-import { accelerationOnset, createCosmology, matterLambdaEquality } from '../physics';
+import { LOCALES, MESSAGES, detectLocale, type Locale } from '../i18n';
+import { PLANCK2018_DERIVED, accelerationOnset, createCosmology, matterLambdaEquality } from '../physics';
 import { DEFAULT_EQUAL_SHARE, EPOCHS, createTimeScale, resolveEpochs } from '../timeline';
 import { el, setText } from './dom';
-import { formatPercent, formatPowerOfTen } from './format';
+import { formatPercent } from './format';
 import { createInfoPanel } from './infoPanel';
 import { createLicenseLine } from './licenseLine';
 import { createTimeControl } from './timeControl';
@@ -25,6 +25,7 @@ export function startApp(root: HTMLElement): void {
       acceleration: accelerationOnset(cosmology).t,
       darkEnergy: matterLambdaEquality(cosmology).t,
     },
+    lastScattering: cosmology.timeAtRedshift(PLANCK2018_DERIVED.zStar.value),
   };
   // Visible in the browser's performance tools; the plan's budget is 30 ms on a mid-range phone.
   performance.measure('cosmic-timeline:model', { start: modelStart });
@@ -38,9 +39,15 @@ export function startApp(root: HTMLElement): void {
   const title = el('h1', { class: 'title' });
   const subtitle = el('p', { class: 'subtitle' });
   const languageButton = el('button', { type: 'button', class: 'language' });
-  const header = el('header', { class: 'site-header' }, el('div', {}, title, subtitle), languageButton);
-
   const panel = createInfoPanel();
+  // The instant lives in the header, outside the scrolling area, so it stays on screen.
+  const header = el(
+    'header',
+    { class: 'site-header' },
+    el('div', { class: 'masthead' }, el('div', {}, title, subtitle), languageButton),
+    panel.instant,
+  );
+
   const control = createTimeControl(scale, (next) => {
     u = next;
     schedule();
@@ -88,10 +95,7 @@ export function startApp(root: HTMLElement): void {
       valueText: view.valueText,
       stopsLabel: m.control.stops,
       stopLabels: epochs.map((e) => m.epochs[e.id].short),
-      rulerCaption: fill(m.control.rulerCaption, {
-        from: formatPowerOfTen(Math.ceil(Math.log10(scale.anchors[0]!))),
-        to: formatPowerOfTen(Math.floor(Math.log10(scale.anchors[scale.anchors.length - 1]!))),
-      }),
+      rulerCaption: m.control.rulerCaption,
       keyboardHint: m.control.keyboardHint,
     });
   }

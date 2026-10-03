@@ -74,9 +74,24 @@ export const SOURCES = {
     citation: 'CODATA 2018, Tiesinga et al. 2021 (RMP 93, 025010)',
     url: 'https://doi.org/10.1103/RevModPhys.93.025010',
   },
+  'si-brochure-2019': {
+    citation: 'BIPM, SI Brochure, 9th ed. 2019',
+    url: 'https://www.bipm.org/en/publications/si-brochure',
+  },
+  'iau-2015-b3': {
+    citation: 'IAU 2015 Resolution B3, Prša et al. 2016 (AJ 152, 41)',
+    url: 'https://doi.org/10.3847/0004-6256/152/2/41',
+  },
+  'bahcall-2001': {
+    citation: 'Bahcall, Pinsonneault & Basu 2001 (ApJ 555, 990)',
+    url: 'https://doi.org/10.1086/321493',
+  },
 } as const satisfies Record<string, Source>;
 
 export type SourceId = keyof typeof SOURCES;
 
 /** Sources of the background model itself, cited next to the physical values. */
 export const MODEL_SOURCES: readonly SourceId[] = ['planck2018-vi', 'fixsen2009', 'saikawa-shirai-2020'];
+
+/** Sources of the reference values used in comparisons (physics/references.ts). */
+export const COMPARISON_SOURCES: readonly SourceId[] = ['si-brochure-2019', 'iau-2015-b3', 'bahcall-2001'];

@@ -23,8 +23,11 @@ function leaves(tree: Tree, prefix = ''): Map<string, string> {
 const es = leaves(MESSAGES.es as unknown as Tree);
 const en = leaves(MESSAGES.en as unknown as Tree);
 
-/** Proper names that contain digits (a data release, galaxies). Anything else with a digit is a figure. */
-const NAMES_WITH_DIGITS = ['Planck 2018', 'MoM-z14', 'JADES-GS-z14-0'];
+/**
+ * Proper names that contain digits (a data release, galaxies) and the formula
+ * notation of the technical layer. Anything else with a digit is a figure.
+ */
+const NAMES_WITH_DIGITS = ['Planck 2018', 'MoM-z14', 'JADES-GS-z14-0', '1 + z', '1/a', 'ln 2'];
 
 describe('message keys', () => {
   it('ES and EN have exactly the same keys', () => {
