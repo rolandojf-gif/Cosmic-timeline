@@ -368,6 +368,18 @@ Valores del modelo implementado (con g\*):
 - **Niveles epistémicos**: las fronteras se fijan ahora como tiempos (t del cruce electrodébil y t de T = 1 MeV), de modo que un instante definido por la temperatura frontera cae siempre del lado conocido.
 - **Textos de las épocas**: llegan con la i18n en `feat/ui`, con el test de que existen en ES y EN.
 
+### 7.2 Interfaz (feat/ui)
+
+- **Panel**: tiempo cósmico, "hace", época y valores del modelo. Distingue dos clasificaciones que no son la misma: el grado de evidencia de lo que ocurre en la época (`evidence` de `epochs.ts`) y el nivel epistémico de los valores en ese instante (`tierAt` del modelo). En la edad oscura, por ejemplo, los valores del fondo están contrastados, pero lo que ocurre no se ha observado. En el nivel especulativo el panel solo muestra el tiempo (D4).
+- **Época de un instante**: la del último ancla anterior o igual al instante (`src/timeline/lookup.ts`), es decir, el tramo del control, no el intervalo, porque los intervalos se solapan.
+- **Cifras**: tres cifras significativas en todos los valores (`src/ui/format.ts`); el modelo reproduce los valores publicados con un error menor del 1 %, así que una cuarta cifra prometería una precisión que no hay. Notación científica fuera de [10⁻³, 10⁶). Unidades por magnitud: s, min, h, días, años, millones y miles de millones de años; mm, m, km, ua y años luz. En español se usa "mil millones" (10⁹).
+- **Textos**: `src/i18n/es.ts` es la fuente de claves y `en.ts` las satisface. Los tests comprueban las mismas claves y marcadores en ambos idiomas, que ningún texto contiene cifras (salvo nombres propios: Planck 2018, MoM-z14, JADES-GS-z14-0), que nunca aparece "tamaño del universo" y que la etiqueta de D5 es la aprobada. Idioma: `?lang=` si existe; si no, el primero de los del navegador que esté entre español e inglés; si ninguno, inglés.
+- **Hoy**: el texto distingue "empezó a acelerarse" (q = 0) de "la energía oscura domina sobre la materia" (ρ_Λ = ρ_m), con los tiempos de `milestones.ts` (§2.4, D2).
+- **Fuentes en pantalla**: cada época enlaza sus fuentes y el panel enlaza las del modelo, desde `src/timeline/sources.ts`. Un test comprueba que cada identificador y su enlace están en `fuentes.md`.
+- **Control**: `role="slider"` con `aria-valuetext` ("372.000 años, Recombinación"), flechas para avance fino (Mayús para uno mayor), Re Pág y Av Pág para saltar de parada, Inicio y Fin. Arrastre con puntero y lista de paradas pulsable. La regla de escala real tiene una marca por potencia de diez en segundos. El recorrido empieza en la época de Planck. Los saltos entre paradas son instantáneos; las transiciones animadas, que son una licencia (ritmo), llegan con la escena.
+- **Licencias**: `src/scene/visualMap.ts` registra `controlScale`, la única licencia de esta PR; la línea de licencias se genera desde ese registro y [`licencias-visuales.md`](licencias-visuales.md) la documenta.
+- **Precálculo en navegador** (Chromium del contenedor de desarrollo, mediana de cinco cargas, medida `cosmic-timeline:model`): 38 ms sin limitar la CPU, 149 ms con la CPU limitada ×4 y 228 ms con ×6. Supera el objetivo de 30 ms en móvil medio (§2.4). Casi todo el coste (24 de 28 ms en Node) es evaluar g\*(T) en los puntos de cuadratura; con g\* constante el precálculo baja a 4 ms.
+
 ---
 
 ## 8. Alcance de la v1 y siguiente fase

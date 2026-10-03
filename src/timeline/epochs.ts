@@ -6,7 +6,8 @@
 // times by the cosmological model (resolve.ts); measured ages ("x years ago")
 // are converted with the model's age of the universe.
 //
-// Every source id must exist in docs/fuentes.md (checked by tests).
+// Every source id must exist in sources.ts and docs/fuentes.md (checked by the
+// compiler and by tests).
 // User-facing texts live in i18n, keyed by epoch id.
 
 import {
@@ -16,6 +17,7 @@ import {
   PLANCK_TIME,
   QCD_CROSSOVER_GEV,
 } from '../physics';
+import type { SourceId } from './sources';
 
 /** An instant, defined by how it is known. */
 export type Instant =
@@ -58,7 +60,9 @@ export type EpochId =
 export interface Landmark {
   readonly id: string;
   readonly at: Instant;
-  readonly sources: readonly string[];
+  readonly sources: readonly SourceId[];
+  /** For a record ("most distant…"): the date it was last checked, ISO 8601. */
+  readonly recordAsOf?: string;
 }
 
 export interface Epoch {
@@ -74,7 +78,7 @@ export interface Epoch {
   readonly start?: Instant;
   readonly end?: Instant;
   readonly evidence: Evidence;
-  readonly sources: readonly string[];
+  readonly sources: readonly SourceId[];
   readonly landmarks?: readonly Landmark[];
 }
 
@@ -156,8 +160,8 @@ export const EPOCHS: readonly Epoch[] = [
     evidence: 'model-dependent',
     sources: ['bromm2013'],
     landmarks: [
-      // Most distant spectroscopically confirmed galaxy as of 2026-10-03.
-      { id: 'momZ14', at: { kind: 'redshift', z: 14.44 }, sources: ['naidu2026'] },
+      // Most distant spectroscopically confirmed galaxy.
+      { id: 'momZ14', at: { kind: 'redshift', z: 14.44 }, sources: ['naidu2026'], recordAsOf: '2026-10-03' },
       { id: 'jadesGsZ14', at: { kind: 'redshift', z: 14.32 }, sources: ['carniani2024'] },
     ],
   },

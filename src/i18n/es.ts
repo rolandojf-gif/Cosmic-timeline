@@ -1,0 +1,200 @@
+// Spanish texts: the source of the message keys. en.ts must match them.
+//
+// Texts never contain figures. Every number is interpolated from the model or
+// from epochs.ts through a {placeholder}, so a text cannot contradict the data.
+
+import type { Evidence, EpochId } from '../timeline';
+import type { Tier } from '../physics';
+
+export interface EpochText {
+  /** Full name, shown as the panel heading. */
+  readonly name: string;
+  /** Short label for the list of stops. */
+  readonly short: string;
+  readonly description: string;
+}
+
+export interface LandmarkText {
+  readonly name: string;
+  readonly description: string;
+}
+
+/** Plural forms selected with Intl.PluralRules. */
+export interface Plural {
+  readonly one: string;
+  readonly other: string;
+}
+
+export const es = {
+  meta: {
+    title: 'Cosmic Timeline',
+    subtitle: 'La historia del universo, de la época de Planck a hoy',
+    description:
+      'Recorrido interactivo por la historia del universo con los valores físicos de cada instante, calculados con el modelo cosmológico de Planck 2018.',
+    switchLanguage: 'English',
+    switchLanguageLabel: 'Ver en inglés',
+  },
+  control: {
+    label: 'Tiempo cósmico',
+    valueText: '{time}, {epoch}',
+    stops: 'Paradas',
+    rulerCaption: 'Escala real del tiempo, en segundos: una marca por cada factor diez, de {from} s a {to} s.',
+    keyboardHint: 'Flechas: avance fino (con Mayús, más largo). Re Pág y Av Pág: parada siguiente o anterior.',
+  },
+  panel: {
+    time: 'Tiempo cósmico',
+    lookback: 'Hace',
+    temperature: 'Temperatura de la radiación',
+    thermalEnergy: '{temperature} · kT = {energy}',
+    redshift: 'Corrimiento al rojo (z)',
+    scaleFactor: 'Factor de escala a (relativo a hoy)',
+    observedRegion: 'Radio de la región que hoy observamos',
+    hubbleRadius: 'Radio de Hubble (c/H)',
+    hubble: 'Ritmo de expansión (H)',
+    values: 'Valores del modelo',
+    model: 'Modelo ΛCDM plano con los parámetros de Planck 2018 y los grados de libertad del Modelo Estándar.',
+    interval: 'Intervalo: de {start} a {end}',
+    illustrative:
+      'Ancla ilustrativa: el control se detiene en un instante elegido dentro de un intervalo, no en un suceso definido.',
+    evidence: 'Lo que ocurre en esta época',
+    landmarks: 'Observado en esta época',
+    landmark: '{name} (z = {z}, t = {time}): {description}.',
+    sources: 'Fuentes',
+    modelSources: 'Fuentes del modelo',
+  },
+  tier: {
+    observed:
+      'Valores contrastados con observaciones: abundancias de los elementos ligeros, fondo de microondas y distribución de galaxias.',
+    extrapolated:
+      'Valores extrapolados: física de partículas probada en aceleradores, aplicada a energías que el universo alcanzó según el modelo.',
+    speculative:
+      'Ningún modelo confirmado describe este instante. Solo se muestra el tiempo; temperatura, factor de escala, corrimiento al rojo y radios no tienen aquí un valor fiable.',
+  } satisfies Record<Tier, string>,
+  evidence: {
+    observed: 'observado',
+    'established-physics': 'física establecida, sin observación directa',
+    'model-dependent': 'dependiente de modelos, sin observación directa',
+    speculative: 'especulativo',
+  } satisfies Record<Evidence, string>,
+  units: {
+    seconds: '{value} s',
+    minutes: '{value} min',
+    hours: '{value} h',
+    days: { one: '{value} día', other: '{value} días' },
+    years: { one: '{value} año', other: '{value} años' },
+    millionYears: { one: '{value} millón de años', other: '{value} millones de años' },
+    billionYears: { one: '{value} mil millones de años', other: '{value} mil millones de años' },
+    millimeters: '{value} mm',
+    meters: '{value} m',
+    kilometers: '{value} km',
+    astronomicalUnits: '{value} ua',
+    lightYears: { one: '{value} año luz', other: '{value} años luz' },
+    millionLightYears: { one: '{value} millón de años luz', other: '{value} millones de años luz' },
+    billionLightYears: { one: '{value} mil millones de años luz', other: '{value} mil millones de años luz' },
+    kelvin: '{value} K',
+    electronVolts: '{value} {prefix}eV',
+    hubble: '{value} km s⁻¹ Mpc⁻¹',
+  } satisfies Record<string, string | Plural>,
+  epochs: {
+    planck: {
+      name: 'Época de Planck',
+      short: 'Planck',
+      description:
+        'Aquí la gravedad necesitaría una teoría cuántica que todavía no existe. Ninguna teoría confirmada describe este instante: el control empieza en el tiempo de Planck porque ahí dejan de valer las conocidas, no porque ahí empiece algo. El tiempo se cuenta desde el inicio extrapolado de la expansión, que no es un suceso observado.',
+    },
+    inflation: {
+      name: 'Inflación',
+      short: 'Inflación',
+      description:
+        'Una hipótesis: una expansión acelerada y muy breve que explicaría por qué el universo es tan homogéneo y plano y de dónde salen las semillas de las galaxias. Las medidas del fondo de microondas son compatibles con ella y descartan muchos de sus modelos, pero no fijan cuándo ocurrió ni a qué energía.',
+    },
+    quarks: {
+      name: 'Plasma de quarks y gluones',
+      short: 'Quarks',
+      description:
+        'Tras el cruce electrodébil, las partículas adquieren masa a través del campo de Higgs. Los quarks y los gluones no están confinados: forman un plasma junto a leptones y fotones. Es física probada en aceleradores, aplicada a un universo que nadie ha observado a esta temperatura.',
+    },
+    hadrons: {
+      name: 'Época hadrónica',
+      short: 'Hadrones',
+      description:
+        'Por debajo del cruce de la cromodinámica cuántica, los quarks quedan confinados en protones, neutrones y otros hadrones. Casi todos los hadrones y antihadrones se aniquilan y queda un pequeño exceso de materia. Hacia el final, los neutrinos se desacoplan y la proporción entre neutrones y protones queda casi congelada.',
+    },
+    nucleosynthesis: {
+      name: 'Nucleosíntesis primordial',
+      short: 'Nucleosíntesis',
+      description:
+        'Cuando los fotones dejan de romper el deuterio, protones y neutrones se unen en núcleos de deuterio, helio y algo de litio. Las abundancias que salen de estos minutos se miden hoy en gas muy antiguo y coinciden con la predicción, salvo una discrepancia conocida en el litio.',
+    },
+    recombination: {
+      name: 'Recombinación',
+      short: 'Recombinación',
+      description:
+        'Electrones y núcleos se unen en átomos neutros y la luz deja de chocar con ellos. Esa luz, estirada desde entonces por la expansión, es el fondo cósmico de microondas: la imagen más antigua del universo que podemos observar.',
+    },
+    darkAges: {
+      name: 'Edad oscura',
+      short: 'Edad oscura',
+      description:
+        'El gas es hidrógeno y helio neutros y aún no hay estrellas. La materia oscura y el gas se agrupan poco a poco alrededor de las pequeñas irregularidades que se ven en el fondo de microondas. No hay observación directa de esta época; la línea de radio del hidrógeno neutro podría darla.',
+    },
+    firstStars: {
+      name: 'Primeras estrellas',
+      short: 'Primeras estrellas',
+      description:
+        'Según las simulaciones, las primeras estrellas se forman en pequeños halos de materia oscura, a partir de hidrógeno y helio sin elementos más pesados, y probablemente eran muy masivas y de vida corta. Aún no se han observado.',
+    },
+    reionization: {
+      name: 'Reionización',
+      short: 'Reionización',
+      description:
+        'La luz ultravioleta de las primeras galaxias vuelve a arrancar los electrones del hidrógeno, y el gas entre galaxias deja de absorber esa luz. El ancla es el punto medio que mide Planck; los espectros de cuásares lejanos fechan el final.',
+    },
+    milkyWay: {
+      name: 'Vía Láctea',
+      short: 'Vía Láctea',
+      description:
+        'Empieza a formarse el disco grueso de nuestra galaxia, antes de que termine la reionización: las épocas se solapan. La fecha sale de edades de estrellas subgigantes medidas una a una, y su incertidumbre es mucho mayor que la de las épocas cosmológicas.',
+    },
+    solarSystem: {
+      name: 'Sistema Solar',
+      short: 'Sistema Solar',
+      description:
+        'Se condensan los primeros sólidos del disco que rodea al Sol joven. Su edad, medida con relojes radiactivos de plomo en meteoritos, es una de las fechas más precisas de esta historia.',
+    },
+    earth: {
+      name: 'Tierra',
+      short: 'Tierra',
+      description:
+        'La Tierra se forma a partir del disco del Sistema Solar. Su edad sale de la datación radiactiva de meteoritos y del plomo terrestre; su incertidumbre es mayor que la separación con la parada anterior.',
+    },
+    today: {
+      name: 'Hoy',
+      short: 'Hoy',
+      description:
+        'La expansión empezó a acelerarse hace {acceleration}, y la energía oscura domina sobre la materia desde hace {darkEnergy}. La región que podemos observar tiene el radio que muestra el panel; fuera de ella el universo continúa, quizá sin fin.',
+    },
+  } satisfies Record<EpochId, EpochText>,
+  landmarks: {
+    momZ14: {
+      name: 'MoM-z14',
+      description: 'la galaxia más lejana confirmada por espectroscopia a fecha de {date}',
+    },
+    jadesGsZ14: {
+      name: 'JADES-GS-z14-0',
+      description: 'galaxia confirmada por espectroscopia con el telescopio espacial James Webb',
+    },
+  } satisfies Record<string, LandmarkText>,
+  licences: {
+    heading: 'Interpretaciones declaradas',
+    intro:
+      'Los valores del panel salen del modelo y no se ajustan. Lo que sigue es interpretación, elegida para que la historia se pueda recorrer:',
+    controlScale: {
+      name: 'escala del control',
+      detail:
+        'El control es logarítmico por tramos: cada parada tiene una posición fija y, entre dos paradas, el tiempo avanza de forma logarítmica. El {equalShare} del recorrido se reparte a partes iguales entre los tramos y el resto sigue su duración logarítmica real. La regla bajo el control muestra la escala real.',
+    },
+  },
+};
+
+export type Messages = typeof es;
