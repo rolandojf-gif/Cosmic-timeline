@@ -223,6 +223,54 @@ export const es = {
       detail:
         'El control es logarítmico por tramos: cada parada tiene una posición fija y, entre dos paradas, el tiempo avanza de forma logarítmica. El {equalShare} del recorrido se reparte a partes iguales entre los tramos y el resto sigue su duración logarítmica real. La regla bajo el control muestra la escala real.',
     },
+    colour: {
+      name: 'color de la luz',
+      detail:
+        'El color es el que tendría un cuerpo negro a la temperatura del modelo, calculado con las funciones de color del observador patrón CIE. Por encima de {saturation} kelvin el tono ya no cambia: esa luz es sobre todo ultravioleta, rayos X o gamma, y la pantalla solo muestra su parte visible. En Planck e inflación no hay temperatura del modelo; el violeta indica que la escena es una interpretación.',
+    },
+    brightness: {
+      name: 'brillo',
+      detail:
+        'El brillo real cambia en decenas de órdenes de magnitud; aquí sigue una escala logarítmica de la temperatura. La luz se apaga del todo por debajo de {draper} K ({celsius} °C), donde un cuerpo negro deja de verse a simple vista. Desde que el universo se vuelve transparente, la materia se dibuja como un gas gris muy tenue para que la edad oscura no parezca una pantalla vacía.',
+    },
+    haze: {
+      name: 'bruma',
+      detail:
+        'Hasta la última dispersión, a z = {zStar}, la luz no viaja libre y la escena se ve como una bruma luminosa. Después la bruma se despeja; la rapidez con que lo hace es una elección.',
+    },
+    separation: {
+      name: 'separación',
+      detail:
+        'Entre el primer instante con valores del modelo y hoy las distancias crecen unas {range} veces. En pantalla, la separación entre partículas sigue el logaritmo de ese crecimiento, no su valor.',
+    },
+    motion: {
+      name: 'movimiento',
+      detail:
+        'La escena está quieta salvo al cambiar de instante. Tras cada paso, las partículas siguen separándose durante {drift}, más deprisa cuanto mayor es H·t: cuánto crecen las distancias por unidad de edad del universo.',
+    },
+    structure: {
+      name: 'estructura',
+      detail:
+        'Desde las primeras estrellas la materia se agrupa en filamentos y nudos, y aparecen estrellas y galaxias. El dibujo es ilustrativo, no un mapa de objetos reales; cuánto ha avanzado sigue el logaritmo del tiempo transcurrido desde las primeras estrellas.',
+    },
+    density: {
+      name: 'número de partículas',
+      detail:
+        'La escena dibuja {desktop} partículas en escritorio y {mobile} en móvil. No son átomos, estrellas ni galaxias concretos.',
+    },
+    camera: {
+      name: 'cámara',
+      detail:
+        'La cámara está dentro de un campo sin centro ni borde: el espacio se repite en todas direcciones y todo se aleja de todo. No hay un punto desde el que el universo explote.',
+    },
+    transitions: {
+      name: 'pasos entre instantes',
+      detail:
+        'Al cambiar de instante la escena tarda {duration} en llegar, acelerando y frenando con suavidad. Si el sistema pide menos movimiento, el cambio es instantáneo. El panel muestra siempre los valores del instante elegido, sin retraso.',
+    },
+  },
+  scene: {
+    unavailable: 'La escena no está disponible en este navegador: necesita WebGL.',
   },
 };
 

@@ -201,5 +201,53 @@ export const en = {
       detail:
         'The control is logarithmic by segments: each stop has a fixed position and, between two stops, time advances logarithmically. {equalShare} of the track is shared equally between segments and the rest follows their true logarithmic length. The ruler under the control shows the true scale.',
     },
+    colour: {
+      name: 'colour of the light',
+      detail:
+        'The colour is that of a black body at the model temperature, computed with the colour-matching functions of the CIE standard observer. Above {saturation} kelvin the hue no longer changes: that light is mostly ultraviolet, X-rays or gamma rays, and the screen only shows its visible part. At the Planck and inflation stops the model gives no temperature; the violet says the scene is an interpretation.',
+    },
+    brightness: {
+      name: 'brightness',
+      detail:
+        'True brightness changes by tens of orders of magnitude; here it follows a logarithmic scale of temperature. The light goes out completely below {draper} K ({celsius} °C), where a black body stops being visible to the eye. Once the universe is transparent, matter is drawn as a very faint grey gas so that the dark ages do not look like an empty screen.',
+    },
+    haze: {
+      name: 'haze',
+      detail:
+        'Until last scattering, at z = {zStar}, light cannot travel freely and the scene looks like a glowing haze. Afterwards the haze clears; how quickly it clears is a choice.',
+    },
+    separation: {
+      name: 'separation',
+      detail:
+        'Between the first instant with model values and today, distances grow about {range} times. On screen, the separation between particles follows the logarithm of that growth, not its value.',
+    },
+    motion: {
+      name: 'motion',
+      detail:
+        'The scene is still except when the instant changes. After each step the particles keep moving apart for {drift}, faster the larger H·t is: how much distances grow per unit of the age of the universe.',
+    },
+    structure: {
+      name: 'structure',
+      detail:
+        'From the first stars on, matter gathers into filaments and knots, and stars and galaxies appear. The drawing is illustrative, not a map of real objects; how far it has advanced follows the logarithm of the time since the first stars.',
+    },
+    density: {
+      name: 'number of particles',
+      detail:
+        'The scene draws {desktop} particles on desktop and {mobile} on mobile. They are not specific atoms, stars or galaxies.',
+    },
+    camera: {
+      name: 'camera',
+      detail:
+        'The camera is inside a field with no centre and no edge: space repeats in every direction and everything moves away from everything else. There is no point from which the universe explodes.',
+    },
+    transitions: {
+      name: 'steps between instants',
+      detail:
+        'When the instant changes, the scene takes {duration} to arrive, speeding up and slowing down gently. If the system asks for less motion, the change is instant. The panel always shows the values of the chosen instant, without delay.',
+    },
+  },
+  scene: {
+    unavailable: 'The scene is not available in this browser: it needs WebGL.',
   },
 } satisfies Messages;
