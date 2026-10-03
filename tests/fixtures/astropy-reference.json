@@ -1,0 +1,107 @@
+{
+  "generator": "scripts/gen-reference.py",
+  "astropyVersion": "8.0.1",
+  "scipyVersion": "1.17.1",
+  "model": {
+    "H0": 67.66,
+    "Om0": 0.3111,
+    "Tcmb0": 2.7255,
+    "Neff": 3.046,
+    "m_nu_eV": 0,
+    "Ogamma0": 5.402015137139353e-05,
+    "Onu0": 3.73694601298001e-05,
+    "Ode0": 0.6888086103884988
+  },
+  "rows": [
+    {
+      "z": 0,
+      "ageSeconds": 4.350506924658695e+17,
+      "hubblePerSecond": 2.192711267238057e-18
+    },
+    {
+      "z": 0.1,
+      "ageSeconds": 3.92599598935694e+17,
+      "hubblePerSecond": 2.3028860845382367e-18
+    },
+    {
+      "z": 0.3,
+      "ageSeconds": 3.2370609013607475e+17,
+      "hubblePerSecond": 2.5688960825733958e-18
+    },
+    {
+      "z": 0.5,
+      "ageSeconds": 2.7107217621348666e+17,
+      "hubblePerSecond": 2.891747893818518e-18
+    },
+    {
+      "z": 1,
+      "ageSeconds": 1.8463013654584592e+17,
+      "hubblePerSecond": 3.9095930255638834e-18
+    },
+    {
+      "z": 2,
+      "ageSeconds": 1.0339053207930046e+17,
+      "hubblePerSecond": 6.613091830172962e-18
+    },
+    {
+      "z": 3,
+      "ageSeconds": 6.763694516309205e+16,
+      "hubblePerSecond": 9.957566217635769e-18
+    },
+    {
+      "z": 5,
+      "ageSeconds": 3.693389117554886e+16,
+      "hubblePerSecond": 1.8082205071221872e-17
+    },
+    {
+      "z": 7.82,
+      "ageSeconds": 2.072344511242877e+16,
+      "hubblePerSecond": 3.2128764166340496e-17
+    },
+    {
+      "z": 10,
+      "ageSeconds": 1.4870073943814616e+16,
+      "hubblePerSecond": 4.472813589226791e-17
+    },
+    {
+      "z": 20,
+      "ageSeconds": 5616936345961688.0,
+      "hubblePerSecond": 1.1807214610313355e-16
+    },
+    {
+      "z": 30,
+      "ageSeconds": 3120180825789647.0,
+      "hubblePerSecond": 2.120598844713818e-16
+    },
+    {
+      "z": 100,
+      "ageSeconds": 518086928507298.4,
+      "hubblePerSecond": 1.2596880421490682e-15
+    },
+    {
+      "z": 300,
+      "ageSeconds": 95130350476182.6,
+      "hubblePerSecond": 6.6631561380356195e-15
+    },
+    {
+      "z": 1089.8,
+      "ageSeconds": 11733168598607.527,
+      "hubblePerSecond": 5.0629997353556504e-14
+    },
+    {
+      "z": 3400,
+      "ageSeconds": 1610385396406.1248,
+      "hubblePerSecond": 3.429709095193059e-13
+    },
+    {
+      "z": 10000.0,
+      "ageSeconds": 215659443045.35544,
+      "hubblePerSecond": 2.4273373821111212e-12
+    },
+    {
+      "z": 100000.0,
+      "ageSeconds": 2358678245.3101425,
+      "hubblePerSecond": 2.131608149638051e-10
+    }
+  ]
+}
