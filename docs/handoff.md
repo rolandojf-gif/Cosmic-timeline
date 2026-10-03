@@ -178,13 +178,12 @@ Todos los pasos del plan de integración se han completado y verificado en `feat
 9. **Limpieza del prototipo**: Eliminados `prototype.html`, `src/prototype/` y `scripts/capture-prototype.mjs`; añadido `scripts/capture-scene.mjs` para capturar la aplicación en producción.
 10. **Métricas finales de verificación**:
     - `npm run verify` pasa al 100 % (189 tests en 23 suites, typecheck estricto).
-    - Tamaños de bundle en producción:
-      - `index.html`: 0,94 kB (gzip: 0,50 kB)
-      - `index.css`: 6,63 kB (gzip: 2,21 kB)
-      - `index.js`: 72,57 kB (gzip: 29,35 kB)
-      - `scene.js`: 566,86 kB (gzip: 143,32 kB)
-      - `cosmicWeb.worker.js`: 3,93 kB
     - Cero errores en consola en el navegador.
+11. **Reproductor y etiquetas interactivas en escena**:
+    - Controles de reproducción en la barra de tiempo: reinicio (⏮), reproducción (▶), pausa (⏸) y selector de velocidad (1×, 2×, 4×), avanzando el recorrido de forma fluida (60 s a 1×).
+    - Al pulsar cualquier etiqueta de parada o el marcador 3D, el cabezal salta al instante elegido y continúa reproduciendo sin detenerse si estaba en marcha.
+    - Pausa automática al interactuar manualmente con el control deslizante y tecla Espacio para alternar play/pause.
+    - Marcador y tarjeta 3D en escena (`.scene-callout`) anclado en coordenadas proyectadas de una galaxia espiral representativa (licencia `milkyWayPin`), visible en las paradas de *Vía Láctea*, *Sistema Solar*, *Tierra* y *Hoy*.
 
 ## 6. Forma de trabajo
 

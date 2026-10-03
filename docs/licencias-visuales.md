@@ -89,3 +89,8 @@ Resultado: la radiación deja de verse hacia los 3,15 millones de años (z ≈ 2
 ## `grading`
 
 **Etalonaje y postproceso.** La composición en pantalla utiliza mapeo de tonos ACES Filmic para preservar los matices de luminosidad sin saturar bruscamente en blanco, viñeteado óptico suave hacia las esquinas y un grano muy fino (0,02) para evitar bandas de color en los degradados del plasma.
+
+## `milkyWayPin`
+
+**Posición de la Vía Láctea.** En la caja periódica de la red cósmica se señala ilustrativamente una galaxia espiral representativa para contextualizar espacialmente el nacimiento de nuestra galaxia, la posterior formación del Sistema Solar y el surgimiento de la Tierra.
+

@@ -18,6 +18,10 @@ export const en = {
     stops: 'Stops',
     rulerCaption: 'True time scale, in seconds: one tick per factor of ten.',
     keyboardHint: 'Arrows: fine steps (longer with Shift). Page Up and Page Down: next or previous stop.',
+    play: 'Play',
+    pause: 'Pause',
+    reset: 'Reset',
+    speed: 'Speed',
   },
   panel: {
     time: 'Cosmic time',
@@ -271,6 +275,21 @@ export const en = {
       detail:
         'The final image undergoes tone mapping to compress the dynamic range of glowing light, subtle edge vignetting, and fine grain to prevent colour banding across soft gradients.',
     },
+    milkyWayPin: {
+      name: 'Milky Way location',
+      detail:
+        'In the periodic cosmic web, a representative spiral galaxy is marked illustratively to spatially contextualise the origin of our galaxy, the Solar System, and the Earth.',
+    },
+  },
+  callout: {
+    milkyWay: 'Milky Way',
+    milkyWaySub: 'Our galaxy forming',
+    solarSystem: 'Solar System',
+    solarSystemSub: 'Forming in the Orion Arm',
+    earth: 'The Earth',
+    earthSub: 'Accretion and planetary formation',
+    today: 'Milky Way',
+    todaySub: 'Our home in the cosmos',
   },
   scene: {
     unavailable: 'The scene is not available in this browser: it needs WebGL.',

@@ -40,6 +40,10 @@ export const es = {
     stops: 'Paradas',
     rulerCaption: 'Escala real del tiempo, en segundos: una marca por cada factor diez.',
     keyboardHint: 'Flechas: avance fino (con Mayús, más largo). Re Pág y Av Pág: parada siguiente o anterior.',
+    play: 'Reproducir',
+    pause: 'Pausar',
+    reset: 'Reiniciar',
+    speed: 'Velocidad',
   },
   panel: {
     time: 'Tiempo cósmico',
@@ -293,6 +297,21 @@ export const es = {
       detail:
         'La imagen final pasa por un mapeo de tonos para comprimir el rango dinámico del resplandor, un ligero viñeteado en los bordes y un grano sutil para evitar bandas de color en los degradados suaves.',
     },
+    milkyWayPin: {
+      name: 'posición de la Vía Láctea',
+      detail:
+        'En la red cósmica periódica, se señala ilustrativamente una galaxia espiral representativa para contextualizar espacialmente el origen de nuestra galaxia, el Sistema Solar y la Tierra.',
+    },
+  },
+  callout: {
+    milkyWay: 'Vía Láctea',
+    milkyWaySub: 'Nuestra galaxia en formación',
+    solarSystem: 'Sistema Solar',
+    solarSystemSub: 'Formación en el brazo de Orión',
+    earth: 'La Tierra',
+    earthSub: 'Acreción y formación planetaria',
+    today: 'Vía Láctea',
+    todaySub: 'Nuestro lugar en el cosmos',
   },
   scene: {
     unavailable: 'La escena no está disponible en este navegador: necesita WebGL.',

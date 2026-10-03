@@ -65,6 +65,7 @@ export interface SceneOptions {
   readonly stateAt: (u: number) => VisualState;
   readonly reducedMotion: boolean;
   readonly mobile: boolean;
+  readonly onTargetScreenPos?: (pos: { x: number; y: number; visible: boolean }) => void;
 }
 
 export interface ParticleScene {
@@ -92,7 +93,12 @@ function buildGalaxies(
   web: CosmicWeb,
   dFirstStars: number,
   n: number,
-): { readonly geometry: BufferGeometry; readonly boost: number } {
+): {
+  readonly geometry: BufferGeometry;
+  readonly boost: number;
+  readonly targetQ: Vector3;
+  readonly targetPsi: Vector3;
+} {
   const boost = COLLAPSE / (dFirstStars * web.peaks[Math.min(1500, web.peaks.length - 1)]!.delta);
   const PEAKS = Math.min(6000, web.peaks.length);
   const gal: number[] = [];
@@ -137,7 +143,12 @@ function buildGalaxies(
   geometry.setAttribute('position', new Float32BufferAttribute(gal, 3));
   geometry.setAttribute('aPsi', new Float32BufferAttribute(galPsi, 3));
   geometry.setAttribute('aData', new Float32BufferAttribute(galData, 4));
-  return { geometry, boost };
+
+  // Designated Milky Way representative galaxy (member 2 of primary cluster)
+  const targetQ = new Vector3(gal[6] ?? 0.5, gal[7] ?? 0.5, gal[8] ?? 0.5);
+  const targetPsi = new Vector3(galPsi[6] ?? 0, galPsi[7] ?? 0, galPsi[8] ?? 0);
+
+  return { geometry, boost, targetQ, targetPsi };
 }
 
 export function createParticleScene(options: SceneOptions): ParticleScene | null {
@@ -230,6 +241,8 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let haloMaterial: ShaderMaterial | null = null;
   let galaxiesGeometry: BufferGeometry | null = null;
   let galaxiesMaterial: ShaderMaterial | null = null;
+  let targetQ: Vector3 | null = null;
+  let targetPsi: Vector3 | null = null;
 
   const N = options.mobile ? 64 : 128;
   const initialProjScale = innerHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
@@ -299,8 +312,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     scene.add(halo);
 
     const firstState = options.stateAt(currentU);
-    const { geometry: galGeom, boost } = buildGalaxies(web, firstState.dFirstStars, N);
+    const { geometry: galGeom, boost, targetQ: tQ, targetPsi: tPsi } = buildGalaxies(web, firstState.dFirstStars, N);
     galaxiesGeometry = galGeom;
+    targetQ = tQ;
+    targetPsi = tPsi;
 
     galaxiesMaterial = new ShaderMaterial({
       glslVersion: GLSL3,
@@ -454,6 +469,25 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     }
 
     composer.render();
+
+    // Target galaxy screen projection for local landmark callouts (Milky Way / Solar System / Earth)
+    if (options.onTargetScreenPos && targetQ && targetPsi) {
+      const D = state.growthD;
+      let dx = targetQ.x + D * targetPsi.x - camBox.x;
+      let dy = targetQ.y + D * targetPsi.y - camBox.y;
+      let dz = targetQ.z + D * targetPsi.z - camBox.z;
+      dx -= Math.round(dx);
+      dy -= Math.round(dy);
+      dz -= Math.round(dz);
+      const worldPos = new Vector3(dx * BOX, dy * BOX, dz * BOX);
+      const proj = worldPos.clone().project(camera);
+      const width = canvas.clientWidth || window.innerWidth;
+      const height = canvas.clientHeight || window.innerHeight;
+      const sx = (proj.x * 0.5 + 0.5) * width;
+      const sy = (-proj.y * 0.5 + 0.5) * height;
+      const inView = proj.z > 0 && proj.z < 1 && proj.x >= -0.9 && proj.x <= 0.9 && proj.y >= -0.9 && proj.y <= 0.9;
+      options.onTargetScreenPos({ x: sx, y: sy, visible: inView && state.galaxiesVisible > 0.05 });
+    }
 
     // Dev FPS counter
     frameCount++;

@@ -85,6 +85,82 @@ a:hover {
   height: 100%;
 }
 
+/* 3D Scene Callout (Milky Way / Solar System / Earth) */
+.scene-callout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 10;
+  transform: translate(-50%, -100%);
+  transition: opacity 0.35s ease, transform 0.08s linear;
+  opacity: 0;
+  text-align: left;
+  font-family: inherit;
+}
+
+.scene-callout.visible {
+  opacity: 1;
+}
+
+.callout-reticle {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--accent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 12px rgb(230 196 143 / 0.6);
+  pointer-events: none;
+}
+
+.callout-reticle::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.callout-card {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgb(5 6 10 / 0.88);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 18px rgb(0 0 0 / 0.5);
+  white-space: nowrap;
+  margin-bottom: 8px;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+
+.scene-callout:hover .callout-card,
+.scene-callout:focus-visible .callout-card {
+  border-color: var(--accent);
+  background: rgb(15 17 25 / 0.95);
+  transform: translateY(-2px);
+}
+
+.callout-title {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.03em;
+}
+
+.callout-subtitle {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
 .site-header,
 .stage,
 .dock {
@@ -329,6 +405,78 @@ a:hover {
   backdrop-filter: blur(6px);
 }
 
+/* Playback toolbar */
+.playback-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
+}
+
+.playback-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.playback-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.playback-btn:hover {
+  border-color: var(--faint);
+  background: rgb(255 255 255 / 0.06);
+}
+
+.playback-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgb(230 196 143 / 0.12);
+}
+
+.speed-group {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-left: 4px;
+}
+
+.speed-btn {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.speed-btn:hover {
+  color: var(--text);
+}
+
+.speed-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+
 .control-slider {
   position: relative;
   height: 40px;
@@ -409,9 +557,9 @@ a:hover {
 }
 
 .ruler-caption {
-  margin: 2px 8px 6px;
+  margin: 0 4px;
   color: var(--muted);
-  font-size: 0.8125rem;
+  font-size: 0.78rem;
   line-height: 1.35;
 }
 

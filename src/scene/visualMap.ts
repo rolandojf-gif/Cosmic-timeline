@@ -37,7 +37,8 @@ export type LicenceId =
   | 'galaxySize'
   | 'camera'
   | 'transitions'
-  | 'grading';
+  | 'grading'
+  | 'milkyWayPin';
 
 export const VISUAL_LICENCES: readonly LicenceId[] = [
   'controlScale',
@@ -55,6 +56,7 @@ export const VISUAL_LICENCES: readonly LicenceId[] = [
   'camera',
   'transitions',
   'grading',
+  'milkyWayPin',
 ];
 
 // ---------------------------------------------------------------------------
