@@ -4,6 +4,9 @@
 :root {
   --bg: #05060a;
   --surface: rgb(14 16 24 / 0.82);
+  --header-surface: rgb(6 8 14 / 0.38);
+  --dock-surface: rgb(7 9 16 / 0.58);
+  --glass-line: rgb(255 255 255 / 0.08);
   --line: #2a2d3a;
   --text: #e9e6df;
   --muted: #9b9aa5;
@@ -177,13 +180,16 @@ a:hover {
 }
 
 .has-scene .site-header {
-  background: var(--surface);
-  backdrop-filter: blur(6px);
+  background: var(--header-surface);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid var(--glass-line);
+  box-shadow: 0 4px 24px rgb(0 0 0 / 0.25);
 }
 
 /* On wide screens the text column keeps a dark backing; the right side is open scene. */
 .has-scene .stage {
-  background: linear-gradient(90deg, rgb(5 6 10 / 0.9) 0, rgb(5 6 10 / 0.82) 34rem, rgb(5 6 10 / 0) 52rem);
+  background: linear-gradient(90deg, rgb(5 6 10 / 0.62) 0, rgb(5 6 10 / 0.42) 30rem, rgb(5 6 10 / 0) 48rem);
 }
 
 .scene-window {
@@ -408,9 +414,11 @@ a:hover {
 
 .dock {
   padding: 8px var(--gutter) max(10px, env(safe-area-inset-bottom));
-  border-top: 1px solid var(--line);
-  background: var(--surface);
-  backdrop-filter: blur(6px);
+  border-top: 1px solid var(--glass-line);
+  background: var(--dock-surface);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 -4px 24px rgb(0 0 0 / 0.25);
 }
 
 /* Playback toolbar */
@@ -437,7 +445,7 @@ a:hover {
   height: 32px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: transparent;
+  background: rgb(15 18 28 / 0.6);
   color: var(--text);
   font-size: 0.85rem;
   cursor: pointer;
@@ -446,13 +454,13 @@ a:hover {
 
 .playback-btn:hover {
   border-color: var(--faint);
-  background: rgb(255 255 255 / 0.06);
+  background: rgb(25 29 42 / 0.8);
 }
 
 .playback-btn.active {
   border-color: var(--accent);
   color: var(--accent);
-  background: rgb(230 196 143 / 0.12);
+  background: rgb(230 196 143 / 0.15);
 }
 
 .speed-group {
@@ -461,6 +469,7 @@ a:hover {
   border-radius: 6px;
   overflow: hidden;
   margin-left: 4px;
+  background: rgb(15 18 28 / 0.6);
 }
 
 .speed-btn {
@@ -585,22 +594,25 @@ a:hover {
   padding: 5px 10px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: transparent;
+  background: rgb(15 18 28 / 0.5);
   color: var(--muted);
   font: inherit;
   font-size: 0.78rem;
   white-space: nowrap;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .stop-button:hover {
   color: var(--text);
   border-color: var(--faint);
+  background: rgb(25 29 42 / 0.7);
 }
 
 .stop-button[aria-current='step'] {
   border-color: var(--accent);
   color: var(--accent);
+  background: rgb(230 196 143 / 0.15);
 }
 
 .licences {
@@ -657,8 +669,10 @@ a:hover {
     padding: 12px var(--gutter) 0;
     min-height: 67cqh;
     border-radius: var(--radius) var(--radius) 0 0;
-    background: rgb(5 6 10 / 0.88);
-    backdrop-filter: blur(4px);
+    background: rgb(5 6 10 / 0.72);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border-top: 1px solid var(--glass-line);
   }
 
   /* Keep the fixed header short so the content keeps room to scroll. */

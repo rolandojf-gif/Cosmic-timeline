@@ -193,6 +193,11 @@ Todos los pasos del plan de integración se han completado y verificado en `feat
     - **Solución implementada**:
       1. *Deriva de cámara continua y monótona*: Se eliminó la oscilación armónica de vaivén, sustituyéndola por un deslizamiento suave, continuo y unidireccional por la caja periódica ($\vec{v} = (0{,}00024, 0{,}00012, 0{,}00018)/\text{s}$) con orientación fija hacia el nodo de acumulación (`lookAt`). El paralaje es siempre constante hacia adelante y jamás retrocede ni oscila.
       2. *Curva de ritmo adaptada en el tramo final*: En `pacingFactor`, el paso por la meseta de 27 Ma de Sistema Solar a Tierra ($u \in [0{,}88, 0{,}94]$) se acelera suavemente a $\sim 1{,}6\times$ (recorriéndose en $\sim 1{,}9\text{ s}$ en vez de 6 s), y la etapa final de Tierra a Hoy ($u \in [0{,}94, 1{,}0]$) se ralentiza a $\sim 0{,}36\times$ ($\sim 8{,}0\text{ s}$), logrando una transición cinemática fluida, continua, majestuosa y sin frenazos ni acelerones.
+13. **Franjas translúcidas con glassmorphism**:
+    - **Cabecera superior (`.site-header`)**: Fondo altamente translúcido `rgb(6 8 14 / 0.38)` con `backdrop-filter: blur(14px) saturate(140%)`, borde inferior de cristal sutil (`rgb(255 255 255 / 0.08)`) y sombra difusa. Permite que el resplandor de las partículas, el plasma y las galaxias se extienda hasta el borde superior de la pantalla manteniendo el texto nítido y legible.
+    - **Columna de texto (`.stage`)**: Gradiente oscurecedor atenuado (`rgb(5 6 10 / 0.62) → 0.42 → 0`), ampliando el campo de visión de la escena cósmica hacia la izquierda.
+    - **Barra inferior (`.dock`)**: Fondo de cristal esmerilado translúcido `rgb(7 9 16 / 0.58)` con `backdrop-filter: blur(16px) saturate(140%)` y borde superior de cristal. Para garantizar la usabilidad y legibilidad de los controles (botones de reproducción, selectores de velocidad y pastillas de paradas), cada botón cuenta con su propia base semitraslúcida de contraste (`rgb(15 18 28 / 0.6)`), evitando que partículas brillantes que pasen por detrás resten visibilidad o tactilidad a la interfaz.
+    - **Móvil**: Panel inferior adaptado con fondo translúcido `rgb(5 6 10 / 0.75)` y desenfoque de 12 px.
 
 
 ## 6. Forma de trabajo
