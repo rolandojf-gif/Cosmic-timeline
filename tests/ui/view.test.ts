@@ -71,6 +71,14 @@ describe('panel view', () => {
   it('lists the observed galaxies inside the first-stars epoch', () => {
     const view = panelView(context, at('firstStars'), 'en', MESSAGES.en);
     expect(view.landmarks).toHaveLength(2);
-    expect(view.landmarks[0]).toContain('MoM-z14 (z = 14.4');
+    expect(view.landmarks[0]!.text).toContain('MoM-z14 (z = 14.4');
+  });
+
+  it('cites each observed galaxy with its own source, not the epoch source', () => {
+    const view = panelView(context, at('firstStars'), 'en', MESSAGES.en);
+    expect(view.landmarks.map((l) => l.sources.map((s) => s.url))).toEqual([
+      ['https://arxiv.org/abs/2505.11263'],
+      ['https://doi.org/10.1038/s41586-024-07860-9'],
+    ]);
   });
 });

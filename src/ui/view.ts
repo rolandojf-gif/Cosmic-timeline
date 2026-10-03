@@ -40,7 +40,8 @@ export interface PanelView {
   readonly interval: string | null;
   readonly illustrative: string | null;
   readonly description: string;
-  readonly landmarks: readonly string[];
+  /** Observations dated inside the epoch, each with its own sources. */
+  readonly landmarks: readonly { readonly text: string; readonly sources: readonly Source[] }[];
   readonly sources: readonly Source[];
   /** Null in the speculative tier: the model gives no values there. */
   readonly values: readonly ValueRow[] | null;
@@ -73,14 +74,17 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
     ];
     if (!landmarkText) throw new Error(`no text for landmark ${landmark.id}`);
     const z = landmark.source.at.kind === 'redshift' ? landmark.source.at.z : 1 / cosmology.scaleFactorAtTime(landmark.time) - 1;
-    return fill(m.panel.landmark, {
-      name: landmarkText.name,
-      z: formatNumber(z, locale),
-      time: duration(landmark.time),
-      description: fill(landmarkText.description, {
-        date: landmark.source.recordAsOf ? formatDate(landmark.source.recordAsOf, locale) : '',
+    return {
+      text: fill(m.panel.landmark, {
+        name: landmarkText.name,
+        z: formatNumber(z, locale),
+        time: duration(landmark.time),
+        description: fill(landmarkText.description, {
+          date: landmark.source.recordAsOf ? formatDate(landmark.source.recordAsOf, locale) : '',
+        }),
       }),
-    });
+      sources: landmark.source.sources.map((id) => SOURCES[id]),
+    };
   });
 
   let values: ValueRow[] | null = null;

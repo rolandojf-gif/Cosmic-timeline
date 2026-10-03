@@ -193,7 +193,8 @@ a:hover {
 }
 
 .sources,
-.model {
+.model,
+.landmark-sources {
   margin: 0;
   color: var(--faint);
   font-size: 0.8rem;

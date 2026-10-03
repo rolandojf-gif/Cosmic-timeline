@@ -63,7 +63,9 @@ export function createInfoPanel(): InfoPanel {
         setText(description, view.description);
         landmarksHeading.hidden = view.landmarks.length === 0;
         setText(landmarksHeading, m.panel.landmarks);
-        landmarks.replaceChildren(...view.landmarks.map((l) => el('li', {}, l)));
+        landmarks.replaceChildren(
+          ...view.landmarks.map((l) => el('li', {}, l.text, ' ', el('span', { class: 'landmark-sources' }, ...sourceList(l.sources)))),
+        );
         sources.replaceChildren(`${m.panel.sources}: `, ...sourceList(view.sources));
         setText(valuesHeading, m.panel.values);
         model.replaceChildren(m.panel.model, ' ', `${m.panel.modelSources}: `, ...sourceList(view.modelSources), '.');
