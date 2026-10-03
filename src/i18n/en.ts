@@ -76,6 +76,7 @@ export const en = {
     speculative: 'speculative',
   },
   units: {
+    picoseconds: { one: '{value} picosecond', other: '{value} picoseconds' },
     nanoseconds: { one: '{value} nanosecond', other: '{value} nanoseconds' },
     microseconds: { one: '{value} microsecond', other: '{value} microseconds' },
     milliseconds: { one: '{value} millisecond', other: '{value} milliseconds' },

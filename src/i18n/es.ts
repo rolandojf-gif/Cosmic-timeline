@@ -98,6 +98,7 @@ export const es = {
     speculative: 'especulativo',
   } satisfies Record<Evidence, string>,
   units: {
+    picoseconds: { one: '{value} picosegundo', other: '{value} picosegundos' },
     nanoseconds: { one: '{value} nanosegundo', other: '{value} nanosegundos' },
     microseconds: { one: '{value} microsegundo', other: '{value} microsegundos' },
     milliseconds: { one: '{value} milisegundo', other: '{value} milisegundos' },

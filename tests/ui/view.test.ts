@@ -83,6 +83,29 @@ describe('main layer, in everyday terms', () => {
     expect(Math.round(T / SUN_CENTRAL_TEMPERATURE_K / 1000)).toBe(116);
   });
 
+  // ~10¹² K: "billones" in Spanish (long scale), "trillion" in English (short scale).
+  it('names the hadron-epoch temperature with each language scale', () => {
+    const es = panelView(context, at('hadrons'), 'es', MESSAGES.es);
+    const en = panelView(context, at('hadrons'), 'en', MESSAGES.en);
+    expect(human(es, 'temperature')).toBe('1,82 billones de grados, 116.000 veces la temperatura del centro del Sol');
+    expect(human(en, 'temperature')).toBe('1.82 trillion degrees, 116,000 times the temperature at the centre of the Sun');
+    expect(human(es, 'distances')).toBe('Todo estaba 1,27 billones de veces más cerca que hoy.');
+    expect(human(en, 'distances')).toBe('Everything was 1.27 trillion times closer than today.');
+  });
+
+  it('uses words, not scientific notation, at every instant with model values', () => {
+    const tEW = cosmology.timeAtTemperature(gevToKelvin(ELECTROWEAK_CROSSOVER_GEV));
+    for (const locale of ['es', 'en'] as const) {
+      for (let i = 0; i <= 400; i++) {
+        const t = tEW * (cosmology.age / tEW) ** (i / 400);
+        const view = panelView(context, t, locale, MESSAGES[locale]);
+        if (view.human === null) continue;
+        expect(view.time, `${locale} t = ${t}`).not.toContain('×');
+        for (const row of view.human) expect(row.text, `${locale} t = ${t} ${row.key}`).not.toContain('×');
+      }
+    }
+  });
+
   it('gives degrees Celsius once the temperature is everyday-sized', () => {
     const view = panelView(context, at('recombination'), 'es', MESSAGES.es);
     expect(human(view, 'temperature')).toBe('2700 °C');

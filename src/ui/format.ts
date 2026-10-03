@@ -137,8 +137,11 @@ const DAY = 86_400;
 /** A duration in seconds, in the most readable unit. */
 export function formatDuration(seconds: number, locale: Locale, units: Units): string {
   const ladder: Rung[] = [
-    // Below a nanosecond: seconds in scientific notation.
+    // Below a picosecond there is no everyday word: seconds in scientific
+    // notation. Only the speculative tier reaches it; the model's values start
+    // at the electroweak crossover, ~10⁻¹¹ s.
     { unit: 1, from: 0, template: units.seconds },
+    { unit: 1e-12, from: 1e-12, template: units.picoseconds },
     { unit: 1e-9, from: 1e-9, template: units.nanoseconds },
     { unit: 1e-6, from: 1e-6, template: units.microseconds },
     { unit: 1e-3, from: 1e-3, template: units.milliseconds },

@@ -59,7 +59,8 @@ describe('durations', () => {
     expect(formatDuration(0.746, 'en', en)).toBe('746 milliseconds');
     expect(formatDuration(1.95e-5, 'es', es)).toBe('19,5 microsegundos');
     expect(formatDuration(3e-9, 'en', en)).toBe('3 nanoseconds');
-    expect(formatDuration(9.35e-12, 'en', en)).toBe('9.35 × 10⁻¹² s');
+    expect(formatDuration(9.35e-12, 'en', en)).toBe('9.35 picoseconds');
+    expect(formatDuration(9e-13, 'en', en)).toBe('9 × 10⁻¹³ s');
     expect(formatDuration(119, 'en', en)).toBe('1.98 min');
     expect(formatDuration(371_800 * JULIAN_YEAR, 'en', en)).toBe('372,000 years');
     expect(formatDuration(656.7e6 * JULIAN_YEAR, 'en', en)).toBe('657 million years');
@@ -113,7 +114,10 @@ describe('temperature, energy and expansion rate', () => {
 });
 
 describe('counts in words', () => {
+  // Spanish uses the long scale (billón = 10¹²), English the short one (billion = 10⁹).
   it('names large numbers on the long scale in Spanish and the short scale in English', () => {
+    expect(formatCount(1.27e9, 'es', es)).toBe('1,27 mil millones de');
+    expect(formatCount(1.27e9, 'en', en)).toBe('1.27 billion');
     expect(formatCount(116_000, 'es', es)).toBe('116.000');
     expect(formatCount(1.27e12, 'es', es)).toBe('1,27 billones de');
     expect(formatCount(1.27e12, 'en', en)).toBe('1.27 trillion');
