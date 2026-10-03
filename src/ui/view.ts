@@ -113,7 +113,11 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
   const time = duration(t);
   const lookbackSeconds = cosmology.age - t;
 
-  const description = fill(text.description, {
+  const isReheating = epoch.id === 'inflation' && t >= 1e-32;
+  const epochName = isReheating && m.epochs.inflation.reheatingName ? m.epochs.inflation.reheatingName : text.name;
+  const rawDescription = isReheating && m.epochs.inflation.reheatingDescription ? m.epochs.inflation.reheatingDescription : text.description;
+
+  const description = fill(rawDescription, {
     acceleration: duration(cosmology.age - milestones.acceleration),
     darkEnergy: duration(cosmology.age - milestones.darkEnergy),
   });
@@ -123,11 +127,19 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
       landmark.id
     ];
     if (!landmarkText) throw new Error(`no text for landmark ${landmark.id}`);
-    const z = landmark.source.at.kind === 'redshift' ? landmark.source.at.z : 1 / cosmology.scaleFactorAtTime(landmark.time) - 1;
+    let zStr = '—';
+    if (landmark.source.at.kind === 'redshift') {
+      zStr = formatNumber(landmark.source.at.z, locale);
+    } else {
+      const p = cosmology.stateAt(landmark.time).physical;
+      if (p !== null) {
+        zStr = formatNumber(1 / p.a - 1, locale);
+      }
+    }
     return {
       text: fill(m.panel.landmark, {
         name: landmarkText.name,
-        z: formatNumber(z, locale),
+        z: zStr,
         time: duration(landmark.time),
         description: fill(landmarkText.description, {
           date: landmark.source.recordAsOf ? formatDate(landmark.source.recordAsOf, locale) : '',
@@ -217,7 +229,7 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
     epochIndex,
     time,
     lookback: lookbackSeconds > 0 ? duration(lookbackSeconds) : null,
-    epochName: text.name,
+    epochName,
     evidence: m.evidence[epoch.evidence],
     interval:
       resolved.start !== resolved.end
@@ -232,6 +244,6 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
     tier: m.tier[state.tier],
     modelSources: MODEL_SOURCES.map((id) => SOURCES[id]),
     comparisonSources: COMPARISON_SOURCES.map((id) => SOURCES[id]),
-    valueText: fill(m.control.valueText, { time, epoch: text.name }),
+    valueText: fill(m.control.valueText, { time, epoch: epochName }),
   };
 }

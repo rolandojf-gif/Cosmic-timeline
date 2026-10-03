@@ -12,6 +12,8 @@ export interface EpochText {
   /** Short label for the list of stops. */
   readonly short: string;
   readonly description: string;
+  readonly reheatingName?: string;
+  readonly reheatingDescription?: string;
 }
 
 export interface LandmarkText {
@@ -140,6 +142,9 @@ export const es = {
       short: 'Inflación',
       description:
         'Una hipótesis: una expansión acelerada que estira el vacío y diluye cualquier fluctuación previa, enfriando el universo casi hasta el cero absoluto. Al frenar la inflación, el decaimiento del inflatón libera su inmensa energía en un recalentamiento térmico violento: este es el auténtico Big Bang caliente, un estallido simultáneo en todo el espacio que inunda el cosmos de partículas y radiación a temperaturas colosales.',
+      reheatingName: 'Recalentamiento: Big Bang caliente',
+      reheatingDescription:
+        'Al frenar la inflación, el decaimiento del inflatón libera su inmensa energía en un recalentamiento térmico violento: el auténtico Big Bang caliente. El vacío frío se enciende en un plasma incandescente de partículas que inunda todo el cosmos sin centro ni frontera.',
     },
     quarks: {
       name: 'Plasma de quarks y gluones',
@@ -217,6 +222,10 @@ export const es = {
       name: 'JADES-GS-z14-0',
       description: 'galaxia confirmada por espectroscopia con el telescopio espacial James Webb',
     },
+    reheating: {
+      name: 'Recalentamiento',
+      description: 'nacimiento del Big Bang caliente: el decaimiento del inflatón llena todo el espacio de un plasma térmico incandescente',
+    },
   } satisfies Record<string, LandmarkText>,
   licences: {
     heading: 'Interpretaciones declaradas',
@@ -245,7 +254,7 @@ export const es = {
     plasma: {
       name: 'plasma',
       detail:
-        'El medio temprano evoluciona a través de regímenes físicos ilustrativos: espuma cuántica con microondulaciones en Planck, alisamiento y enfriamiento en inflación, un destello radiante omnidireccional en el recalentamiento térmico del Big Bang caliente, y una turbulencia tridimensional que distingue el plasma libre de quarks del fluido confinado de hadrones. No representa filamentos individuales medidos, sino los regímenes dinámicos del medio.',
+        'El medio temprano evoluciona a través de regímenes físicos ilustrativos: espuma cuántica con microondulaciones en Planck, estrías de estiramiento cuántico en inflación, una llamarada volumétrica incandescente en el recalentamiento térmico del Big Bang caliente, y una turbulencia tridimensional que distingue el plasma continuo de quarks de los glóbulos confinados de hadrones. No representa filamentos individuales medidos, sino los regímenes dinámicos del medio.',
     },
     cmbContrast: {
       name: 'contraste del fondo de microondas',
@@ -304,6 +313,8 @@ export const es = {
     },
   },
   callout: {
+    reheating: 'El Big Bang caliente',
+    reheatingSub: 'Recalentamiento: nacimiento del cosmos térmico',
     milkyWay: 'Vía Láctea',
     milkyWaySub: 'Nuestra galaxia en formación',
     solarSystem: 'Sistema Solar',

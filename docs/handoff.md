@@ -220,7 +220,20 @@ Todos los pasos del plan de integración se han completado y verificado en `feat
       - `.stage` ajustado con `pointer-events: none` y `.panel` con `pointer-events: auto`, permitiendo interactuar con la cámara tanto en la mitad derecha como en cualquier zona despejada del fondo sin interferir con el desplazamiento del texto.
       - La tarjeta y retícula 3D de las paradas (Vía Láctea, Sistema Solar, Tierra) proyectan su posición en pantalla en cada cuadro usando la matriz de mundo y proyección actualizada de la cámara interactiva, manteniéndose ancladas a su posición tridimensional en todo momento.
     - **Licencia y documentación**: Actualizada la licencia `camera` en `docs/licencias-visuales.md` y sus definiciones bilingües en `src/i18n/es.ts` y `en.ts` (sin cifras literales, verificado por tests).
-
+16. **Puliendo el inicio cósmico: Big Bang caliente explícito, ritmo sosegado y franjas equilibradas**:
+    - **Ritmo sosegado y reducción de agitación en el universo primordial (Item 1)**:
+      - En `pacingFactor` (`timeControl.ts`), se sustituyó la aceleración inicial previa (1,8×–1,85×) por un avance cinemático pausado y majestuoso: 0,65× en Planck e Inflación, con una suave desaceleración a 0,42× durante el clímax de ignición del Big Bang caliente, y 0,58× en Quarks y Hadrones.
+      - En el shader de fondo (`sceneShaders.ts`), la velocidad temporal de desplazamiento de ruido se redujo de `0.01 + 0.04 * turbulence` a `0.003 + 0.011 * turbulence`, eliminando el hervidero frenético y transformándolo en un fluido térmico majestuoso e imponente.
+    - **Franjas translúcidas en término medio (Item 2)**:
+      - `--header-surface` ajustado a `rgb(6 8 14 / 0.66)` y `--dock-surface` a `rgb(7 9 16 / 0.80)` con desenfoque de 16 px. El fondo cósmico se percibe a través del cristal esmerilado sin comprometer en ningún momento el contraste de textos, botones y deslizador.
+    - **Identificación explícita y didáctica del Big Bang caliente (Item 3)**:
+      - *Hito oficial en el modelo*: Incorporado el hito `reheating` dentro de `inflation` en `epochs.ts` a $t = 10^{-32}\text{ s}$ con fuente de Planck 2018 (`planck2018-x`), visible en la sección de hitos observados.
+      - *Cabecera y panel dinámicos*: Al sobrepasar $10^{-32}\text{ s}$ en el segmento de inflación, el título del instante pasa dinámicamente de "Inflación" a **"Recalentamiento: Big Bang caliente"**, actualizando la descripción del panel para explicar cómo el decaimiento del inflatón enciende el universo térmico observable.
+      - *Tarjeta / Callout 3D prominente*: Durante el intervalo de recalentamiento se despliega un callout flotante en la escena con el título **"El Big Bang caliente"** y subtítulo **"Recalentamiento: nacimiento del cosmos térmico"**, que al pulsar conduce directamente al punto álgido de la ignición.
+      - *Shader volumétrico enriquecido*:
+        - **Inflación**: Implementado el parámetro `uStretch` que estira anisotrópicamente las coordenadas espaciales ($8\times$ en el eje longitudinal), generando las estrías cuánticas de expansión métrica hiperlumínica.
+        - **Recalentamiento**: Llamarada volumétrica omnidireccional en el raymarching que inunda todo el campo de luz blanca y dorada incandescente sin centro ni bordes.
+        - **Quarks vs Hadrones**: En quarks, fluido continuo y viscoso sin confinamiento (`uClump = 0`); en hadrones, activación de `uClump` modulado por el cruce QCD para fragmentar el medio en grumos y glóbulos densos más discretos (nucleones).
 
 ## 6. Forma de trabajo
 

@@ -50,11 +50,11 @@ Resultado: la radiación deja de verse hacia los 3,15 millones de años (z ≈ 2
 
 **Plasma y turbulencia.** El medio temprano se muestra mediante un raymarching volumétrico continuo sobre una textura periódica de ruido tridimensional (`src/scene/noise3d.ts`), estructurado en regímenes físicos ilustrativos:
 
-- **Época de Planck**: la geometría del espacio-tiempo experimenta fluctuaciones de espuma cuántica, ilustradas mediante alta turbulencia y microondulaciones direccionales iridiscentes (cian y magenta).
-- **Inflación cósmica**: la expansión métrica exponencial alisa las fluctuaciones y superenfría el vacío, reduciendo la turbulencia y la opacidad hasta una calma oscura y fría.
-- **Recalentamiento / Big Bang caliente**: el decaimiento del campo inflatón descarga su energía potencial en radiación y partículas, produciendo un destello radiante omnidireccional de blancura incandescente y máxima turbulencia, sin explosión exterior ni centro.
-- **Plasma de quarks y gluones**: fluido relativista no confinado con turbulencia hiperfina y alta emisión filamentaria en blanco azulado.
-- **Época hadrónica y nucleosíntesis**: tras el cruce de la cromodinámica cuántica a 155 MeV, el confinamiento de quarks en hadrones y la aniquilación masiva de antimateria calman el fluido, transformándolo en un medio más denso, sosegado y pesado antes de la recombinación.
+- **Época de Planck**: la geometría del espacio-tiempo experimenta fluctuaciones de espuma cuántica, ilustradas mediante microondulaciones sutiles y un tenue fulgor violeta en la textura tridimensional.
+- **Inflación cósmica**: la expansión métrica hiperlumínica estira las fluctuaciones cuánticas del vacío en estrías longitudinales paralelas, superenfriando el espacio hacia una calma oscura en índigo profundo.
+- **Recalentamiento / Big Bang caliente**: el decaimiento del campo inflatón descarga su energía potencial en radiación y partículas, produciendo una llamarada volumétrica incandescente omnidireccional y máxima turbulencia, sin explosión exterior ni centro.
+- **Plasma de quarks y gluones**: fluido relativista no confinado, continuo y ultra-viscoso con alta emisión en blanco azulado.
+- **Época hadrónica y nucleosíntesis**: tras el cruce de la cromodinámica cuántica a 155 MeV, el confinamiento de quarks en hadrones y la aniquilación de pares confinan el fluido en grumos y glóbulos densos más discretos, transformándolo en un medio sosegado y pesado antes de la recombinación.
 
 ## `cmbContrast`
 
