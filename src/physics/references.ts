@@ -18,3 +18,10 @@ export const SUN_SURFACE_TEMPERATURE_K = 5772;
  * Shown with three significant figures.
  */
 export const SUN_CENTRAL_TEMPERATURE_K = 1.5696e7;
+
+/**
+ * Draper point [K]: roughly the temperature above which a hot body visibly
+ * glows; below it, black-body radiation is almost all infrared (Draper 1847,
+ * Phil. Mag. 30, 345: 977 °F = 525 °C).
+ */
+export const DRAPER_POINT_K = 798;

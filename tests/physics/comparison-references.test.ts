@@ -3,7 +3,13 @@
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CELSIUS_ZERO_K, SUN_CENTRAL_TEMPERATURE_K, SUN_SURFACE_TEMPERATURE_K } from '../../src/physics';
+import {
+  CELSIUS_ZERO_K,
+  DRAPER_POINT_K,
+  SECOND_RADIATION_CONSTANT,
+  SUN_CENTRAL_TEMPERATURE_K,
+  SUN_SURFACE_TEMPERATURE_K,
+} from '../../src/physics';
 
 const doc = readFileSync(new URL('../../docs/fuentes.md', import.meta.url), 'utf8');
 const section = (id: string): string => doc.split(`### \`${id}\``)[1]?.split(/^#{2,3} /m)[0] ?? '';
@@ -24,5 +30,14 @@ describe('comparison references', () => {
     expect(section('bahcall-2001')).toContain('15,696 × 10⁶ K');
     // Independent cross-check quoted in the same entry (NASA NSSDC: 1.571 × 10⁷ K).
     expect(Math.abs(SUN_CENTRAL_TEMPERATURE_K / 1.571e7 - 1)).toBeLessThan(0.005);
+  });
+
+  it('uses the Draper point, 977 °F, for the onset of visible glow', () => {
+    expect(Math.abs(((DRAPER_POINT_K - CELSIUS_ZERO_K) * 9) / 5 + 32 - 977)).toBeLessThan(1);
+    expect(section('draper1847')).toContain('798 K');
+  });
+
+  it('derives the second radiation constant from the exact SI h, c and k (CODATA 2018: 1.438776877e-2 m K)', () => {
+    expect(Math.abs(SECOND_RADIATION_CONSTANT / 1.438776877e-2 - 1)).toBeLessThan(1e-9);
   });
 });

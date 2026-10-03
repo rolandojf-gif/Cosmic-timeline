@@ -103,12 +103,36 @@ Bahcall, J. N., Pinsonneault, M. H. y Basu, S. (2001). Solar models: current epo
 
 Temperatura central del Sol actual en el modelo solar estándar: 15,696 × 10⁶ K (Tabla 5). Es un valor calculado por un modelo, no medido. Coincide con la ficha del Sol de la NASA (1,571 × 10⁷ K, [NSSDC](https://nssdc.gsfc.nasa.gov/planetary/factsheet/sunfact.html)). La versión de texto del PDF de arXiv muestra mal la unidad de la tabla; el valor se comprobó con ambas fuentes.
 
+## Color de la escena
+
+El color de la escena es el de un cuerpo negro a la temperatura del modelo (`src/scene/blackbody.ts`). Estas fuentes fijan cómo se calcula ese color; qué se hace con él es una licencia visual ([`licencias-visuales.md`](licencias-visuales.md)).
+
+### `cie-015-2018`
+CIE (2018). *CIE 015:2018 Colorimetry*, 4.ª ed. Commission Internationale de l'Éclairage. [doi:10.25039/TR.015.2018](https://doi.org/10.25039/TR.015.2018)
+
+Funciones de igualación de color del observador patrón CIE 1931 (2°). Valores de tabla usados en los tests: ȳ(555 nm) = 1,0000; x̄(600 nm) = 1,0622; z̄(450 nm) = 1,7471. Iluminante A: radiador de Planck a unos 2856 K, cromaticidad x = 0,44757, y = 0,40745.
+
+### `wyman2013`
+Wyman, C., Sloan, P.-P. y Shirley, P. (2013). Simple analytic approximations to the CIE XYZ color matching functions. *Journal of Computer Graphics Techniques* 2(2), 1–11. [jcgt.org](https://jcgt.org/published/0002/02/01/)
+
+Ajuste por lóbulos gaussianos de las funciones CIE 1931 (ecuación 4, tabla 1). Es una aproximación: se separa de la tabla hasta un ~2 % en los picos; la cromaticidad de cuerpo negro resultante se separa menos de 0,002 del iluminante A.
+
+### `css-color-4`
+W3C. *CSS Color Module Level 4* (Candidate Recommendation), código de ejemplo de conversiones. [w3.org/TR/css-color-4](https://www.w3.org/TR/css-color-4/)
+
+Matriz XYZ (D65) → sRGB lineal en forma racional exacta y función de transferencia sRGB, ambas de IEC 61966-2-1:1999.
+
+### `draper1847`
+Draper, J. W. (1847). On the production of light by heat. *The London, Edinburgh, and Dublin Philosophical Magazine and Journal of Science* 30(202), 345–360. [doi:10.1080/14786444708647190](https://doi.org/10.1080/14786444708647190)
+
+Punto de Draper: unos 977 °F (525 °C, 798 K), temperatura a partir de la cual un cuerpo caliente empieza a brillar de forma visible. Por debajo, su radiación es casi toda infrarroja. La referencia se comprobó en Crossref; la cifra se tomó de fuentes secundarias, sin cotejarla con el facsímil original.
+
 ## Constantes y unidades
 
 ### `codata2018`
 Tiesinga, E. et al. (2021). CODATA recommended values of the fundamental physical constants: 2018. *Reviews of Modern Physics* 93, 025010. [doi:10.1103/RevModPhys.93.025010](https://doi.org/10.1103/RevModPhys.93.025010)
 
-c, G, σ, k_B y tiempo de Planck (5,391247·10⁻⁴⁴ s).
+c, G, σ, k_B, h y tiempo de Planck (5,391247·10⁻⁴⁴ s). h y k_B son exactos en el SI de 2019; de ellos sale la segunda constante de radiación c₂ = hc/k = 1,438776877·10⁻² m·K.
 
 ### `iau-units`
 Unión Astronómica Internacional: unidad astronómica exacta de 149 597 870 700 m (Resolución B2, 2012); pársec de 648000/π au (Resolución B2, 2015); año juliano de 365,25 días para el año luz.
