@@ -186,6 +186,14 @@ Todos los pasos del plan de integración se han completado y verificado en `feat
     - Al pulsar cualquier parada en la regla o la tarjeta flotante 3D, el cabezal avanza en secuencia estricta hacia adelante (Vía Láctea → Sistema Solar → Tierra → Hoy; y en Hoy reinicia desde la Vía Láctea) y reanuda la reproducción sin saltar hacia atrás.
     - Marcador y tarjeta 3D en capa superior flotante `.callout-layer` (z-index 25 con pointer-events), garantizando la interactividad directa de clic y efecto hover, con licencia declarada `milkyWayPin`.
     - Bloque de datos técnicos desplegado por defecto (`<details open>`) para que toda la información quede visible de inmediato sin ocultarse.
+12. **Corrección de inversión visual y aceleración abrupta (Sistema Solar → Tierra → Hoy)**:
+    - **Causa raíz diagnosticada**:
+      1. *Inversión de sentido*: La deriva de cámara (`camBox` y `lookTarget`) contenía componentes sinusoidales armónicos (`sin(driftAngle)`, `cos(...)`). Al entrar en el tramo de Sistema Solar a Tierra (que abarca solo 27 millones de años, $\Delta D \approx 0{,}005$), el crecimiento estructural colapsante de partículas se frenaba a casi cero ($dD/du \approx 0{,}11$). La oscilación pendular de la cámara pasaba a ser la única fuerza motriz visible, y al cambiar de signo la derivada del seno, el campo de partículas invertía su sentido visual aparente, simulando una reversión de la expansión cósmica.
+      2. *Aceleración abrupta*: Por la escala de reparto equitativo (`DEFAULT_EQUAL_SHARE = 0.6`), el tramo de 27 Ma (Sistema Solar a Tierra) recibía el mismo 5 % del slider que los 4544 Ma siguientes (Tierra a Hoy). Al mantener una velocidad uniforme de $u$ (`0.50x`), el reproductor se atascaba 6 segundos en una meseta estática de 27 Ma para luego dispararse 168 veces más rápido en tiempo cósmico (de $4{,}5\text{ Ma/s}$ a $745\text{ Ma/s}$) en el último tramo.
+    - **Solución implementada**:
+      1. *Deriva de cámara continua y monótona*: Se eliminó la oscilación armónica de vaivén, sustituyéndola por un deslizamiento suave, continuo y unidireccional por la caja periódica ($\vec{v} = (0{,}00024, 0{,}00012, 0{,}00018)/\text{s}$) con orientación fija hacia el nodo de acumulación (`lookAt`). El paralaje es siempre constante hacia adelante y jamás retrocede ni oscila.
+      2. *Curva de ritmo adaptada en el tramo final*: En `pacingFactor`, el paso por la meseta de 27 Ma de Sistema Solar a Tierra ($u \in [0{,}88, 0{,}94]$) se acelera suavemente a $\sim 1{,}6\times$ (recorriéndose en $\sim 1{,}9\text{ s}$ en vez de 6 s), y la etapa final de Tierra a Hoy ($u \in [0{,}94, 1{,}0]$) se ralentiza a $\sim 0{,}36\times$ ($\sim 8{,}0\text{ s}$), logrando una transición cinemática fluida, continua, majestuosa y sin frenazos ni acelerones.
+
 
 ## 6. Forma de trabajo
 

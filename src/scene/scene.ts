@@ -383,14 +383,13 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     const u = options.reducedMotion ? currentU : Math.min(1, Math.max(0, tween.valueAt(nowSec)));
     const state = options.stateAt(u);
 
-    // Continuous subtle camera drift with parallax
+    // Continuous subtle camera drift with parallax: steady forward glide through the periodic box
     if (!options.reducedMotion) {
-      const driftSpeed = 0.02;
-      const driftAngle = nowSec * driftSpeed;
+      const driftSpeed = 0.0003;
       const driftOffset = new Vector3(
-        Math.sin(driftAngle) * 0.006,
-        Math.cos(driftAngle * 0.7) * 0.004,
-        Math.sin(driftAngle * 0.5) * 0.006,
+        (nowSec * driftSpeed * 0.8) % 1,
+        (nowSec * driftSpeed * 0.4) % 1,
+        (nowSec * driftSpeed * 0.6) % 1,
       );
       camBox.copy(baseCamBox).add(driftOffset);
       camBox.set(
@@ -398,14 +397,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
         camBox.y - Math.floor(camBox.y),
         camBox.z - Math.floor(camBox.z),
       );
-      const lookTarget = toTop.clone().add(
-        new Vector3(
-          0.12 + Math.sin(driftAngle * 0.5) * 0.012,
-          0.05 + Math.cos(driftAngle * 0.3) * 0.008,
-          0,
-        ),
-      );
-      camera.lookAt(lookTarget);
+      camera.lookAt(toTop.clone().add(new Vector3(0.12, 0.05, 0)));
     } else {
       camBox.copy(baseCamBox);
       camera.lookAt(toTop.clone().add(new Vector3(0.12, 0.05, 0)));

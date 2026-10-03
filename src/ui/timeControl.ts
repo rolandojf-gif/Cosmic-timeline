@@ -61,8 +61,12 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number, isPlay
    *   the CMB orange glow.
    * - Recombination & Dark Ages (0.62 to 0.70): slow, atmospheric pace (0.38x, ~13 s at 1x)
    *   allowing photon decoupling, CMB glow extinguishing, and deep dark ages to be savored.
-   * - Cosmic Web, Galaxies & Today (0.70 to 1.0): unhurried pace (0.50x, ~36 s at 1x)
-   *   giving time to watch filaments condense and 3D galaxy landmark callouts to appear and be clicked.
+   * - Cosmic Web & Galaxies (0.70 to 0.88): unhurried pace (0.50x) allowing filaments to condense
+   *   and the Milky Way landmark callout to appear.
+   * - Solar System to Earth (0.88 to 0.94): transit smoothly through the short 27-Myr segment
+   *   (~1.6x, ~1.9 s at 1x) so playback does not stall or freeze on identical snapshots.
+   * - Earth to Today (0.94 to 1.0): serene, contemplative pace (~0.36x, ~8.0 s at 1x) preventing
+   *   a rushing slingshot over the final 4.5 billion years.
    */
   function pacingFactor(pos: number): number {
     if (pos < 0.58) return 2.0;
@@ -75,7 +79,17 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number, isPlay
       const f = (pos - 0.70) / (0.78 - 0.70);
       return 0.38 + (0.50 - 0.38) * (0.5 - 0.5 * Math.cos(Math.PI * f));
     }
-    return 0.50;
+    if (pos < 0.88) return 0.50;
+    if (pos < 0.90) {
+      const f = (pos - 0.88) / (0.90 - 0.88);
+      return 0.50 + (1.60 - 0.50) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    if (pos < 0.94) return 1.60;
+    if (pos < 0.96) {
+      const f = (pos - 0.94) / (0.96 - 0.94);
+      return 1.60 - (1.60 - 0.36) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    return 0.36;
   }
 
   function playLoop(timestamp: number): void {
