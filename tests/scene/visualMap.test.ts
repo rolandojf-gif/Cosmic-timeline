@@ -32,6 +32,56 @@ describe('visual map', () => {
     }
   });
 
+  it('differentiates planck quantum foam, inflation supercooling and the hot big bang flash in the speculative tier', () => {
+    const planck = state('planck');
+    const inflation = state('inflation');
+    // Planck: active quantum foam with high turbulence and faint violet ripples
+    expect(planck.turbulence).toBeGreaterThan(0.8);
+    expect(planck.cmbLevel).toBeGreaterThan(0.2);
+    expect(planck.haze).toBeGreaterThan(0.7);
+
+    // Inflation anchor: stretched smooth and supercooled
+    expect(inflation.turbulence).toBeLessThan(0.1);
+    expect(inflation.cmbLevel).toBe(0);
+    expect(inflation.haze).toBeLessThan(0.25);
+    expect(inflation.intensity).toBeLessThan(planck.intensity);
+
+    // Reheating / hot Big Bang flash at its peak (~1e-30 s): brighter than
+    // anything before or after it, fully opaque and turbulent.
+    const reheating = map.visualState(1e-30);
+    expect(reheating.speculative).toBe(true);
+    expect(reheating.intensity).toBeGreaterThan(1.1);
+    expect(reheating.intensity).toBeGreaterThan(state('quarks').intensity * 1.8);
+    expect(reheating.bloomStrength).toBeGreaterThan(1.0);
+    expect(reheating.colour[0]).toBeGreaterThan(0.95);
+    expect(reheating.haze).toBe(1);
+    expect(reheating.turbulence).toBe(1);
+  });
+
+  it('ends the reheating cool-down on the quark-plasma state, without a jump', () => {
+    const before = map.visualState(tEW * 0.999);
+    const after = map.visualState(tEW);
+    expect(before.speculative).toBe(true);
+    expect(after.speculative).toBe(false);
+    for (const key of ['intensity', 'turbulence', 'emit', 'bloomStrength', 'haze'] as const) {
+      expect(Math.abs(before[key] - after[key]), key).toBeLessThan(0.02);
+    }
+  });
+
+  it('differentiates deconfined quarks from confined hadrons across the QCD crossover', () => {
+    const quarks = state('quarks');
+    const hadrons = state('hadrons');
+    expect(quarks.turbulence).toBeGreaterThan(hadrons.turbulence + 0.3);
+    expect(quarks.emit).toBeGreaterThan(hadrons.emit + 0.8);
+    expect(quarks.bloomStrength).toBeGreaterThan(hadrons.bloomStrength);
+  });
+
+  it('leaves nucleosynthesis with its approved emission and bloom', () => {
+    const s = state('nucleosynthesis');
+    expect(s.emit).toBeCloseTo(3, 2);
+    expect(s.bloomStrength).toBeCloseTo(0.9, 2);
+  });
+
   it('takes the colour from the black body at the model temperature', () => {
     const T = cosmology.stateAt(at('recombination')).physical!.temperatureK;
     expect(state('recombination').colour).toEqual(blackbodySrgb(T));

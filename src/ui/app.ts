@@ -8,7 +8,7 @@ import { LOCALES, MESSAGES, detectLocale, type Locale } from '../i18n';
 import { PLANCK2018_DERIVED, accelerationOnset, createCosmology, matterLambdaEquality } from '../physics';
 import type { ParticleScene } from '../scene/scene';
 import { createVisualMap } from '../scene/visualMap';
-import { EPOCHS, createTimeScale, resolveEpochs } from '../timeline';
+import { EPOCHS, createTimeScale, resolveEpochs, type EpochId } from '../timeline';
 import { el, setText } from './dom';
 import { createInfoPanel } from './infoPanel';
 import { licenceVars } from './licenceVars';
@@ -51,8 +51,10 @@ export function startApp(root: HTMLElement): void {
     panel.instant,
   );
 
-  const control = createTimeControl(scale, (next) => {
+  let isPlaying = false;
+  const control = createTimeControl(scale, (next, playing) => {
     u = next;
+    isPlaying = playing;
     schedule();
   });
   const licences = createLicenseLine();
@@ -66,12 +68,63 @@ export function startApp(root: HTMLElement): void {
   // Why the scene is missing, when it is: no WebGL, or the chunk failed to load.
   let sceneProblem: 'unavailable' | 'loadFailed' = 'unavailable';
 
+  // 3D scene callout for Milky Way / Solar System / Earth landmarks
+  const calloutTitle = el('span', { class: 'callout-title' });
+  const calloutSub = el('span', { class: 'callout-subtitle' });
+  const calloutCard = el('div', { class: 'callout-card' }, calloutTitle, calloutSub);
+  const calloutReticle = el('div', { class: 'callout-reticle' });
+  const callout = el(
+    'button',
+    {
+      type: 'button',
+      class: 'scene-callout',
+      'aria-label': '',
+    },
+    calloutCard,
+    calloutReticle,
+  );
+  callout.hidden = true;
+
+  const calloutLayer = el('div', { class: 'callout-layer' }, callout);
+
+  let currentTargetEpochId: 'milkyWay' | 'solarSystem' | 'earth' | 'today' | null = null;
+  let targetScreenPos: { x: number; y: number; visible: boolean } | null = null;
+
+  callout.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (currentTargetEpochId) {
+      const sequence: EpochId[] = ['milkyWay', 'solarSystem', 'earth', 'today'];
+      const currentIdx = sequence.indexOf(currentTargetEpochId);
+      if (currentIdx !== -1) {
+        // Always advance cleanly in landmark sequence: Milky Way -> Solar System -> Earth -> Today -> Milky Way
+        const nextIdx = (currentIdx + 1) % sequence.length;
+        const nextEpoch = epochs.find((ep) => ep.id === sequence[nextIdx]);
+        if (nextEpoch) {
+          control.jumpTo(scale.positionOf(nextEpoch.anchor), true);
+        }
+      }
+    }
+  });
+
+  function updateCalloutPosition(): void {
+    if (!targetScreenPos || !targetScreenPos.visible || !currentTargetEpochId) {
+      callout.classList.remove('visible');
+      callout.hidden = true;
+      return;
+    }
+    callout.hidden = false;
+    callout.style.left = `${targetScreenPos.x}px`;
+    callout.style.top = `${targetScreenPos.y}px`;
+    callout.classList.add('visible');
+  }
+
   root.replaceChildren(
     sceneLayer,
     header,
     // On narrow screens the content starts below a transparent window onto the scene.
     el('main', { class: 'stage' }, el('div', { class: 'scene-window' }), panel.element),
     el('div', { class: 'dock' }, control.element, sceneNote, licences.element),
+    calloutLayer,
   );
 
   languageButton.addEventListener('click', () => {
@@ -104,7 +157,7 @@ export function startApp(root: HTMLElement): void {
     }
 
     panel.update(view, m);
-    scene?.show(u);
+    scene?.show(u, isPlaying);
     control.update(u, view.epochIndex);
     control.setTexts({
       label: m.control.label,
@@ -113,7 +166,38 @@ export function startApp(root: HTMLElement): void {
       stopLabels: epochs.map((e) => m.epochs[e.id].short),
       rulerCaption: m.control.rulerCaption,
       keyboardHint: m.control.keyboardHint,
+      play: m.control.play,
+      pause: m.control.pause,
+      reset: m.control.reset,
+      speed: m.control.speed,
     });
+
+    const currentEpoch = epochs[view.epochIndex];
+    const epochId = currentEpoch?.id;
+    if (epochId === 'milkyWay') {
+      currentTargetEpochId = 'milkyWay';
+      setText(calloutTitle, m.callout.milkyWay);
+      setText(calloutSub, m.callout.milkyWaySub);
+      callout.setAttribute('aria-label', `${m.callout.milkyWay}: ${m.callout.milkyWaySub}`);
+    } else if (epochId === 'solarSystem') {
+      currentTargetEpochId = 'solarSystem';
+      setText(calloutTitle, m.callout.solarSystem);
+      setText(calloutSub, m.callout.solarSystemSub);
+      callout.setAttribute('aria-label', `${m.callout.solarSystem}: ${m.callout.solarSystemSub}`);
+    } else if (epochId === 'earth') {
+      currentTargetEpochId = 'earth';
+      setText(calloutTitle, m.callout.earth);
+      setText(calloutSub, m.callout.earthSub);
+      callout.setAttribute('aria-label', `${m.callout.earth}: ${m.callout.earthSub}`);
+    } else if (epochId === 'today') {
+      currentTargetEpochId = 'today';
+      setText(calloutTitle, m.callout.today);
+      setText(calloutSub, m.callout.todaySub);
+      callout.setAttribute('aria-label', `${m.callout.today}: ${m.callout.todaySub}`);
+    } else {
+      currentTargetEpochId = null;
+    }
+    updateCalloutPosition();
   }
 
   function schedule(): void {
@@ -142,6 +226,10 @@ export function startApp(root: HTMLElement): void {
         stateAt: (position) => visualMap.visualState(scale.timeAt(position)),
         reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
         mobile: matchMedia('(max-width: 599px), (pointer: coarse)').matches,
+        onTargetScreenPos: (pos) => {
+          targetScreenPos = pos;
+          updateCalloutPosition();
+        },
       });
       // Field generation and WebGL setup, after the panel is already visible.
       performance.measure('cosmic-timeline:scene', { start: sceneStart });

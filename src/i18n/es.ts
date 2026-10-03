@@ -40,6 +40,10 @@ export const es = {
     stops: 'Paradas',
     rulerCaption: 'Escala real del tiempo, en segundos: una marca por cada factor diez.',
     keyboardHint: 'Flechas: avance fino (con Mayús, más largo). Re Pág y Av Pág: parada siguiente o anterior.',
+    play: 'Reproducir',
+    pause: 'Pausar',
+    reset: 'Reiniciar',
+    speed: 'Velocidad',
   },
   panel: {
     time: 'Tiempo cósmico',
@@ -135,19 +139,19 @@ export const es = {
       name: 'Inflación',
       short: 'Inflación',
       description:
-        'Una hipótesis: una expansión acelerada y muy breve que explicaría por qué el universo es tan homogéneo y plano y de dónde salen las semillas de las galaxias. Las medidas del fondo de microondas son compatibles con ella y descartan muchos de sus modelos, pero no fijan cuándo ocurrió ni a qué energía.',
+        'Una hipótesis: una expansión acelerada que estira el vacío y diluye cualquier fluctuación previa, enfriando el universo casi hasta el cero absoluto. Al frenar la inflación, el decaimiento del inflatón libera su inmensa energía en un recalentamiento térmico violento: este es el auténtico Big Bang caliente, un estallido simultáneo en todo el espacio que inunda el cosmos de partículas y radiación a temperaturas colosales.',
     },
     quarks: {
       name: 'Plasma de quarks y gluones',
       short: 'Quarks',
       description:
-        'Tras el cruce electrodébil, las partículas adquieren masa a través del campo de Higgs. Los quarks y los gluones no están confinados: forman un plasma junto a leptones y fotones. Es física probada en aceleradores, aplicada a un universo que nadie ha observado a esta temperatura.',
+        'Heredero directo del recalentamiento que encendió el Big Bang caliente, este plasma hirviente atraviesa el cruce electrodébil, donde las partículas adquieren masa con el campo de Higgs. Quarks y gluones campan libres a velocidades relativistas junto a leptones y fotones. Es física probada en colisionadores, aplicada a un universo primordial a billones de grados.',
     },
     hadrons: {
       name: 'Época hadrónica',
       short: 'Hadrones',
       description:
-        'Por debajo del cruce de la cromodinámica cuántica, los quarks quedan confinados en protones, neutrones y otros hadrones. Casi todos los hadrones y antihadrones se aniquilan y queda un pequeño exceso de materia. Hacia el final, los neutrinos se desacoplan y la proporción entre neutrones y protones queda casi congelada.',
+        'Al enfriarse por debajo del cruce de la cromodinámica cuántica, los quarks quedan confinados para siempre en protones, neutrones y otros hadrones. La aniquilación casi total de materia y antimateria deja un tenue exceso de materia y apacigua el fluido, volviéndolo más denso y pesado. Hacia el final, los neutrinos se desacoplan y la proporción entre neutrones y protones queda congelada.',
     },
     nucleosynthesis: {
       name: 'Nucleosíntesis primordial',
@@ -226,7 +230,7 @@ export const es = {
     colour: {
       name: 'color de la luz',
       detail:
-        'El color es el que tendría un cuerpo negro a la temperatura del modelo, calculado con las funciones de color del observador patrón CIE. Por encima de {saturation} kelvin el tono ya no cambia: esa luz es sobre todo ultravioleta, rayos X o gamma, y la pantalla solo muestra su parte visible. En Planck e inflación no hay temperatura del modelo; el violeta indica que la escena es una interpretación.',
+        'El color es el que tendría un cuerpo negro a la temperatura del modelo, calculado con las funciones de color del observador patrón CIE. Por encima de {saturation} kelvin el tono ya no cambia: esa luz es sobre todo ultravioleta, rayos X o gamma, y la pantalla solo muestra su parte visible. En el tramo especulativo, el violeta representa la espuma cuántica y el vacío inflacionario, iluminándose en un blanco incandescente durante el recalentamiento térmico.',
     },
     brightness: {
       name: 'brillo',
@@ -241,7 +245,7 @@ export const es = {
     plasma: {
       name: 'plasma',
       detail:
-        'Antes de la recombinación, el plasma primordial se muestra mediante una turbulencia ilustrativa tridimensional que se vuelve más agitada a mayor temperatura. No representa filamentos individuales medidos, sino el régimen turbulento del medio.',
+        'El medio temprano evoluciona a través de regímenes físicos ilustrativos: espuma cuántica con microondulaciones en Planck, alisamiento y enfriamiento en inflación, un destello radiante omnidireccional en el recalentamiento térmico del Big Bang caliente, y una turbulencia tridimensional que distingue el plasma libre de quarks del fluido confinado de hadrones. No representa filamentos individuales medidos, sino los regímenes dinámicos del medio.',
     },
     cmbContrast: {
       name: 'contraste del fondo de microondas',
@@ -281,7 +285,7 @@ export const es = {
     camera: {
       name: 'cámara',
       detail:
-        'La cámara está dentro de un campo sin centro ni borde: el espacio se repite en todas direcciones y todo se aleja de todo. No hay un punto desde el que el universo explote.',
+        'La cámara está dentro de un campo sin centro ni borde: el espacio se repite en todas direcciones y todo se aleja de todo. Permite orientar la mirada, desplazarse y variar el campo de visión libremente con el ratón o pantalla táctil, volviendo al encuadre inicial con un doble clic.',
     },
     transitions: {
       name: 'pasos entre instantes',
@@ -293,6 +297,21 @@ export const es = {
       detail:
         'La imagen final pasa por un mapeo de tonos para comprimir el rango dinámico del resplandor, un ligero viñeteado en los bordes y un grano sutil para evitar bandas de color en los degradados suaves.',
     },
+    milkyWayPin: {
+      name: 'posición de la Vía Láctea',
+      detail:
+        'En la red cósmica periódica, se señala ilustrativamente una galaxia espiral representativa para contextualizar espacialmente el origen de nuestra galaxia, el Sistema Solar y la Tierra.',
+    },
+  },
+  callout: {
+    milkyWay: 'Vía Láctea',
+    milkyWaySub: 'Nuestra galaxia en formación',
+    solarSystem: 'Sistema Solar',
+    solarSystemSub: 'Formación en el brazo de Orión',
+    earth: 'La Tierra',
+    earthSub: 'Acreción y formación planetaria',
+    today: 'Vía Láctea',
+    todaySub: 'Nuestro lugar en el cosmos',
   },
   scene: {
     unavailable: 'La escena no está disponible en este navegador: necesita WebGL.',

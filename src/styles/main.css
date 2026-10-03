@@ -4,6 +4,9 @@
 :root {
   --bg: #05060a;
   --surface: rgb(14 16 24 / 0.82);
+  --header-surface: rgb(6 8 14 / 0.38);
+  --dock-surface: rgb(7 9 16 / 0.58);
+  --glass-line: rgb(255 255 255 / 0.08);
   --line: #2a2d3a;
   --text: #e9e6df;
   --muted: #9b9aa5;
@@ -83,6 +86,96 @@ a:hover {
   display: block;
   width: 100%;
   height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+
+.scene canvas:active {
+  cursor: grabbing;
+}
+
+/* 3D Scene Callout Overlay Layer */
+.callout-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 25;
+}
+
+.scene-callout {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  pointer-events: auto;
+  cursor: pointer;
+  transform: translate(-50%, -100%);
+  transition: opacity 0.35s ease, transform 0.08s linear;
+  opacity: 0;
+  text-align: left;
+  font-family: inherit;
+}
+
+.scene-callout.visible {
+  opacity: 1;
+}
+
+.callout-reticle {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--accent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 12px rgb(230 196 143 / 0.6);
+  pointer-events: none;
+}
+
+.callout-reticle::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.callout-card {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgb(5 6 10 / 0.88);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 18px rgb(0 0 0 / 0.5);
+  white-space: nowrap;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.scene-callout:hover .callout-card,
+.scene-callout:focus-visible .callout-card {
+  border-color: var(--accent);
+  background: rgb(15 17 25 / 0.95);
+  box-shadow: 0 4px 22px rgb(230 196 143 / 0.4);
+  transform: translateY(-2px);
+}
+
+.callout-title {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.03em;
+}
+
+.callout-subtitle {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
 }
 
 .site-header,
@@ -93,13 +186,16 @@ a:hover {
 }
 
 .has-scene .site-header {
-  background: var(--surface);
-  backdrop-filter: blur(6px);
+  background: var(--header-surface);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid var(--glass-line);
+  box-shadow: 0 4px 24px rgb(0 0 0 / 0.25);
 }
 
 /* On wide screens the text column keeps a dark backing; the right side is open scene. */
 .has-scene .stage {
-  background: linear-gradient(90deg, rgb(5 6 10 / 0.9) 0, rgb(5 6 10 / 0.82) 34rem, rgb(5 6 10 / 0) 52rem);
+  background: linear-gradient(90deg, rgb(5 6 10 / 0.62) 0, rgb(5 6 10 / 0.42) 30rem, rgb(5 6 10 / 0) 48rem);
 }
 
 .scene-window {
@@ -163,11 +259,13 @@ a:hover {
   overflow-y: auto;
   padding: 8px var(--gutter) 16px;
   overscroll-behavior: contain;
+  pointer-events: none;
 }
 
 .panel {
   max-width: 34rem;
   font-variant-numeric: tabular-nums;
+  pointer-events: auto;
 }
 
 .instant {
@@ -324,9 +422,84 @@ a:hover {
 
 .dock {
   padding: 8px var(--gutter) max(10px, env(safe-area-inset-bottom));
-  border-top: 1px solid var(--line);
-  background: var(--surface);
-  backdrop-filter: blur(6px);
+  border-top: 1px solid var(--glass-line);
+  background: var(--dock-surface);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 -4px 24px rgb(0 0 0 / 0.25);
+}
+
+/* Playback toolbar */
+.playback-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
+}
+
+.playback-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.playback-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgb(15 18 28 / 0.6);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.playback-btn:hover {
+  border-color: var(--faint);
+  background: rgb(25 29 42 / 0.8);
+}
+
+.playback-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgb(230 196 143 / 0.15);
+}
+
+.speed-group {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-left: 4px;
+  background: rgb(15 18 28 / 0.6);
+}
+
+.speed-btn {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.speed-btn:hover {
+  color: var(--text);
+}
+
+.speed-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
 }
 
 .control-slider {
@@ -409,9 +582,9 @@ a:hover {
 }
 
 .ruler-caption {
-  margin: 2px 8px 6px;
+  margin: 0 4px;
   color: var(--muted);
-  font-size: 0.8125rem;
+  font-size: 0.78rem;
   line-height: 1.35;
 }
 
@@ -429,22 +602,25 @@ a:hover {
   padding: 5px 10px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: transparent;
+  background: rgb(15 18 28 / 0.5);
   color: var(--muted);
   font: inherit;
   font-size: 0.78rem;
   white-space: nowrap;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .stop-button:hover {
   color: var(--text);
   border-color: var(--faint);
+  background: rgb(25 29 42 / 0.7);
 }
 
 .stop-button[aria-current='step'] {
   border-color: var(--accent);
   color: var(--accent);
+  background: rgb(230 196 143 / 0.15);
 }
 
 .licences {
@@ -501,8 +677,10 @@ a:hover {
     padding: 12px var(--gutter) 0;
     min-height: 67cqh;
     border-radius: var(--radius) var(--radius) 0 0;
-    background: rgb(5 6 10 / 0.88);
-    backdrop-filter: blur(4px);
+    background: rgb(5 6 10 / 0.72);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    border-top: 1px solid var(--glass-line);
   }
 
   /* Keep the fixed header short so the content keeps room to scroll. */

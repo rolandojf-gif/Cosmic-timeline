@@ -37,7 +37,8 @@ export type LicenceId =
   | 'galaxySize'
   | 'camera'
   | 'transitions'
-  | 'grading';
+  | 'grading'
+  | 'milkyWayPin';
 
 export const VISUAL_LICENCES: readonly LicenceId[] = [
   'controlScale',
@@ -55,6 +56,7 @@ export const VISUAL_LICENCES: readonly LicenceId[] = [
   'camera',
   'transitions',
   'grading',
+  'milkyWayPin',
 ];
 
 // ---------------------------------------------------------------------------
@@ -77,6 +79,19 @@ export const GAS_LEVEL = 0.32;
 /** brightness and haze of the speculative tier, where the model gives no temperature. */
 export const SPECULATIVE_GLOW = 0.35;
 export const SPECULATIVE_HAZE = 0.8;
+
+/** plasma: hue of the cold, stretched inflationary vacuum (dark indigo). */
+export const INFLATION_COLOUR: Triple = [0.38, 0.32, 0.6];
+/** plasma: hue of the reheating peak, a near-white incandescence. */
+export const REHEAT_COLOUR: Triple = [1.0, 0.97, 0.9];
+/** plasma: the reheating flash peaks between these log10 t [s] (illustrative). */
+export const REHEAT_PEAK_FROM = -30.5;
+export const REHEAT_PEAK_TO = -29.5;
+/** plasma: brightness and bloom at the reheating peak. */
+export const REHEAT_PEAK_INTENSITY = 1.25;
+export const REHEAT_PEAK_BLOOM = 1.15;
+/** plasma: emission gain of the deconfined quark plasma. */
+export const QUARK_EMIT = 3.6;
 
 /** haze: after last scattering the fog clears over this factor in 1 + z. */
 export const HAZE_CLEARING_FACTOR = 1.5;
@@ -131,6 +146,7 @@ export interface VisualState {
   readonly bloomThreshold: number;
   readonly dFirstStars: number;
   readonly galaxiesVisible: number;
+  readonly emit: number;
 }
 
 export interface VisualMap {
@@ -144,11 +160,24 @@ const smoothstep = (x: number): number => {
   const c = clamp01(x);
   return c * c * (3 - 2 * c);
 };
+const mixTriple = (a: Triple, b: Triple, f: number): Triple => [
+  a[0] + (b[0] - a[0]) * f,
+  a[1] + (b[1] - a[1]) * f,
+  a[2] + (b[2] - a[2]) * f,
+];
 
 export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedEpoch[]): VisualMap {
+  const tEW = cosmology.timeAtTemperature(gevToKelvin(ELECTROWEAK_CROSSOVER_GEV));
+  const lgEW = Math.log10(tEW);
   const lnAStart = Math.log(
-    cosmology.scaleFactorAtTime(cosmology.timeAtTemperature(gevToKelvin(ELECTROWEAK_CROSSOVER_GEV))),
+    cosmology.scaleFactorAtTime(tEW),
   );
+  // State of the quark plasma at the electroweak crossover (same formulas as
+  // below), so the reheating cool-down ends on it without a jump.
+  const log10TEW = Math.log10(gevToKelvin(ELECTROWEAK_CROSSOVER_GEV));
+  const quarkIntensity = 0.3 + 0.025 * Math.max(0, log10TEW - Math.log10(3000));
+  const quarkTurbulence = clamp01((log10TEW - 3.4) / 12);
+  const quarkBloom = 0.95;
   const zStar = PLANCK2018_DERIVED.zStar.value;
   const firstStars = epochs.find((e) => e.id === 'firstStars');
   if (!firstStars) throw new Error('visualMap: no first-stars epoch');
@@ -164,29 +193,106 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
     visualState(t) {
       const state = cosmology.stateAt(t);
       if (state.physical === null) {
+        const lg = Math.log10(Math.max(t, 1e-45));
+        let colour: Triple = SPECULATIVE_COLOUR;
+        let intensity = SPECULATIVE_GLOW;
+        let turbulence = 0;
+        let haze = SPECULATIVE_HAZE;
+        let emit = 2.5;
+        let cmbLevel = 0;
+        let cmbHot: Triple = SPECULATIVE_COLOUR;
+        let cmbCold: Triple = SPECULATIVE_COLOUR;
+        let bloomStrength = 0.8;
+        let bloomThreshold = 0.6;
+
+        if (lg <= -36.0) {
+          // Planck era, quantum foam: a dim violet medium with fast, fine
+          // shimmering ripples. Fades into the start of inflation at lg = -36.
+          const k = smoothstep((lg + 40) / 4);
+          turbulence = 0.85 - 0.80 * k;
+          intensity = 0.40 - 0.22 * k;
+          haze = 0.75 - 0.55 * k;
+          emit = 2.4 - 2.05 * k;
+          cmbLevel = 0.30 * (1 - k);
+          cmbHot = [0.80, 0.55, 1.00];
+          cmbCold = [0.30, 0.18, 0.60];
+          bloomStrength = 0.70 - 0.40 * k;
+          bloomThreshold = 0.60 + 0.15 * k;
+          colour = SPECULATIVE_COLOUR;
+        } else if (lg <= -32.0) {
+          // Inflation: the stretching flattens the foam into a dark, calm,
+          // cold indigo void.
+          const s = smoothstep((lg + 36.0) / 4.0);
+          turbulence = 0.05 - 0.02 * s;
+          intensity = 0.18 - 0.03 * s;
+          haze = 0.20 - 0.04 * s;
+          emit = 0.35 - 0.10 * s;
+          cmbLevel = 0;
+          bloomStrength = 0.30;
+          bloomThreshold = 0.75;
+          colour = mixTriple(SPECULATIVE_COLOUR, INFLATION_COLOUR, s);
+        } else {
+          // Reheating, the hot Big Bang: the inflaton decays and fills all of
+          // space at once with hot plasma. No centre, no outside: the whole
+          // field ignites. A brief peak, then it cools into the quark plasma
+          // and ends exactly on its state at the electroweak crossover.
+          const quarkColour = blackbodySrgb(COLOUR_SATURATION_K);
+          if (lg < REHEAT_PEAK_FROM) {
+            const r = smoothstep((lg + 32.0) / (REHEAT_PEAK_FROM + 32.0));
+            intensity = 0.15 + (REHEAT_PEAK_INTENSITY - 0.15) * r;
+            colour = mixTriple(INFLATION_COLOUR, REHEAT_COLOUR, r);
+            bloomStrength = 0.30 + (REHEAT_PEAK_BLOOM - 0.30) * r;
+            bloomThreshold = 0.75 - 0.25 * r;
+            turbulence = 0.03 + 0.97 * r;
+            emit = 0.25 + (QUARK_EMIT - 0.25) * r;
+            haze = 0.16 + 0.84 * r;
+          } else if (lg < REHEAT_PEAK_TO) {
+            intensity = REHEAT_PEAK_INTENSITY;
+            colour = REHEAT_COLOUR;
+            bloomStrength = REHEAT_PEAK_BLOOM;
+            bloomThreshold = 0.5;
+            turbulence = 1;
+            emit = QUARK_EMIT;
+            haze = 1;
+          } else {
+            // Most of the decay happens early, so the long run up to the
+            // electroweak crossover reads as the plasma, not as the flash.
+            const x = clamp01((lg - REHEAT_PEAK_TO) / (lgEW - REHEAT_PEAK_TO));
+            const cool = 1 - (1 - x) ** 3;
+            intensity = REHEAT_PEAK_INTENSITY + (quarkIntensity - REHEAT_PEAK_INTENSITY) * cool;
+            colour = mixTriple(REHEAT_COLOUR, quarkColour, cool);
+            bloomStrength = REHEAT_PEAK_BLOOM + (quarkBloom - REHEAT_PEAK_BLOOM) * cool;
+            bloomThreshold = 0.5 + 0.05 * cool;
+            turbulence = 1 - (1 - quarkTurbulence) * cool;
+            emit = QUARK_EMIT;
+            haze = 1;
+          }
+        }
+
         return {
           speculative: true,
-          colour: SPECULATIVE_COLOUR,
-          glow: SPECULATIVE_GLOW,
-          haze: SPECULATIVE_HAZE,
+          colour,
+          glow: intensity,
+          haze,
           gas: 0,
           separation: 0,
           expansion: 0,
           structure: 0,
           stars: 0,
-          intensity: SPECULATIVE_GLOW,
-          turbulence: 0,
+          intensity,
+          turbulence,
           contrastGain: 1,
-          cmbHot: SPECULATIVE_COLOUR,
-          cmbCold: SPECULATIVE_COLOUR,
-          cmbLevel: 0,
+          cmbHot,
+          cmbCold,
+          cmbLevel,
           gasLevel: 0,
           halo: 0,
           growthD: 0,
-          bloomStrength: 0.8,
-          bloomThreshold: 0.6,
+          bloomStrength,
+          bloomThreshold,
           dFirstStars,
           galaxiesVisible: 0,
+          emit,
         };
       }
       const p = state.physical;
@@ -203,7 +309,17 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
 
       const intensity = visible * (0.3 + 0.025 * Math.max(0, Math.log10(T / 3000)));
       const log10T = Math.log10(T);
-      const turbulence = clamp01((log10T - 3.4) / 12);
+
+      // plasma licence: the QCD crossover (T ≈ 155 MeV, log10 T ≈ 12.25) is the
+      // visible boundary between quarks and hadrons. Above it the deconfined
+      // plasma is finer, more agitated and brighter; below it (confinement and
+      // annihilation) the fluid calms. `hadronEra` limits the calming to the
+      // hadron epoch, so nucleosynthesis keeps its approved look.
+      const qcdFactor = smoothstep((log10T - 11.5) / 2.0);
+      const hadronEra = (1 - qcdFactor) * smoothstep((log10T - 9.5) / 1.5);
+      const baseTurbulence = clamp01((log10T - 3.4) / 12);
+      const turbulence = clamp01(baseTurbulence * (1 - 0.4 * hadronEra));
+      const emit = 3.0 + 0.6 * qcdFactor - 0.8 * hadronEra;
       const contrastGain = 1 + 7 * (1 - smoothstep((D - 0.05) / 0.25));
 
       const cmbHot = blackbodySrgb(Math.min(Math.max(T * 1.3, DRAPER_POINT_K), COLOUR_SATURATION_K));
@@ -214,7 +330,11 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
       const gasLevel = (2 - 1.55 * lateness) * (haze >= 0.3 ? 0 : 1 - haze / 0.3) * (D < 0.03 ? 2.5 : 1.6 - 0.6 * smoothstep((D - 0.05) / 0.5));
       const halo = 0.6 - 0.25 * lateness;
 
-      const bloomStrength = haze > 0.5 ? 0.9 : haze > 0.05 ? 0.6 : 0.5 - 0.2 * lateness;
+      const bloomStrength = haze > 0.5
+        ? 0.9 + 0.05 * qcdFactor - 0.12 * hadronEra
+        : haze > 0.05
+          ? 0.6
+          : 0.5 - 0.2 * lateness;
       const bloomThreshold = haze > 0.5 ? 0.55 : haze > 0.05 ? 0.7 : 0.8;
       const galaxiesVisible = haze < 0.5 ? 1 : 0;
 
@@ -245,6 +365,7 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
         bloomThreshold,
         dFirstStars,
         galaxiesVisible,
+        emit,
       };
     },
   };

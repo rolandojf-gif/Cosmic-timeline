@@ -16,12 +16,17 @@ export interface ControlTexts {
   readonly stopLabels: readonly string[];
   readonly rulerCaption: string;
   readonly keyboardHint: string;
+  readonly play: string;
+  readonly pause: string;
+  readonly reset: string;
+  readonly speed: string;
 }
 
 export interface TimeControl {
   readonly element: HTMLElement;
   update(u: number, currentStop: number): void;
   setTexts(texts: ControlTexts): void;
+  jumpTo(position: number, autoPlay?: boolean): void;
 }
 
 /** Ruler labels every this many powers of ten. */
@@ -31,15 +36,144 @@ const NARROW_LABEL_GAP = 0.11;
 
 const percent = (u: number): string => `${(u * 100).toFixed(3)}%`;
 
-export function createTimeControl(scale: TimeScale, onChange: (u: number) => void): TimeControl {
+export function createTimeControl(scale: TimeScale, onChange: (u: number, isPlaying: boolean) => void): TimeControl {
   let u = 0;
   let current = -1;
+  let isPlaying = false;
+  let speed = 1;
+  const BASE_DURATION_SECONDS = 60;
+  let lastTimestamp = 0;
+  let animId = 0;
+
   // Track the position at once: several key presses can arrive before the
   // next render, and each must start from the previous one.
   const change = (next: number): void => {
     u = next;
-    onChange(next);
+    onChange(next, isPlaying);
   };
+
+  /**
+   * Cinematic pacing curve for timeline playback:
+   * - Early epochs (Planck through Nucleosynthesis to cooling plasma, u < 0.58): visually
+   *   uniform fog, kept brisk (~2.0x, ~17 s at 1x) so it does not decelerate prematurely
+   *   before the visual transitions begin.
+   * - Transition into Recombination (0.58 to 0.62): smooth 2-second deceleration into
+   *   the CMB orange glow.
+   * - Recombination & Dark Ages (0.62 to 0.70): slow, atmospheric pace (0.38x, ~13 s at 1x)
+   *   allowing photon decoupling, CMB glow extinguishing, and deep dark ages to be savored.
+   * - Cosmic Web & Galaxies (0.70 to 0.88): unhurried pace (0.50x) allowing filaments to condense
+   *   and the Milky Way landmark callout to appear.
+   * - Solar System to Earth (0.88 to 0.94): transit smoothly through the short 27-Myr segment
+   *   (~1.6x, ~1.9 s at 1x) so playback does not stall or freeze on identical snapshots.
+   * - Earth to Today (0.94 to 1.0): serene, contemplative pace (~0.36x, ~8.0 s at 1x) preventing
+   *   a rushing slingshot over the final 4.5 billion years.
+   */
+  function pacingFactor(pos: number): number {
+    if (pos < 0.12) return 1.8;
+    if (pos < 0.15) {
+      const f = (pos - 0.12) / (0.15 - 0.12);
+      return 1.8 - (1.8 - 1.25) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    if (pos < 0.25) return 1.25;
+    if (pos < 0.28) {
+      const f = (pos - 0.25) / (0.28 - 0.25);
+      return 1.25 + (1.85 - 1.25) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    if (pos < 0.58) return 1.85;
+    if (pos < 0.62) {
+      const f = (pos - 0.58) / (0.62 - 0.58);
+      return 1.85 - (1.85 - 0.38) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    if (pos < 0.70) return 0.38;
+    if (pos < 0.78) {
+      const f = (pos - 0.70) / (0.78 - 0.70);
+      return 0.38 + (0.50 - 0.38) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    if (pos < 0.88) return 0.50;
+    if (pos < 0.90) {
+      const f = (pos - 0.88) / (0.90 - 0.88);
+      return 0.50 + (1.60 - 0.50) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    if (pos < 0.94) return 1.60;
+    if (pos < 0.96) {
+      const f = (pos - 0.94) / (0.96 - 0.94);
+      return 1.60 - (1.60 - 0.36) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    return 0.36;
+  }
+
+  function playLoop(timestamp: number): void {
+    if (!isPlaying) return;
+    if (lastTimestamp > 0) {
+      const dt = (timestamp - lastTimestamp) / 1000;
+      const rate = pacingFactor(u);
+      const du = (dt * speed * rate) / BASE_DURATION_SECONDS;
+      let nextU = u + du;
+      if (nextU >= 1) {
+        nextU = 1;
+        setPlaying(false);
+      }
+      change(nextU);
+    }
+    lastTimestamp = timestamp;
+    if (isPlaying) {
+      animId = requestAnimationFrame(playLoop);
+    }
+  }
+
+  function setPlaying(playing: boolean): void {
+    if (isPlaying === playing) return;
+    isPlaying = playing;
+    if (isPlaying) {
+      if (u >= 1) {
+        change(0);
+      }
+      lastTimestamp = performance.now();
+      animId = requestAnimationFrame(playLoop);
+      btnPlay.classList.add('active');
+      btnPlay.setAttribute('aria-pressed', 'true');
+      btnPause.classList.remove('active');
+      btnPause.setAttribute('aria-pressed', 'false');
+    } else {
+      cancelAnimationFrame(animId);
+      lastTimestamp = 0;
+      btnPlay.classList.remove('active');
+      btnPlay.setAttribute('aria-pressed', 'false');
+      btnPause.classList.add('active');
+      btnPause.setAttribute('aria-pressed', 'true');
+    }
+  }
+
+  const btnReset = el('button', { type: 'button', class: 'playback-btn reset' });
+  setText(btnReset, '⏮');
+  btnReset.addEventListener('click', () => {
+    change(0);
+  });
+
+  const btnPlay = el('button', { type: 'button', class: 'playback-btn play' });
+  setText(btnPlay, '▶');
+  btnPlay.addEventListener('click', () => {
+    setPlaying(true);
+  });
+
+  const btnPause = el('button', { type: 'button', class: 'playback-btn pause active', 'aria-pressed': 'true' });
+  setText(btnPause, '⏸');
+  btnPause.addEventListener('click', () => {
+    setPlaying(false);
+  });
+
+  const SPEEDS = [1, 2, 4] as const;
+  const speedButtons = SPEEDS.map((s) => {
+    const btn = el('button', { type: 'button', class: s === speed ? 'speed-btn active' : 'speed-btn' });
+    setText(btn, `${s}×`);
+    btn.addEventListener('click', () => {
+      speed = s;
+      speedButtons.forEach((b, idx) => b.classList.toggle('active', SPEEDS[idx] === speed));
+    });
+    return btn;
+  });
+  const speedGroup = el('div', { class: 'speed-group', role: 'group' }, ...speedButtons);
+  const playbackActions = el('div', { class: 'playback-actions' }, btnReset, btnPlay, btnPause, speedGroup);
 
   const fill = el('div', { class: 'control-fill' });
   const thumb = el('div', { class: 'control-thumb' });
@@ -85,20 +219,31 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number) => voi
   }
   const ruler = el('div', { class: 'ruler', 'aria-hidden': 'true' }, ...ticks);
   const rulerCaption = el('p', { class: 'ruler-caption' });
+  const playbackBar = el('div', { class: 'playback-bar' }, playbackActions, rulerCaption);
 
   const stopButtons = scale.positions.map((p) => {
     const button = el('button', { type: 'button', class: 'stop-button' });
-    button.addEventListener('click', () => change(p));
+    button.addEventListener('click', () => {
+      change(p);
+      lastTimestamp = performance.now();
+      setPlaying(true);
+    });
     return button;
   });
   const stopsNav = el('nav', { class: 'stops' }, el('ol', {}, ...stopButtons.map((b) => el('li', {}, b))));
 
-  const element = el('section', { class: 'control' }, slider, ruler, rulerCaption, hint, stopsNav);
+  const element = el('section', { class: 'control' }, playbackBar, slider, ruler, hint, stopsNav);
 
   slider.addEventListener('keydown', (event) => {
+    if (event.key === ' ' || event.key === 'Spacebar') {
+      event.preventDefault();
+      setPlaying(!isPlaying);
+      return;
+    }
     const next = positionAfterKey(event.key, event.shiftKey, u, scale.positions);
     if (next === null) return;
     event.preventDefault();
+    setPlaying(false);
     change(next);
   });
 
@@ -108,12 +253,16 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number) => voi
   };
   slider.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return;
+    setPlaying(false);
     slider.setPointerCapture(event.pointerId);
     slider.focus({ preventScroll: true });
     change(positionFromPointer(event.clientX));
   });
   slider.addEventListener('pointermove', (event) => {
-    if (slider.hasPointerCapture(event.pointerId)) change(positionFromPointer(event.clientX));
+    if (slider.hasPointerCapture(event.pointerId)) {
+      setPlaying(false);
+      change(positionFromPointer(event.clientX));
+    }
   });
 
   return {
@@ -123,6 +272,9 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number) => voi
       fill.style.width = percent(u);
       thumb.style.left = percent(u);
       slider.setAttribute('aria-valuenow', (u * 100).toFixed(1));
+      if (u >= 1 && isPlaying) {
+        setPlaying(false);
+      }
       if (currentStop !== current) {
         stopButtons[current]?.removeAttribute('aria-current');
         marks[current]?.classList.remove('current');
@@ -135,10 +287,21 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number) => voi
     setTexts(texts) {
       slider.setAttribute('aria-label', texts.label);
       slider.setAttribute('aria-valuetext', texts.valueText);
+      btnPlay.setAttribute('aria-label', texts.play);
+      btnPause.setAttribute('aria-label', texts.pause);
+      btnReset.setAttribute('aria-label', texts.reset);
+      speedGroup.setAttribute('aria-label', texts.speed);
       stopsNav.setAttribute('aria-label', texts.stopsLabel);
       texts.stopLabels.forEach((label, i) => setText(stopButtons[i]!, label));
       setText(rulerCaption, texts.rulerCaption);
       setText(hint, texts.keyboardHint);
+    },
+    jumpTo(position, autoPlay = true) {
+      change(position);
+      if (autoPlay) {
+        lastTimestamp = performance.now();
+        setPlaying(true);
+      }
     },
   };
 }

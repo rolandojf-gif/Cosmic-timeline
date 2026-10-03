@@ -178,13 +178,49 @@ Todos los pasos del plan de integración se han completado y verificado en `feat
 9. **Limpieza del prototipo**: Eliminados `prototype.html`, `src/prototype/` y `scripts/capture-prototype.mjs`; añadido `scripts/capture-scene.mjs` para capturar la aplicación en producción.
 10. **Métricas finales de verificación**:
     - `npm run verify` pasa al 100 % (189 tests en 23 suites, typecheck estricto).
-    - Tamaños de bundle en producción:
-      - `index.html`: 0,94 kB (gzip: 0,50 kB)
-      - `index.css`: 6,63 kB (gzip: 2,21 kB)
-      - `index.js`: 72,57 kB (gzip: 29,35 kB)
-      - `scene.js`: 566,86 kB (gzip: 143,32 kB)
-      - `cosmicWeb.worker.js`: 3,93 kB
     - Cero errores en consola en el navegador.
+11. **Reproductor y etiquetas interactivas en escena**:
+    - Controles de reproducción en la barra de tiempo: reinicio (⏮), reproducción (▶), pausa (⏸) y selector de velocidad (1×, 2×, 4×).
+    - Ritmo cinemático adaptado: avance ágil (2×, ~17 s a 1×) a lo largo de toda la niebla uniforme temprana (de Planck a nucleosíntesis y enfriamiento de plasma previo a recombinación hasta $u = 0{,}58$), frenado suave en 2 s justo al entrar el resplandor de recombinación ($u = 0{,}62$), ritmo pausado y majestuoso en recombinación y edad oscura (0,38×, ~13 s) y ritmo contemplativo en formación de estrellas, red cósmica y galaxias (0,50×, ~36 s).
+    - Sincronización directa en reproducción continua: `scene.show(u, isPlaying)` pasa a modo directo inmediato durante el playLoop, eliminando el retraso de 1,75 s del tween Hermite y previniendo oscilaciones o inversiones espurias de velocidad en el crecimiento de estructuras ($D(a)$).
+    - Al pulsar cualquier parada en la regla o la tarjeta flotante 3D, el cabezal avanza en secuencia estricta hacia adelante (Vía Láctea → Sistema Solar → Tierra → Hoy; y en Hoy reinicia desde la Vía Láctea) y reanuda la reproducción sin saltar hacia atrás.
+    - Marcador y tarjeta 3D en capa superior flotante `.callout-layer` (z-index 25 con pointer-events), garantizando la interactividad directa de clic y efecto hover, con licencia declarada `milkyWayPin`.
+    - Bloque de datos técnicos desplegado por defecto (`<details open>`) para que toda la información quede visible de inmediato sin ocultarse.
+12. **Corrección de inversión visual y aceleración abrupta (Sistema Solar → Tierra → Hoy)**:
+    - **Causa raíz diagnosticada**:
+      1. *Inversión de sentido*: La deriva de cámara (`camBox` y `lookTarget`) contenía componentes sinusoidales armónicos (`sin(driftAngle)`, `cos(...)`). Al entrar en el tramo de Sistema Solar a Tierra (que abarca solo 27 millones de años, $\Delta D \approx 0{,}005$), el crecimiento estructural colapsante de partículas se frenaba a casi cero ($dD/du \approx 0{,}11$). La oscilación pendular de la cámara pasaba a ser la única fuerza motriz visible, y al cambiar de signo la derivada del seno, el campo de partículas invertía su sentido visual aparente, simulando una reversión de la expansión cósmica.
+      2. *Aceleración abrupta*: Por la escala de reparto equitativo (`DEFAULT_EQUAL_SHARE = 0.6`), el tramo de 27 Ma (Sistema Solar a Tierra) recibía el mismo 5 % del slider que los 4544 Ma siguientes (Tierra a Hoy). Al mantener una velocidad uniforme de $u$ (`0.50x`), el reproductor se atascaba 6 segundos en una meseta estática de 27 Ma para luego dispararse 168 veces más rápido en tiempo cósmico (de $4{,}5\text{ Ma/s}$ a $745\text{ Ma/s}$) en el último tramo.
+    - **Solución implementada**:
+      1. *Deriva de cámara continua y monótona*: Se eliminó la oscilación armónica de vaivén, sustituyéndola por un deslizamiento suave, continuo y unidireccional por la caja periódica ($\vec{v} = (0{,}00024, 0{,}00012, 0{,}00018)/\text{s}$) con orientación fija hacia el nodo de acumulación (`lookAt`). El paralaje es siempre constante hacia adelante y jamás retrocede ni oscila.
+      2. *Curva de ritmo adaptada en el tramo final*: En `pacingFactor`, el paso por la meseta de 27 Ma de Sistema Solar a Tierra ($u \in [0{,}88, 0{,}94]$) se acelera suavemente a $\sim 1{,}6\times$ (recorriéndose en $\sim 1{,}9\text{ s}$ en vez de 6 s), y la etapa final de Tierra a Hoy ($u \in [0{,}94, 1{,}0]$) se ralentiza a $\sim 0{,}36\times$ ($\sim 8{,}0\text{ s}$), logrando una transición cinemática fluida, continua, majestuosa y sin frenazos ni acelerones.
+13. **Franjas translúcidas con glassmorphism**:
+    - **Cabecera superior (`.site-header`)**: Fondo altamente translúcido `rgb(6 8 14 / 0.38)` con `backdrop-filter: blur(14px) saturate(140%)`, borde inferior de cristal sutil (`rgb(255 255 255 / 0.08)`) y sombra difusa. Permite que el resplandor de las partículas, el plasma y las galaxias se extienda hasta el borde superior de la pantalla manteniendo el texto nítido y legible.
+    - **Columna de texto (`.stage`)**: Gradiente oscurecedor atenuado (`rgb(5 6 10 / 0.62) → 0.42 → 0`), ampliando el campo de visión de la escena cósmica hacia la izquierda.
+    - **Barra inferior (`.dock`)**: Fondo de cristal esmerilado translúcido `rgb(7 9 16 / 0.58)` con `backdrop-filter: blur(16px) saturate(140%)` y borde superior de cristal. Para garantizar la usabilidad y legibilidad de los controles (botones de reproducción, selectores de velocidad y pastillas de paradas), cada botón cuenta con su propia base semitraslúcida de contraste (`rgb(15 18 28 / 0.6)`), evitando que partículas brillantes que pasen por detrás resten visibilidad o tactilidad a la interfaz.
+    - **Móvil**: Panel inferior adaptado con fondo translúcido `rgb(5 6 10 / 0.75)` y desenfoque de 12 px.
+14. **Rediseño del universo temprano (Planck → inflación → Big Bang caliente → quarks → hadrones)**:
+    - **Problema**: Planck e inflación (≈ 31 % del control) eran el mismo velo violeta estático; el paso a los quarks era un salto de un fotograma, sin aviso; quarks y hadrones se veían casi iguales.
+    - **Planck**: espuma cuántica violeta, turbulenta, con ondulaciones finas (`cmbLevel` 0,3 en tonos violeta).
+    - **Inflación**: el estiramiento alisa la espuma hasta un vacío índigo oscuro y en calma (`INFLATION_COLOUR`).
+    - **Recalentamiento / Big Bang caliente**: subida de 10⁻³² a 10⁻³⁰·⁵ s, pico breve hasta 10⁻²⁹·⁵ s (`REHEAT_PEAK_*`) y enfriamiento que decae pronto y termina exactamente en el estado de los quarks en el cruce electrodébil (test de continuidad). Ignición uniforme en todo el campo, sin centro ni exterior.
+    - **Quarks vs hadrones**: por encima del cruce QCD el plasma es más fino, agitado y brillante (`QUARK_EMIT` 3,6); en la época hadrónica se calma (turbulencia × 0,6–0,7, emisión y bloom menores). La nucleosíntesis conserva exactamente su aspecto aprobado (test).
+    - `emit` se añade a `VisualState` y llega al uniform `uEmit`.
+    - Textos: inflación explica el recalentamiento como el Big Bang caliente; quarks y hadrones enlazan con él. Licencias `colour` y `plasma` actualizadas en i18n y en `licencias-visuales.md`.
+    - Ritmo: el tramo del destello y su enfriamiento (u ≈ 0,15–0,25) va a 1,25× en lugar de 2× para que se aprecie.
+15. **Cámara interactiva (Item 2 de la lista de mejoras)**:
+    - **Navegación gestual y ratón**:
+      - *Arrastre principal (botón izquierdo o un dedo)*: Rotación/orientación libre de la mirada con control suave de `yaw` (360°) y `pitch` con tope anatómico a $\pm 80^\circ$ para evitar inversiones bruscas de la vertical.
+      - *Arrastre secundario o Shift + arrastre*: Desplazamiento lateral comóvil (`targetPan`) proyectado en los ejes locales de la cámara (`right` y `up`), navegando por el espacio ilimitado de la caja periódica.
+      - *Rueda del ratón y pellizco táctil*: Variación dinámica continua del campo de visión (`fov`) entre $22^\circ$ y $85^\circ$ (base $55^\circ$). El escalado de tamaño de puntos (`uProj`) se recalcula en tiempo real para que tanto las partículas de Zel'dovich como las galaxias se escalen con perspectiva realista.
+      - *Doble clic*: Restablecimiento suave e inmediato de la cámara a su orientación frontal, encuadre de deriva original y FOV predeterminado ($55^\circ$).
+      - *Amortiguación inercial*: Filtro de interpolación lerp (`0.12` por cuadro) que aporta suavidad cinemática tanto al arrastrar como al soltar.
+    - **Respeto estricto del universo homogéneo e isótropo (sin centro ni bordes)**: La cámara permanece dentro del campo periódico comóvil; el pan se suma a `camBox` en el espacio toroidal con `x - floor(x)`, de forma que nunca se puede "salir" del universo ni encontrar una pared.
+    - **Capas e interactividad de la UI**:
+      - `.scene canvas` configurado con `touch-action: none` y cursor `grab`/`grabbing`.
+      - `.stage` ajustado con `pointer-events: none` y `.panel` con `pointer-events: auto`, permitiendo interactuar con la cámara tanto en la mitad derecha como en cualquier zona despejada del fondo sin interferir con el desplazamiento del texto.
+      - La tarjeta y retícula 3D de las paradas (Vía Láctea, Sistema Solar, Tierra) proyectan su posición en pantalla en cada cuadro usando la matriz de mundo y proyección actualizada de la cámara interactiva, manteniéndose ancladas a su posición tridimensional en todo momento.
+    - **Licencia y documentación**: Actualizada la licencia `camera` en `docs/licencias-visuales.md` y sus definiciones bilingües en `src/i18n/es.ts` y `en.ts` (sin cifras literales, verificado por tests).
+
 
 ## 6. Forma de trabajo
 

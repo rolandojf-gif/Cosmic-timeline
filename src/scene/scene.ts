@@ -8,15 +8,18 @@ import {
   BufferGeometry,
   Color,
   Data3DTexture,
+  Euler,
   Float32BufferAttribute,
   GLSL3,
   HalfFloatType,
   Int16BufferAttribute,
   LinearFilter,
+  MathUtils,
   Mesh,
   PerspectiveCamera,
   PlaneGeometry,
   Points,
+  Quaternion,
   RedFormat,
   RepeatWrapping,
   Scene,
@@ -65,12 +68,13 @@ export interface SceneOptions {
   readonly stateAt: (u: number) => VisualState;
   readonly reducedMotion: boolean;
   readonly mobile: boolean;
+  readonly onTargetScreenPos?: (pos: { x: number; y: number; visible: boolean }) => void;
 }
 
 export interface ParticleScene {
   readonly element: HTMLCanvasElement;
-  /** Ease towards control position u (or jump with reduced motion). */
-  show(u: number): void;
+  /** Ease towards control position u (or jump with reduced motion / direct sync). */
+  show(u: number, immediate?: boolean): void;
   dispose(): void;
 }
 
@@ -92,7 +96,12 @@ function buildGalaxies(
   web: CosmicWeb,
   dFirstStars: number,
   n: number,
-): { readonly geometry: BufferGeometry; readonly boost: number } {
+): {
+  readonly geometry: BufferGeometry;
+  readonly boost: number;
+  readonly targetQ: Vector3;
+  readonly targetPsi: Vector3;
+} {
   const boost = COLLAPSE / (dFirstStars * web.peaks[Math.min(1500, web.peaks.length - 1)]!.delta);
   const PEAKS = Math.min(6000, web.peaks.length);
   const gal: number[] = [];
@@ -137,7 +146,12 @@ function buildGalaxies(
   geometry.setAttribute('position', new Float32BufferAttribute(gal, 3));
   geometry.setAttribute('aPsi', new Float32BufferAttribute(galPsi, 3));
   geometry.setAttribute('aData', new Float32BufferAttribute(galData, 4));
-  return { geometry, boost };
+
+  // Designated Milky Way representative galaxy (member 2 of primary cluster)
+  const targetQ = new Vector3(gal[6] ?? 0.5, gal[7] ?? 0.5, gal[8] ?? 0.5);
+  const targetPsi = new Vector3(galPsi[6] ?? 0, galPsi[7] ?? 0, galPsi[8] ?? 0);
+
+  return { geometry, boost, targetQ, targetPsi };
 }
 
 export function createParticleScene(options: SceneOptions): ParticleScene | null {
@@ -162,6 +176,26 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   const camBox = baseCamBox.clone();
   const toTop = new Vector3(-0.17, -0.08, -0.14).normalize();
   camera.lookAt(toTop.clone().add(new Vector3(0.12, 0.05, 0)));
+
+  // Interactive camera controls (zoom & pan/orbit)
+  const DEFAULT_FOV = 55;
+  const MIN_FOV = 22;
+  const MAX_FOV = 85;
+  let targetFov = DEFAULT_FOV;
+  let currentFov = DEFAULT_FOV;
+
+  let targetYaw = 0;
+  let currentYaw = 0;
+  let targetPitch = 0;
+  let currentPitch = 0;
+
+  const targetPan = new Vector3(0, 0, 0);
+  const currentPan = new Vector3(0, 0, 0);
+
+  const baseLookDir = toTop.clone().add(new Vector3(0.12, 0.05, 0)).normalize();
+  const baseLookQuat = new Quaternion().setFromUnitVectors(new Vector3(0, 0, -1), baseLookDir);
+  const rotEuler = new Euler(0, 0, 0, 'YXZ');
+  const rotQuat = new Quaternion();
 
   // --- Background: 3D noise texture and raymarched plasma/CMB sky ---
   const noiseSize = 64;
@@ -230,6 +264,8 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let haloMaterial: ShaderMaterial | null = null;
   let galaxiesGeometry: BufferGeometry | null = null;
   let galaxiesMaterial: ShaderMaterial | null = null;
+  let targetQ: Vector3 | null = null;
+  let targetPsi: Vector3 | null = null;
 
   const N = options.mobile ? 64 : 128;
   const initialProjScale = innerHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
@@ -259,6 +295,8 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
         baseCamBox.z - Math.floor(baseCamBox.z),
       );
       camBox.copy(baseCamBox);
+      baseLookDir.copy(toTop).add(new Vector3(0.12, 0.05, 0)).normalize();
+      baseLookQuat.setFromUnitVectors(new Vector3(0, 0, -1), baseLookDir);
     }
 
     matterGeometry = buildMatterGeometry(web, N);
@@ -299,8 +337,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     scene.add(halo);
 
     const firstState = options.stateAt(currentU);
-    const { geometry: galGeom, boost } = buildGalaxies(web, firstState.dFirstStars, N);
+    const { geometry: galGeom, boost, targetQ: tQ, targetPsi: tPsi } = buildGalaxies(web, firstState.dFirstStars, N);
     galaxiesGeometry = galGeom;
+    targetQ = tQ;
+    targetPsi = tPsi;
 
     galaxiesMaterial = new ShaderMaterial({
       glslVersion: GLSL3,
@@ -336,14 +376,30 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let animFrameId = 0;
   let isRunning = false;
 
-  function resize(): void {
+  // --- Development FPS counter (?fps in URL or press 'f' key) ---
+  let fpsVisible = typeof location !== 'undefined' && new URLSearchParams(location.search).has('fps');
+  const fpsEl = document.createElement('div');
+  fpsEl.className = 'scene-fps';
+  fpsEl.style.cssText =
+    'position:fixed;bottom:12px;right:12px;padding:4px 8px;background:rgba(0,0,0,0.8);color:#4ade80;font:11px monospace;border-radius:4px;z-index:9999;pointer-events:none;letter-spacing:0.05em;border:1px solid rgba(255,255,255,0.1);';
+  fpsEl.hidden = !fpsVisible;
+  document.body.appendChild(fpsEl);
+
+  let lastFpsTime = performance.now();
+  let frameCount = 0;
+
+  function onKeyDown(e: KeyboardEvent): void {
+    if (e.key === 'f' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+      fpsVisible = !fpsVisible;
+      fpsEl.hidden = !fpsVisible;
+    }
+  }
+
+  function updateProjection(): void {
     const width = canvas.clientWidth || window.innerWidth;
     const height = canvas.clientHeight || window.innerHeight;
-    renderer.setSize(width, height, false);
-    composer.setSize(width, height);
-    if (bloomPass) bloomPass.resolution.set(width, height);
+    camera.fov = currentFov;
     camera.aspect = width / Math.max(1, height);
-
     if (width >= WIDE_FROM_PX) {
       camera.setViewOffset(width, height, -WIDE_SHIFT * width, 0, width, height);
     } else {
@@ -355,7 +411,15 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     if (matterMaterial) matterMaterial.uniforms.uProj!.value = projScale;
     if (haloMaterial) haloMaterial.uniforms.uProj!.value = projScale;
     if (galaxiesMaterial) galaxiesMaterial.uniforms.uProj!.value = projScale;
+  }
 
+  function resize(): void {
+    const width = canvas.clientWidth || window.innerWidth;
+    const height = canvas.clientHeight || window.innerHeight;
+    renderer.setSize(width, height, false);
+    composer.setSize(width, height);
+    if (bloomPass) bloomPass.resolution.set(width, height);
+    updateProjection();
     scheduleFrame();
   }
 
@@ -368,32 +432,51 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     const u = options.reducedMotion ? currentU : Math.min(1, Math.max(0, tween.valueAt(nowSec)));
     const state = options.stateAt(u);
 
-    // Continuous subtle camera drift with parallax
+    // Smooth damping for interactive camera controls
+    const damp = options.reducedMotion ? 1 : 0.12;
+    currentYaw = MathUtils.lerp(currentYaw, targetYaw, damp);
+    currentPitch = MathUtils.lerp(currentPitch, targetPitch, damp);
+    currentPan.lerp(targetPan, damp);
+
+    const prevFov = currentFov;
+    currentFov = MathUtils.lerp(currentFov, targetFov, damp);
+    if (Math.abs(currentFov - prevFov) > 0.01) {
+      updateProjection();
+    }
+
+    const isInteracting =
+      pointers.size > 0 ||
+      Math.abs(currentYaw - targetYaw) > 0.0001 ||
+      Math.abs(currentPitch - targetPitch) > 0.0001 ||
+      Math.abs(currentFov - targetFov) > 0.01 ||
+      currentPan.distanceToSquared(targetPan) > 1e-6;
+
+    // Apply interactive rotation: yaw around world Y, pitch around local X
+    rotEuler.set(currentPitch, currentYaw, 0, 'YXZ');
+    rotQuat.setFromEuler(rotEuler);
+    camera.quaternion.copy(baseLookQuat).multiply(rotQuat);
+
+    // Continuous subtle camera drift with parallax: steady forward glide through the periodic box
     if (!options.reducedMotion) {
-      const driftSpeed = 0.02;
-      const driftAngle = nowSec * driftSpeed;
+      const driftSpeed = 0.0003;
       const driftOffset = new Vector3(
-        Math.sin(driftAngle) * 0.006,
-        Math.cos(driftAngle * 0.7) * 0.004,
-        Math.sin(driftAngle * 0.5) * 0.006,
+        (nowSec * driftSpeed * 0.8) % 1,
+        (nowSec * driftSpeed * 0.4) % 1,
+        (nowSec * driftSpeed * 0.6) % 1,
       );
-      camBox.copy(baseCamBox).add(driftOffset);
+      camBox.copy(baseCamBox).add(driftOffset).add(currentPan);
       camBox.set(
         camBox.x - Math.floor(camBox.x),
         camBox.y - Math.floor(camBox.y),
         camBox.z - Math.floor(camBox.z),
       );
-      const lookTarget = toTop.clone().add(
-        new Vector3(
-          0.12 + Math.sin(driftAngle * 0.5) * 0.012,
-          0.05 + Math.cos(driftAngle * 0.3) * 0.008,
-          0,
-        ),
-      );
-      camera.lookAt(lookTarget);
     } else {
-      camBox.copy(baseCamBox);
-      camera.lookAt(toTop.clone().add(new Vector3(0.12, 0.05, 0)));
+      camBox.copy(baseCamBox).add(currentPan);
+      camBox.set(
+        camBox.x - Math.floor(camBox.x),
+        camBox.y - Math.floor(camBox.y),
+        camBox.z - Math.floor(camBox.z),
+      );
     }
 
     camera.updateMatrixWorld();
@@ -412,6 +495,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     );
     bgMaterial.uniforms.uIntensity!.value = state.intensity;
     bgMaterial.uniforms.uTurbulence!.value = state.turbulence;
+    bgMaterial.uniforms.uEmit!.value = state.emit;
     (bgMaterial.uniforms.uCmbHot!.value as Color).setRGB(
       state.cmbHot[0],
       state.cmbHot[1],
@@ -455,6 +539,25 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
     composer.render();
 
+    // Target galaxy screen projection for local landmark callouts (Milky Way / Solar System / Earth)
+    if (options.onTargetScreenPos && targetQ && targetPsi) {
+      const D = state.growthD;
+      let dx = targetQ.x + D * targetPsi.x - camBox.x;
+      let dy = targetQ.y + D * targetPsi.y - camBox.y;
+      let dz = targetQ.z + D * targetPsi.z - camBox.z;
+      dx -= Math.round(dx);
+      dy -= Math.round(dy);
+      dz -= Math.round(dz);
+      const worldPos = new Vector3(dx * BOX, dy * BOX, dz * BOX);
+      const proj = worldPos.clone().project(camera);
+      const width = canvas.clientWidth || window.innerWidth;
+      const height = canvas.clientHeight || window.innerHeight;
+      const sx = (proj.x * 0.5 + 0.5) * width;
+      const sy = (-proj.y * 0.5 + 0.5) * height;
+      const inView = proj.z > 0 && proj.z < 1 && proj.x >= -0.9 && proj.x <= 0.9 && proj.y >= -0.9 && proj.y <= 0.9;
+      options.onTargetScreenPos({ x: sx, y: sy, visible: inView && state.galaxiesVisible > 0.05 });
+    }
+
     // Dev FPS counter
     frameCount++;
     if (timestamp - lastFpsTime >= 500) {
@@ -467,8 +570,8 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       lastFpsTime = timestamp;
     }
 
-    // Render loop continuation: keep running if transitioning or continuous drift is active
-    if (!document.hidden && (!options.reducedMotion || isTransitioning)) {
+    // Render loop continuation: keep running if transitioning, continuous drift, or interaction damping is active
+    if (!document.hidden && (!options.reducedMotion || isTransitioning || isInteracting)) {
       animFrameId = requestAnimationFrame(step);
       isRunning = true;
     } else {
@@ -495,24 +598,94 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     }
   }
 
-  // --- Development FPS counter (?fps in URL or press 'f' key) ---
-  let fpsVisible = typeof location !== 'undefined' && new URLSearchParams(location.search).has('fps');
-  const fpsEl = document.createElement('div');
-  fpsEl.className = 'scene-fps';
-  fpsEl.style.cssText =
-    'position:fixed;bottom:12px;right:12px;padding:4px 8px;background:rgba(0,0,0,0.8);color:#4ade80;font:11px monospace;border-radius:4px;z-index:9999;pointer-events:none;letter-spacing:0.05em;border:1px solid rgba(255,255,255,0.1);';
-  fpsEl.hidden = !fpsVisible;
-  document.body.appendChild(fpsEl);
+  // --- Interactive camera gestures: drag look/pan & wheel zoom ---
+  const pointers = new Map<number, { x: number; y: number }>();
+  let prevPinchDist = 0;
 
-  let lastFpsTime = performance.now();
-  let frameCount = 0;
+  function onPointerDown(e: PointerEvent): void {
+    if (e.button !== 0 && e.button !== 1 && e.button !== 2) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) {
+      canvas.setPointerCapture?.(e.pointerId);
+    } else if (pointers.size === 2) {
+      const [p1, p2] = Array.from(pointers.values());
+      prevPinchDist = Math.hypot(p1!.x - p2!.x, p1!.y - p2!.y);
+    }
+    scheduleFrame();
+  }
 
-  function onKeyDown(e: KeyboardEvent): void {
-    if (e.key === 'f' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
-      fpsVisible = !fpsVisible;
-      fpsEl.hidden = !fpsVisible;
+  function onPointerMove(e: PointerEvent): void {
+    const prev = pointers.get(e.pointerId);
+    if (!prev) return;
+
+    if (pointers.size === 1) {
+      const dx = e.clientX - prev.x;
+      const dy = e.clientY - prev.y;
+      prev.x = e.clientX;
+      prev.y = e.clientY;
+
+      // Primary drag / Shift drag
+      if (e.shiftKey || e.button === 2) {
+        // Lateral pan through periodic box space
+        const panSpeed = (0.0006 * targetFov) / DEFAULT_FOV;
+        const right = new Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+        const up = new Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+        targetPan.addScaledVector(right, -dx * panSpeed);
+        targetPan.addScaledVector(up, dy * panSpeed);
+      } else {
+        // Orbit / Look around
+        const rotSpeed = 0.0035;
+        targetYaw -= dx * rotSpeed;
+        targetPitch -= dy * rotSpeed;
+        // Clamp pitch to prevent flipping (approx ±80°)
+        const maxPitch = (80 * Math.PI) / 180;
+        targetPitch = Math.max(-maxPitch, Math.min(maxPitch, targetPitch));
+      }
+      scheduleFrame();
+    } else if (pointers.size === 2) {
+      prev.x = e.clientX;
+      prev.y = e.clientY;
+      const [p1, p2] = Array.from(pointers.values());
+      const dist = Math.hypot(p1!.x - p2!.x, p1!.y - p2!.y);
+      if (prevPinchDist > 0 && dist > 0) {
+        const factor = prevPinchDist / dist;
+        targetFov = Math.max(MIN_FOV, Math.min(MAX_FOV, targetFov * factor));
+        scheduleFrame();
+      }
+      prevPinchDist = dist;
     }
   }
+
+  function onPointerUp(e: PointerEvent): void {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) {
+      prevPinchDist = 0;
+    }
+    scheduleFrame();
+  }
+
+  function onWheel(e: WheelEvent): void {
+    e.preventDefault();
+    const zoomFactor = Math.exp(e.deltaY * 0.0018);
+    targetFov = Math.max(MIN_FOV, Math.min(MAX_FOV, targetFov * zoomFactor));
+    scheduleFrame();
+  }
+
+  function onDblClick(): void {
+    // Double click resets camera view to default orientation and FOV
+    targetFov = DEFAULT_FOV;
+    targetYaw = 0;
+    targetPitch = 0;
+    targetPan.set(0, 0, 0);
+    scheduleFrame();
+  }
+
+  canvas.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', onPointerUp);
+  canvas.addEventListener('wheel', onWheel, { passive: false });
+  canvas.addEventListener('dblclick', onDblClick);
 
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('resize', resize);
@@ -521,10 +694,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   return {
     element: canvas,
-    show(u: number) {
+    show(u: number, immediate?: boolean) {
       currentU = u;
       const nowSec = performance.now() / 1000;
-      if (options.reducedMotion || isFirstJump) {
+      if (options.reducedMotion || isFirstJump || immediate) {
         tween.jump(u);
         isFirstJump = false;
       } else {
@@ -538,6 +711,13 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
         cancelAnimationFrame(animFrameId);
         animFrameId = 0;
       }
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+      canvas.removeEventListener('wheel', onWheel);
+      canvas.removeEventListener('dblclick', onDblClick);
+
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', onVisibilityChange);
