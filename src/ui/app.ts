@@ -63,6 +63,8 @@ export function startApp(root: HTMLElement): void {
   const sceneLayer = el('div', { class: 'scene' });
   const sceneNote = el('p', { class: 'scene-note' });
   sceneNote.hidden = true;
+  // Why the scene is missing, when it is: no WebGL, or the chunk failed to load.
+  let sceneProblem: 'unavailable' | 'loadFailed' = 'unavailable';
 
   root.replaceChildren(
     sceneLayer,
@@ -97,7 +99,7 @@ export function startApp(root: HTMLElement): void {
       languageButton.setAttribute('aria-label', m.meta.switchLanguageLabel);
       languageButton.setAttribute('lang', locale === 'es' ? 'en' : 'es');
       licences.update(m, licenceVars(locale, m, visualMap.growth));
-      setText(sceneNote, m.scene.unavailable);
+      setText(sceneNote, m.scene[sceneProblem]);
       localeChanged = false;
     }
 
@@ -122,15 +124,31 @@ export function startApp(root: HTMLElement): void {
   void loadScene();
 
   async function loadScene(): Promise<void> {
-    const { createParticleScene } = await import('../scene/scene');
-    const sceneStart = performance.now();
-    scene = createParticleScene({
-      stateAt: (position) => visualMap.visualState(scale.timeAt(position)),
-      reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
-      mobile: matchMedia('(max-width: 599px), (pointer: coarse)').matches,
-    });
-    // Field generation and WebGL setup, after the panel is already visible.
-    performance.measure('cosmic-timeline:scene', { start: sceneStart });
+    // A failed chunk download (offline, CDN error) or WebGL setup leaves the
+    // page as a browser without WebGL does: panel, control and a note saying why.
+    let createParticleScene: typeof import('../scene/scene').createParticleScene;
+    try {
+      ({ createParticleScene } = await import('../scene/scene'));
+    } catch (error) {
+      console.error('cosmic-timeline: scene chunk failed to load', error);
+      sceneProblem = 'loadFailed';
+      setText(sceneNote, MESSAGES[locale].scene.loadFailed);
+      sceneNote.hidden = false;
+      return;
+    }
+    try {
+      const sceneStart = performance.now();
+      scene = createParticleScene({
+        stateAt: (position) => visualMap.visualState(scale.timeAt(position)),
+        reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
+        mobile: matchMedia('(max-width: 599px), (pointer: coarse)').matches,
+      });
+      // Field generation and WebGL setup, after the panel is already visible.
+      performance.measure('cosmic-timeline:scene', { start: sceneStart });
+    } catch (error) {
+      console.error('cosmic-timeline: scene setup failed', error);
+      scene = null;
+    }
     if (scene) {
       sceneLayer.append(scene.element);
       scene.show(u);

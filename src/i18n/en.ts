@@ -249,5 +249,6 @@ export const en = {
   },
   scene: {
     unavailable: 'The scene is not available in this browser: it needs WebGL.',
+    loadFailed: 'The scene could not be loaded. The panel and the control work as usual; reload the page to try again.',
   },
 } satisfies Messages;

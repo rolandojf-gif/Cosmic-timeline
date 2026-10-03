@@ -271,6 +271,7 @@ export const es = {
   },
   scene: {
     unavailable: 'La escena no está disponible en este navegador: necesita WebGL.',
+    loadFailed: 'No se ha podido cargar la escena. El panel y el control funcionan igual; recarga la página para volver a intentarlo.',
   },
 };
 
