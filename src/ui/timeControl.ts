@@ -26,7 +26,7 @@ export interface TimeControl {
   readonly element: HTMLElement;
   update(u: number, currentStop: number): void;
   setTexts(texts: ControlTexts): void;
-  jumpTo(position: number): void;
+  jumpTo(position: number, autoPlay?: boolean): void;
 }
 
 /** Ruler labels every this many powers of ten. */
@@ -52,11 +52,36 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number) => voi
     onChange(next);
   };
 
+  /**
+   * Cinematic pacing curve for timeline playback:
+   * - Early epochs (Planck to Nucleosynthesis, u < 0.42): visually uniform plasma,
+   *   paced briskly (~1.9x) so it does not feel sluggish (~13 s at 1x).
+   * - Transition into Recombination (0.42 to 0.58): smooth deceleration (~8 s at 1x).
+   * - Recombination & Dark Ages (0.58 to 0.68): slow, atmospheric pace (0.42x, ~14 s at 1x)
+   *   allowing photon decoupling, CMB glow extinguishing, and deep dark ages to be savored.
+   * - Cosmic Web, Galaxies & Today (0.68 to 1.0): unhurried pace (0.55x, ~35 s at 1x)
+   *   giving time to watch filaments condense and 3D galaxy landmark callouts to appear and be clicked.
+   */
+  function pacingFactor(pos: number): number {
+    if (pos < 0.42) return 1.9;
+    if (pos < 0.58) {
+      const f = (pos - 0.42) / (0.58 - 0.42);
+      return 1.9 - (1.9 - 0.42) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    if (pos < 0.68) return 0.42;
+    if (pos < 0.80) {
+      const f = (pos - 0.68) / (0.80 - 0.68);
+      return 0.42 + (0.55 - 0.42) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    return 0.55;
+  }
+
   function playLoop(timestamp: number): void {
     if (!isPlaying) return;
     if (lastTimestamp > 0) {
       const dt = (timestamp - lastTimestamp) / 1000;
-      const du = (dt * speed) / BASE_DURATION_SECONDS;
+      const rate = pacingFactor(u);
+      const du = (dt * speed * rate) / BASE_DURATION_SECONDS;
       let nextU = u + du;
       if (nextU >= 1) {
         nextU = 1;
@@ -172,7 +197,11 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number) => voi
 
   const stopButtons = scale.positions.map((p) => {
     const button = el('button', { type: 'button', class: 'stop-button' });
-    button.addEventListener('click', () => change(p));
+    button.addEventListener('click', () => {
+      change(p);
+      lastTimestamp = performance.now();
+      setPlaying(true);
+    });
     return button;
   });
   const stopsNav = el('nav', { class: 'stops' }, el('ol', {}, ...stopButtons.map((b) => el('li', {}, b))));
@@ -241,8 +270,12 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number) => voi
       setText(rulerCaption, texts.rulerCaption);
       setText(hint, texts.keyboardHint);
     },
-    jumpTo(position) {
+    jumpTo(position, autoPlay = true) {
       change(position);
+      if (autoPlay) {
+        lastTimestamp = performance.now();
+        setPlaying(true);
+      }
     },
   };
 }

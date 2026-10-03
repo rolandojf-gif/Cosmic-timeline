@@ -85,7 +85,14 @@ a:hover {
   height: 100%;
 }
 
-/* 3D Scene Callout (Milky Way / Solar System / Earth) */
+/* 3D Scene Callout Overlay Layer */
+.callout-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 25;
+}
+
 .scene-callout {
   position: absolute;
   top: 0;
@@ -95,7 +102,6 @@ a:hover {
   background: none;
   pointer-events: auto;
   cursor: pointer;
-  z-index: 10;
   transform: translate(-50%, -100%);
   transition: opacity 0.35s ease, transform 0.08s linear;
   opacity: 0;
@@ -137,13 +143,15 @@ a:hover {
   box-shadow: 0 4px 18px rgb(0 0 0 / 0.5);
   white-space: nowrap;
   margin-bottom: 8px;
-  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s, box-shadow 0.2s;
 }
 
 .scene-callout:hover .callout-card,
 .scene-callout:focus-visible .callout-card {
   border-color: var(--accent);
   background: rgb(15 17 25 / 0.95);
+  box-shadow: 0 4px 22px rgb(230 196 143 / 0.4);
   transform: translateY(-2px);
 }
 

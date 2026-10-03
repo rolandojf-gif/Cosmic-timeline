@@ -84,8 +84,8 @@ export function createInfoPanel(): InfoPanel {
   });
   const model = el('p', { class: 'model' });
   const comparisons = el('p', { class: 'model' });
-  // Closed by default: the main layer is what most readers need.
-  const technicalBlock = el('details', { class: 'technical' }, technicalSummary, technical.element, model, comparisons);
+  // Open by default: technical data is visible without needing to expand, but foldable.
+  const technicalBlock = el('details', { class: 'technical', open: '' }, technicalSummary, technical.element, model, comparisons);
 
   const element = el(
     'section',

@@ -8,7 +8,7 @@ import { LOCALES, MESSAGES, detectLocale, type Locale } from '../i18n';
 import { PLANCK2018_DERIVED, accelerationOnset, createCosmology, matterLambdaEquality } from '../physics';
 import type { ParticleScene } from '../scene/scene';
 import { createVisualMap } from '../scene/visualMap';
-import { EPOCHS, createTimeScale, resolveEpochs } from '../timeline';
+import { EPOCHS, createTimeScale, resolveEpochs, type EpochId } from '../timeline';
 import { el, setText } from './dom';
 import { createInfoPanel } from './infoPanel';
 import { licenceVars } from './licenceVars';
@@ -83,14 +83,38 @@ export function startApp(root: HTMLElement): void {
   );
   callout.hidden = true;
 
+  const calloutLayer = el('div', { class: 'callout-layer' }, callout);
+
   let currentTargetEpochId: 'milkyWay' | 'solarSystem' | 'earth' | 'today' | null = null;
   let targetScreenPos: { x: number; y: number; visible: boolean } | null = null;
 
-  callout.addEventListener('click', () => {
+  callout.addEventListener('click', (e) => {
+    e.stopPropagation();
     if (currentTargetEpochId) {
-      const targetEpoch = epochs.find((e) => e.id === currentTargetEpochId);
+      const targetEpoch = epochs.find((ep) => ep.id === currentTargetEpochId);
       if (targetEpoch) {
-        control.jumpTo(scale.positionOf(targetEpoch.anchor));
+        const targetPos = scale.positionOf(targetEpoch.anchor);
+        // If already at this epoch's stop, advance to next landmark stop
+        if (Math.abs(u - targetPos) < 0.015) {
+          const sequence: EpochId[] = ['milkyWay', 'solarSystem', 'earth', 'today'];
+          const nextIdx = sequence.indexOf(currentTargetEpochId) + 1;
+          if (nextIdx < sequence.length) {
+            const nextEpoch = epochs.find((ep) => ep.id === sequence[nextIdx]);
+            if (nextEpoch) {
+              control.jumpTo(scale.positionOf(nextEpoch.anchor), true);
+              return;
+            }
+          }
+        }
+        // If at the end (today), clicking restarts replay from the cosmic web era
+        if (currentTargetEpochId === 'today' && u >= 0.99) {
+          const mw = epochs.find((ep) => ep.id === 'milkyWay');
+          if (mw) {
+            control.jumpTo(scale.positionOf(mw.anchor), true);
+            return;
+          }
+        }
+        control.jumpTo(targetPos, true);
       }
     }
   });
@@ -98,15 +122,14 @@ export function startApp(root: HTMLElement): void {
   function updateCalloutPosition(): void {
     if (!targetScreenPos || !targetScreenPos.visible || !currentTargetEpochId) {
       callout.classList.remove('visible');
+      callout.hidden = true;
       return;
     }
+    callout.hidden = false;
     callout.style.left = `${targetScreenPos.x}px`;
     callout.style.top = `${targetScreenPos.y}px`;
-    callout.hidden = false;
     callout.classList.add('visible');
   }
-
-  sceneLayer.append(callout);
 
   root.replaceChildren(
     sceneLayer,
@@ -114,6 +137,7 @@ export function startApp(root: HTMLElement): void {
     // On narrow screens the content starts below a transparent window onto the scene.
     el('main', { class: 'stage' }, el('div', { class: 'scene-window' }), panel.element),
     el('div', { class: 'dock' }, control.element, sceneNote, licences.element),
+    calloutLayer,
   );
 
   languageButton.addEventListener('click', () => {

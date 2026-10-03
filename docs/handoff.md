@@ -180,10 +180,11 @@ Todos los pasos del plan de integración se han completado y verificado en `feat
     - `npm run verify` pasa al 100 % (189 tests en 23 suites, typecheck estricto).
     - Cero errores en consola en el navegador.
 11. **Reproductor y etiquetas interactivas en escena**:
-    - Controles de reproducción en la barra de tiempo: reinicio (⏮), reproducción (▶), pausa (⏸) y selector de velocidad (1×, 2×, 4×), avanzando el recorrido de forma fluida (60 s a 1×).
-    - Al pulsar cualquier etiqueta de parada o el marcador 3D, el cabezal salta al instante elegido y continúa reproduciendo sin detenerse si estaba en marcha.
-    - Pausa automática al interactuar manualmente con el control deslizante y tecla Espacio para alternar play/pause.
-    - Marcador y tarjeta 3D en escena (`.scene-callout`) anclado en coordenadas proyectadas de una galaxia espiral representativa (licencia `milkyWayPin`), visible en las paradas de *Vía Láctea*, *Sistema Solar*, *Tierra* y *Hoy*.
+    - Controles de reproducción en la barra de tiempo: reinicio (⏮), reproducción (▶), pausa (⏸) y selector de velocidad (1×, 2×, 4×).
+    - Ritmo cinemático adaptado: avance más ágil en las eras tempranas con niebla uniforme (~13 s a 1× de Planck a nucleosíntesis) y desaceleración majestuosa en recombinación, edad oscura y formación de galaxias (~14 s para recombinación/edad oscura y ~35 s para estrellas y galaxias) para disfrutar los cambios visuales y leer los datos.
+    - Al pulsar cualquier parada en la regla o la tarjeta flotante 3D, el cabezal salta a ese instante y reanuda/inicia la reproducción automáticamente. Si se vuelve a pulsar sobre la tarjeta 3D, avanza a la siguiente parada destacada (Vía Láctea → Sistema Solar → Tierra → Hoy; y en Hoy reinicia la secuencia de la red cósmica).
+    - Marcador y tarjeta 3D en capa superior flotante `.callout-layer` (z-index 25 con pointer-events), garantizando la interactividad directa de clic y efecto hover, con licencia declarada `milkyWayPin`.
+    - Bloque de datos técnicos desplegado por defecto (`<details open>`) para que toda la información quede visible de inmediato sin ocultarse.
 
 ## 6. Forma de trabajo
 
