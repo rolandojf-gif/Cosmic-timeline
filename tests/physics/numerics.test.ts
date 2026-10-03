@@ -73,7 +73,10 @@ describe('closed-form solutions (constant degrees of freedom)', () => {
 describe('tabulation', () => {
   const c: Cosmology = createCosmology();
 
-  it('interpolated t(a) agrees with direct quadrature', () => {
+  // About a thousand independent quadratures, each evaluating g*(T) at every
+  // node: ~5 s alone, more when other test files share the CPU. The time limit
+  // is a budget for the run, not a tolerance on the result.
+  it('interpolated t(a) agrees with direct quadrature', { timeout: 30_000 }, () => {
     for (const a of logSpace(c.scaleFactorAtTime(c.tMin) * 1.0001, 1, 997)) {
       expect(rel(c.timeAtScaleFactor(a), c.integrateTime(a))).toBeLessThan(1e-9);
     }
