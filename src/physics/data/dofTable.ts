@@ -1,13 +1,18 @@
+/*! @license
+ * Standard Model degrees-of-freedom table: data by K. Saikawa and S. Shirai,
+ * JCAP 08 (2020) 011, arXiv:2005.03544, as distributed in PTArcade.
+ * PTArcade: Copyright (c) 2023 Andrea Mitridate. MIT License.
+ * Full licence text: src/physics/data/LICENSE-PTArcade
+ */
+
 // Effective relativistic degrees of freedom of the Standard Model plasma,
 // for energy density (g*rho) and entropy density (g*s), as functions of the
 // photon temperature.
 //
-// Source: K. Saikawa and S. Shirai, "Precise WIMP dark matter abundance and
-// Standard Model thermodynamics", JCAP 08 (2020) 011, arXiv:2005.03544.
-// Transcribed without modification from the tabulation distributed with the
-// PTArcade package (ptarcade/data/g_star.dat, v1.1.5, MIT licence), which
-// cites that paper. Rows are log-spaced in T. Column 2 of the original file
-// (gravitational-wave frequency) is dropped.
+// Transcribed without modification from ptarcade/data/g_star.dat in PTArcade
+// 1.1.5 (identical in the PyPI wheel and sdist), which attributes the data to
+// Saikawa & Shirai (2020). Rows are log-spaced in T. Column 2 of the original
+// file (gravitational-wave frequency) is dropped. See NOTICE.md.
 //
 // Do not edit by hand: regenerate from the original file if it changes.
 

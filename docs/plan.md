@@ -335,7 +335,7 @@ Todas las referencias se verificaron (DOI, volumen y página) antes de pasar a [
 ## 7. Cambios respecto al plan al implementar la física
 
 - **Tabla de g\*(T)**: se usa la versión actualizada de Saikawa y Shirai, *JCAP* 08 (2020) 011, arXiv:2005.03544, en lugar de la de 2018. Se transcribe sin cambios desde la tabla que distribuye el paquete PTArcade (licencia MIT), que cita ese artículo. Sus valores a baja temperatura (g\*s = 3,931, g\*ρ = 3,383) corresponden a N_eff ≈ 3,045.
-- **Ficheros**: `friedmann.ts` no existe; E(a) y H(a) viven en `cosmology.ts`. Se añaden `dofTable.ts` (datos), `milestones.ts` (igualdades y aceleración) e `index.ts`.
+- **Ficheros**: `friedmann.ts` no existe; E(a) y H(a) viven en `cosmology.ts`. Se añaden `data/dofTable.ts` (datos, con `LICENSE-PTArcade` y `NOTICE.md`), `milestones.ts` (igualdades y aceleración) e `index.ts`.
 - **Rejilla**: 128 nodos por unidad de ln a, desde ln a = −45 (T ≈ 1,5·10⁶ GeV, el techo de la tabla) hasta 0: 5761 nodos. La parte desde a = 0 se integra 60 e-folds más abajo. Con la rejilla acotada, a⁻⁴ ≤ 10⁷⁸ y no hace falta log-sum-exp.
 - **Inversión t → a**: Newton sobre el mismo segmento de Hermite que da t(a), en lugar de una segunda tabla. La ida y vuelta es exacta hasta el redondeo (< 10⁻¹² en 10⁵ instantes).
 - **Fixture de referencia**: `astropy.age(z)` pierde precisión por encima de z ≈ 1000 (1,4 % en z = 10⁴, un factor ~36 en z = 10⁵, con astropy 8.0.1). La fixture integra en ln a, con scipy, la E(z) del propio astropy, y la tolerancia es 10⁻⁹.

@@ -8,7 +8,7 @@
 // Above it (T > 1.5e6 GeV) they are held at the last tabulated value; that
 // regime is outside the model's stated validity anyway (see validity.ts).
 
-import { DOF_GRHO, DOF_GS, DOF_T_GEV } from './dofTable';
+import { DOF_GRHO, DOF_GS, DOF_T_GEV } from './data/dofTable';
 import { Pchip } from './interp';
 import { BOLTZMANN_GEV_PER_K, gevToKelvin, kelvinToGeV } from './constants';
 

@@ -19,9 +19,9 @@ T_CMB,0 = 2,7255 K.
 ### `saikawa-shirai-2020`
 Saikawa, K. y Shirai, S. (2020). Precise WIMP dark matter abundance and Standard Model thermodynamics. *Journal of Cosmology and Astroparticle Physics* 08 (2020) 011. [doi:10.1088/1475-7516/2020/08/011](https://doi.org/10.1088/1475-7516/2020/08/011) · [arXiv:2005.03544](https://arxiv.org/abs/2005.03544)
 
-Tabla de g\*ρ(T) y g\*s(T) del Modelo Estándar (`src/physics/dofTable.ts`). Actualiza la de Saikawa y Shirai (2018), *JCAP* 05 (2018) 035, [doi:10.1088/1475-7516/2018/05/035](https://doi.org/10.1088/1475-7516/2018/05/035).
+Tabla de g\*ρ(T) y g\*s(T) del Modelo Estándar (`src/physics/data/dofTable.ts`). Los datos son obra de Saikawa y Shirai (2020) y se atribuyen a ellos en el código, en este fichero y en `src/physics/data/NOTICE.md`. Actualiza la de Saikawa y Shirai (2018), *JCAP* 05 (2018) 035, [doi:10.1088/1475-7516/2018/05/035](https://doi.org/10.1088/1475-7516/2018/05/035).
 
-Procedencia de los datos: transcritos sin cambios de `ptarcade/data/g_star.dat` en el paquete PTArcade 1.1.5 ([PyPI](https://pypi.org/project/ptarcade/), licencia MIT), que los atribuye a Saikawa y Shirai (2020). La tabla original está en la [página de S. Shirai](https://member.ipmu.jp/satoshi.shirai/EOS2018.php).
+Procedencia de los datos: transcritos sin cambios de `ptarcade/data/g_star.dat` en el paquete PTArcade 1.1.5 ([PyPI](https://pypi.org/project/ptarcade/)), que los atribuye a Saikawa y Shirai (2020). PTArcade es Copyright (c) 2023 Andrea Mitridate, licencia MIT; el aviso y el texto de la licencia están en `src/physics/data/LICENSE-PTArcade`. La tabla original está en la [página de S. Shirai](https://member.ipmu.jp/satoshi.shirai/EOS2018.php).
 
 ### `astropy`
 Astropy Collaboration. `astropy.cosmology.FlatLambdaCDM`, versión 8.0.1. Implementación independiente usada como referencia numérica en `tests/fixtures/astropy-reference.json` (ver `scripts/gen-reference.py`).

@@ -25,7 +25,7 @@ Web interactiva sobre la historia del universo desde la época de Planck hasta h
 ## Física
 
 - ΛCDM plano, Planck 2018 TT,TE,EE+lowE+lensing+BAO. Los parámetros viven solo en `src/physics/params.ts`, con su referencia.
-- Radiación con g*ρ(T) y g*s(T) tabulados (Saikawa y Shirai 2020, `src/physics/dofTable.ts`, no editar a mano). T(a) por conservación de la entropía.
+- Radiación con g*ρ(T) y g*s(T) tabulados (Saikawa y Shirai 2020, `src/physics/data/dofTable.ts`, no editar a mano; licencia y atribución en `src/physics/data/NOTICE.md`). T(a) por conservación de la entropía.
 - Cálculo en logaritmos (ln t, ln a) sobre rejilla uniforme en ln a; Hermite cúbico con la derivada exacta d ln t/d ln a = 1/(tH); la inversa t → a resuelve sobre el mismo segmento, así que la ida y vuelta es exacta.
 - Niveles epistémicos: observado, física conocida extrapolada, especulativo. En el nivel especulativo no se muestran a, T, z ni radios.
 - Las épocas definidas por temperatura o z obtienen su tiempo del modelo; no se copian tiempos de tablas divulgativas.
