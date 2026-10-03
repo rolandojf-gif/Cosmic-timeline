@@ -285,7 +285,7 @@ export const es = {
     camera: {
       name: 'cámara',
       detail:
-        'La cámara está dentro de un campo sin centro ni borde: el espacio se repite en todas direcciones y todo se aleja de todo. No hay un punto desde el que el universo explote.',
+        'La cámara está dentro de un campo sin centro ni borde: el espacio se repite en todas direcciones y todo se aleja de todo. Permite orientar la mirada, desplazarse y variar el campo de visión libremente con el ratón o pantalla táctil, volviendo al encuadre inicial con un doble clic.',
     },
     transitions: {
       name: 'pasos entre instantes',

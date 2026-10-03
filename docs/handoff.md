@@ -207,6 +207,19 @@ Todos los pasos del plan de integración se han completado y verificado en `feat
     - `emit` se añade a `VisualState` y llega al uniform `uEmit`.
     - Textos: inflación explica el recalentamiento como el Big Bang caliente; quarks y hadrones enlazan con él. Licencias `colour` y `plasma` actualizadas en i18n y en `licencias-visuales.md`.
     - Ritmo: el tramo del destello y su enfriamiento (u ≈ 0,15–0,25) va a 1,25× en lugar de 2× para que se aprecie.
+15. **Cámara interactiva (Item 2 de la lista de mejoras)**:
+    - **Navegación gestual y ratón**:
+      - *Arrastre principal (botón izquierdo o un dedo)*: Rotación/orientación libre de la mirada con control suave de `yaw` (360°) y `pitch` con tope anatómico a $\pm 80^\circ$ para evitar inversiones bruscas de la vertical.
+      - *Arrastre secundario o Shift + arrastre*: Desplazamiento lateral comóvil (`targetPan`) proyectado en los ejes locales de la cámara (`right` y `up`), navegando por el espacio ilimitado de la caja periódica.
+      - *Rueda del ratón y pellizco táctil*: Variación dinámica continua del campo de visión (`fov`) entre $22^\circ$ y $85^\circ$ (base $55^\circ$). El escalado de tamaño de puntos (`uProj`) se recalcula en tiempo real para que tanto las partículas de Zel'dovich como las galaxias se escalen con perspectiva realista.
+      - *Doble clic*: Restablecimiento suave e inmediato de la cámara a su orientación frontal, encuadre de deriva original y FOV predeterminado ($55^\circ$).
+      - *Amortiguación inercial*: Filtro de interpolación lerp (`0.12` por cuadro) que aporta suavidad cinemática tanto al arrastrar como al soltar.
+    - **Respeto estricto del universo homogéneo e isótropo (sin centro ni bordes)**: La cámara permanece dentro del campo periódico comóvil; el pan se suma a `camBox` en el espacio toroidal con `x - floor(x)`, de forma que nunca se puede "salir" del universo ni encontrar una pared.
+    - **Capas e interactividad de la UI**:
+      - `.scene canvas` configurado con `touch-action: none` y cursor `grab`/`grabbing`.
+      - `.stage` ajustado con `pointer-events: none` y `.panel` con `pointer-events: auto`, permitiendo interactuar con la cámara tanto en la mitad derecha como en cualquier zona despejada del fondo sin interferir con el desplazamiento del texto.
+      - La tarjeta y retícula 3D de las paradas (Vía Láctea, Sistema Solar, Tierra) proyectan su posición en pantalla en cada cuadro usando la matriz de mundo y proyección actualizada de la cámara interactiva, manteniéndose ancladas a su posición tridimensional en todo momento.
+    - **Licencia y documentación**: Actualizada la licencia `camera` en `docs/licencias-visuales.md` y sus definiciones bilingües en `src/i18n/es.ts` y `en.ts` (sin cifras literales, verificado por tests).
 
 
 ## 6. Forma de trabajo

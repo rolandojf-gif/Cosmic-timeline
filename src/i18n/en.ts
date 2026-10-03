@@ -263,7 +263,7 @@ export const en = {
     camera: {
       name: 'camera',
       detail:
-        'The camera is inside a field with no centre and no edge: space repeats in every direction and everything moves away from everything else. There is no point from which the universe explodes.',
+        'The camera is inside a field with no centre and no edge: space repeats in every direction and everything moves away from everything else. You can freely look around, pan, and adjust the field of view with the mouse or touchscreen, returning to the default framing with a double click.',
     },
     transitions: {
       name: 'steps between instants',

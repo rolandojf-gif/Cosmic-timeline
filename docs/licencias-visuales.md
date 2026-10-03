@@ -86,7 +86,7 @@ Resultado: la radiación deja de verse hacia los 3,15 millones de años (z ≈ 2
 
 ## `camera`
 
-**Cámara.** La cámara está situada dentro de la caja periódica, mirando hacia el pico de densidad más masivo. El espacio se repite periódicamente en todas direcciones y los puntos se atenúan suavemente con la distancia, garantizando que no se aprecie ningún borde ni centro.
+**Cámara y navegación interactiva.** La cámara está situada dentro de la caja periódica, mirando hacia el pico de densidad más masivo. El espacio se repite periódicamente en todas direcciones y los puntos se atenúan suavemente con la distancia, garantizando que no se aprecie ningún borde ni centro. La escena permite interacción gestual libre: arrastre para orientar la vista o desplazarse lateralmente, rueda del ratón o pellizco táctil para ajustar el campo de visión (zoom) con amortiguación suave, y doble clic para restablecer la vista de deriva frontal original.
 
 ## `transitions`
 
