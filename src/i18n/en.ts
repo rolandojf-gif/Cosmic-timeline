@@ -117,19 +117,19 @@ export const en = {
       name: 'Inflation',
       short: 'Inflation',
       description:
-        'A hypothesis: a very brief, accelerated expansion that would explain why the universe is so uniform and flat, and where the seeds of galaxies come from. Measurements of the microwave background are consistent with it and rule out many of its models, but they do not fix when it happened or at what energy.',
+        'A hypothesis: an accelerated expansion that stretches the vacuum and dilutes any prior fluctuations, cooling the universe down to near absolute zero. As inflation slows, the decay of the inflaton dumps its vast energy into violent thermal reheating: this is the true Hot Big Bang, a simultaneous all-space ignition that floods the cosmos with particles and radiation at colossal temperatures.',
     },
     quarks: {
       name: 'Quark–gluon plasma',
       short: 'Quarks',
       description:
-        'After the electroweak crossover, particles acquire mass through the Higgs field. Quarks and gluons are not confined: they form a plasma together with leptons and photons. This is physics tested in accelerators, applied to a universe nobody has observed at this temperature.',
+        'Born directly from the thermal reheating that ignited the Hot Big Bang, this boiling plasma passes through the electroweak crossover, where particles acquire mass through the Higgs field. Quarks and gluons move freely at relativistic speeds alongside leptons and photons. This is physics tested in colliders, applied to a primordial universe at trillions of degrees.',
     },
     hadrons: {
       name: 'Hadron epoch',
       short: 'Hadrons',
       description:
-        'Below the quantum chromodynamics crossover, quarks become confined in protons, neutrons and other hadrons. Almost all hadrons and antihadrons annihilate, leaving a small excess of matter. Towards the end, neutrinos decouple and the ratio of neutrons to protons is nearly frozen.',
+        'Upon cooling below the quantum chromodynamics crossover, quarks become permanently confined inside protons, neutrons and other hadrons. The near-total annihilation of matter and antimatter leaves a small matter excess and calms the fluid, turning it denser and heavier. Towards the end, neutrinos decouple and the neutron-to-proton ratio freezes.',
     },
     nucleosynthesis: {
       name: 'Big Bang nucleosynthesis',
@@ -208,7 +208,7 @@ export const en = {
     colour: {
       name: 'colour of the light',
       detail:
-        'The colour is that of a black body at the model temperature, computed with the colour-matching functions of the CIE standard observer. Above {saturation} kelvin the hue no longer changes: that light is mostly ultraviolet, X-rays or gamma rays, and the screen only shows its visible part. At the Planck and inflation stops the model gives no temperature; the violet says the scene is an interpretation.',
+        'The colour is that of a black body at the model temperature, computed with the colour-matching functions of the CIE standard observer. Above {saturation} kelvin the hue no longer changes: that light is mostly ultraviolet, X-rays or gamma rays, and the screen only shows its visible part. In the speculative tier, violet represents the quantum foam and inflationary vacuum, flashing into incandescent white during thermal reheating.',
     },
     brightness: {
       name: 'brightness',
@@ -223,7 +223,7 @@ export const en = {
     plasma: {
       name: 'plasma',
       detail:
-        'Before recombination, primordial plasma is drawn using illustrative three-dimensional turbulence that becomes more agitated at higher temperatures. It does not represent measured individual filaments, but the turbulent regime of the medium.',
+        'The early medium evolves through illustrative physical regimes: quantum foam with micro-ripples in Planck, smoothing and supercooling in inflation, an all-space radiant flash during the thermal reheating of the Hot Big Bang, and three-dimensional turbulence distinguishing the free quark plasma from the confined hadronic fluid. It does not represent measured individual filaments, but the dynamic regimes of the medium.',
     },
     cmbContrast: {
       name: 'microwave background contrast',

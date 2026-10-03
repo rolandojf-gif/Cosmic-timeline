@@ -419,6 +419,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     );
     bgMaterial.uniforms.uIntensity!.value = state.intensity;
     bgMaterial.uniforms.uTurbulence!.value = state.turbulence;
+    bgMaterial.uniforms.uEmit!.value = state.emit;
     (bgMaterial.uniforms.uCmbHot!.value as Color).setRGB(
       state.cmbHot[0],
       state.cmbHot[1],

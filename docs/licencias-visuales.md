@@ -30,7 +30,7 @@ Posiciones de las paradas y comparación con la escala logarítmica pura: [`plan
 
 - Por encima de 10⁶ K (`COLOUR_SATURATION_K`) el tono ya no cambia: es el límite de Rayleigh-Jeans, un blanco azulado. Esa luz es sobre todo ultravioleta, X o gamma; la pantalla solo muestra su parte visible.
 - Por debajo del punto de Draper el color no se usa (la luz no se ve; ver `brightness`). El ajuste de las funciones de color no es fiable en ese extremo del espectro.
-- En el nivel especulativo (Planck, inflación) no hay temperatura del modelo: la escena usa el violeta con el que el panel marca ese nivel.
+- En el nivel especulativo (Planck, inflación) no hay temperatura del modelo: la escena usa el violeta con el que el panel marca ese nivel, enfriándose hacia índigo durante la inflación e iluminándose en blanco incandescente en el recalentamiento térmico del Big Bang caliente.
 
 ## `brightness`
 
@@ -48,7 +48,13 @@ Resultado: la radiación deja de verse hacia los 3,15 millones de años (z ≈ 2
 
 ## `plasma`
 
-**Plasma y turbulencia.** En las épocas de radiación previas a la recombinación (quarks, hadrones, nucleosíntesis), el medio se muestra mediante un raymarching volumétrico continuo sobre una textura periódica de ruido tridimensional (`src/scene/noise3d.ts`). Las contorsiones y filamentos reflejan el régimen turbulento del fluido caliente, volviéndose más rápidos y contorsionados a temperaturas más altas. No pretenden ser filamentos de materia individuales medidos.
+**Plasma y turbulencia.** El medio temprano se muestra mediante un raymarching volumétrico continuo sobre una textura periódica de ruido tridimensional (`src/scene/noise3d.ts`), estructurado en regímenes físicos ilustrativos:
+
+- **Época de Planck**: la geometría del espacio-tiempo experimenta fluctuaciones de espuma cuántica, ilustradas mediante alta turbulencia y microondulaciones direccionales iridiscentes (cian y magenta).
+- **Inflación cósmica**: la expansión métrica exponencial alisa las fluctuaciones y superenfría el vacío, reduciendo la turbulencia y la opacidad hasta una calma oscura y fría.
+- **Recalentamiento / Big Bang caliente**: el decaimiento del campo inflatón descarga su energía potencial en radiación y partículas, produciendo un destello radiante omnidireccional de blancura incandescente y máxima turbulencia, sin explosión exterior ni centro.
+- **Plasma de quarks y gluones**: fluido relativista no confinado con turbulencia hiperfina y alta emisión filamentaria en blanco azulado.
+- **Época hadrónica y nucleosíntesis**: tras el cruce de la cromodinámica cuántica a 155 MeV, el confinamiento de quarks en hadrones y la aniquilación masiva de antimateria calman el fluido, transformándolo en un medio más denso, sosegado y pesado antes de la recombinación.
 
 ## `cmbContrast`
 

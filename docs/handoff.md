@@ -198,6 +198,15 @@ Todos los pasos del plan de integración se han completado y verificado en `feat
     - **Columna de texto (`.stage`)**: Gradiente oscurecedor atenuado (`rgb(5 6 10 / 0.62) → 0.42 → 0`), ampliando el campo de visión de la escena cósmica hacia la izquierda.
     - **Barra inferior (`.dock`)**: Fondo de cristal esmerilado translúcido `rgb(7 9 16 / 0.58)` con `backdrop-filter: blur(16px) saturate(140%)` y borde superior de cristal. Para garantizar la usabilidad y legibilidad de los controles (botones de reproducción, selectores de velocidad y pastillas de paradas), cada botón cuenta con su propia base semitraslúcida de contraste (`rgb(15 18 28 / 0.6)`), evitando que partículas brillantes que pasen por detrás resten visibilidad o tactilidad a la interfaz.
     - **Móvil**: Panel inferior adaptado con fondo translúcido `rgb(5 6 10 / 0.75)` y desenfoque de 12 px.
+14. **Rediseño del universo temprano (Planck → inflación → Big Bang caliente → quarks → hadrones)**:
+    - **Problema**: Planck e inflación (≈ 31 % del control) eran el mismo velo violeta estático; el paso a los quarks era un salto de un fotograma, sin aviso; quarks y hadrones se veían casi iguales.
+    - **Planck**: espuma cuántica violeta, turbulenta, con ondulaciones finas (`cmbLevel` 0,3 en tonos violeta).
+    - **Inflación**: el estiramiento alisa la espuma hasta un vacío índigo oscuro y en calma (`INFLATION_COLOUR`).
+    - **Recalentamiento / Big Bang caliente**: subida de 10⁻³² a 10⁻³⁰·⁵ s, pico breve hasta 10⁻²⁹·⁵ s (`REHEAT_PEAK_*`) y enfriamiento que decae pronto y termina exactamente en el estado de los quarks en el cruce electrodébil (test de continuidad). Ignición uniforme en todo el campo, sin centro ni exterior.
+    - **Quarks vs hadrones**: por encima del cruce QCD el plasma es más fino, agitado y brillante (`QUARK_EMIT` 3,6); en la época hadrónica se calma (turbulencia × 0,6–0,7, emisión y bloom menores). La nucleosíntesis conserva exactamente su aspecto aprobado (test).
+    - `emit` se añade a `VisualState` y llega al uniform `uEmit`.
+    - Textos: inflación explica el recalentamiento como el Big Bang caliente; quarks y hadrones enlazan con él. Licencias `colour` y `plasma` actualizadas en i18n y en `licencias-visuales.md`.
+    - Ritmo: el tramo del destello y su enfriamiento (u ≈ 0,15–0,25) va a 1,25× en lugar de 2× para que se aprecie.
 
 
 ## 6. Forma de trabajo

@@ -69,10 +69,20 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number, isPlay
    *   a rushing slingshot over the final 4.5 billion years.
    */
   function pacingFactor(pos: number): number {
-    if (pos < 0.58) return 2.0;
+    if (pos < 0.12) return 1.8;
+    if (pos < 0.15) {
+      const f = (pos - 0.12) / (0.15 - 0.12);
+      return 1.8 - (1.8 - 1.25) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    if (pos < 0.25) return 1.25;
+    if (pos < 0.28) {
+      const f = (pos - 0.25) / (0.28 - 0.25);
+      return 1.25 + (1.85 - 1.25) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    if (pos < 0.58) return 1.85;
     if (pos < 0.62) {
       const f = (pos - 0.58) / (0.62 - 0.58);
-      return 2.0 - (2.0 - 0.38) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+      return 1.85 - (1.85 - 0.38) * (0.5 - 0.5 * Math.cos(Math.PI * f));
     }
     if (pos < 0.70) return 0.38;
     if (pos < 0.78) {
