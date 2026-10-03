@@ -70,8 +70,8 @@ export interface SceneOptions {
 
 export interface ParticleScene {
   readonly element: HTMLCanvasElement;
-  /** Ease towards control position u (or jump with reduced motion). */
-  show(u: number): void;
+  /** Ease towards control position u (or jump with reduced motion / direct sync). */
+  show(u: number, immediate?: boolean): void;
   dispose(): void;
 }
 
@@ -555,10 +555,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   return {
     element: canvas,
-    show(u: number) {
+    show(u: number, immediate?: boolean) {
       currentU = u;
       const nowSec = performance.now() / 1000;
-      if (options.reducedMotion || isFirstJump) {
+      if (options.reducedMotion || isFirstJump || immediate) {
         tween.jump(u);
         isFirstJump = false;
       } else {

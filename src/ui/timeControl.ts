@@ -36,7 +36,7 @@ const NARROW_LABEL_GAP = 0.11;
 
 const percent = (u: number): string => `${(u * 100).toFixed(3)}%`;
 
-export function createTimeControl(scale: TimeScale, onChange: (u: number) => void): TimeControl {
+export function createTimeControl(scale: TimeScale, onChange: (u: number, isPlaying: boolean) => void): TimeControl {
   let u = 0;
   let current = -1;
   let isPlaying = false;
@@ -49,31 +49,33 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number) => voi
   // next render, and each must start from the previous one.
   const change = (next: number): void => {
     u = next;
-    onChange(next);
+    onChange(next, isPlaying);
   };
 
   /**
    * Cinematic pacing curve for timeline playback:
-   * - Early epochs (Planck to Nucleosynthesis, u < 0.42): visually uniform plasma,
-   *   paced briskly (~1.9x) so it does not feel sluggish (~13 s at 1x).
-   * - Transition into Recombination (0.42 to 0.58): smooth deceleration (~8 s at 1x).
-   * - Recombination & Dark Ages (0.58 to 0.68): slow, atmospheric pace (0.42x, ~14 s at 1x)
+   * - Early epochs (Planck through Nucleosynthesis to cooling plasma, u < 0.58): visually
+   *   uniform fog, kept brisk (~2.0x, ~17 s at 1x) so it does not decelerate prematurely
+   *   before the visual transitions begin.
+   * - Transition into Recombination (0.58 to 0.62): smooth 2-second deceleration into
+   *   the CMB orange glow.
+   * - Recombination & Dark Ages (0.62 to 0.70): slow, atmospheric pace (0.38x, ~13 s at 1x)
    *   allowing photon decoupling, CMB glow extinguishing, and deep dark ages to be savored.
-   * - Cosmic Web, Galaxies & Today (0.68 to 1.0): unhurried pace (0.55x, ~35 s at 1x)
+   * - Cosmic Web, Galaxies & Today (0.70 to 1.0): unhurried pace (0.50x, ~36 s at 1x)
    *   giving time to watch filaments condense and 3D galaxy landmark callouts to appear and be clicked.
    */
   function pacingFactor(pos: number): number {
-    if (pos < 0.42) return 1.9;
-    if (pos < 0.58) {
-      const f = (pos - 0.42) / (0.58 - 0.42);
-      return 1.9 - (1.9 - 0.42) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    if (pos < 0.58) return 2.0;
+    if (pos < 0.62) {
+      const f = (pos - 0.58) / (0.62 - 0.58);
+      return 2.0 - (2.0 - 0.38) * (0.5 - 0.5 * Math.cos(Math.PI * f));
     }
-    if (pos < 0.68) return 0.42;
-    if (pos < 0.80) {
-      const f = (pos - 0.68) / (0.80 - 0.68);
-      return 0.42 + (0.55 - 0.42) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    if (pos < 0.70) return 0.38;
+    if (pos < 0.78) {
+      const f = (pos - 0.70) / (0.78 - 0.70);
+      return 0.38 + (0.50 - 0.38) * (0.5 - 0.5 * Math.cos(Math.PI * f));
     }
-    return 0.55;
+    return 0.50;
   }
 
   function playLoop(timestamp: number): void {

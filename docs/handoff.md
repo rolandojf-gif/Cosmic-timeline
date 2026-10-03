@@ -181,8 +181,9 @@ Todos los pasos del plan de integración se han completado y verificado en `feat
     - Cero errores en consola en el navegador.
 11. **Reproductor y etiquetas interactivas en escena**:
     - Controles de reproducción en la barra de tiempo: reinicio (⏮), reproducción (▶), pausa (⏸) y selector de velocidad (1×, 2×, 4×).
-    - Ritmo cinemático adaptado: avance más ágil en las eras tempranas con niebla uniforme (~13 s a 1× de Planck a nucleosíntesis) y desaceleración majestuosa en recombinación, edad oscura y formación de galaxias (~14 s para recombinación/edad oscura y ~35 s para estrellas y galaxias) para disfrutar los cambios visuales y leer los datos.
-    - Al pulsar cualquier parada en la regla o la tarjeta flotante 3D, el cabezal salta a ese instante y reanuda/inicia la reproducción automáticamente. Si se vuelve a pulsar sobre la tarjeta 3D, avanza a la siguiente parada destacada (Vía Láctea → Sistema Solar → Tierra → Hoy; y en Hoy reinicia la secuencia de la red cósmica).
+    - Ritmo cinemático adaptado: avance ágil (2×, ~17 s a 1×) a lo largo de toda la niebla uniforme temprana (de Planck a nucleosíntesis y enfriamiento de plasma previo a recombinación hasta $u = 0{,}58$), frenado suave en 2 s justo al entrar el resplandor de recombinación ($u = 0{,}62$), ritmo pausado y majestuoso en recombinación y edad oscura (0,38×, ~13 s) y ritmo contemplativo en formación de estrellas, red cósmica y galaxias (0,50×, ~36 s).
+    - Sincronización directa en reproducción continua: `scene.show(u, isPlaying)` pasa a modo directo inmediato durante el playLoop, eliminando el retraso de 1,75 s del tween Hermite y previniendo oscilaciones o inversiones espurias de velocidad en el crecimiento de estructuras ($D(a)$).
+    - Al pulsar cualquier parada en la regla o la tarjeta flotante 3D, el cabezal avanza en secuencia estricta hacia adelante (Vía Láctea → Sistema Solar → Tierra → Hoy; y en Hoy reinicia desde la Vía Láctea) y reanuda la reproducción sin saltar hacia atrás.
     - Marcador y tarjeta 3D en capa superior flotante `.callout-layer` (z-index 25 con pointer-events), garantizando la interactividad directa de clic y efecto hover, con licencia declarada `milkyWayPin`.
     - Bloque de datos técnicos desplegado por defecto (`<details open>`) para que toda la información quede visible de inmediato sin ocultarse.
 

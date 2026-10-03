@@ -51,8 +51,10 @@ export function startApp(root: HTMLElement): void {
     panel.instant,
   );
 
-  const control = createTimeControl(scale, (next) => {
+  let isPlaying = false;
+  const control = createTimeControl(scale, (next, playing) => {
     u = next;
+    isPlaying = playing;
     schedule();
   });
   const licences = createLicenseLine();
@@ -91,30 +93,15 @@ export function startApp(root: HTMLElement): void {
   callout.addEventListener('click', (e) => {
     e.stopPropagation();
     if (currentTargetEpochId) {
-      const targetEpoch = epochs.find((ep) => ep.id === currentTargetEpochId);
-      if (targetEpoch) {
-        const targetPos = scale.positionOf(targetEpoch.anchor);
-        // If already at this epoch's stop, advance to next landmark stop
-        if (Math.abs(u - targetPos) < 0.015) {
-          const sequence: EpochId[] = ['milkyWay', 'solarSystem', 'earth', 'today'];
-          const nextIdx = sequence.indexOf(currentTargetEpochId) + 1;
-          if (nextIdx < sequence.length) {
-            const nextEpoch = epochs.find((ep) => ep.id === sequence[nextIdx]);
-            if (nextEpoch) {
-              control.jumpTo(scale.positionOf(nextEpoch.anchor), true);
-              return;
-            }
-          }
+      const sequence: EpochId[] = ['milkyWay', 'solarSystem', 'earth', 'today'];
+      const currentIdx = sequence.indexOf(currentTargetEpochId);
+      if (currentIdx !== -1) {
+        // Always advance cleanly in landmark sequence: Milky Way -> Solar System -> Earth -> Today -> Milky Way
+        const nextIdx = (currentIdx + 1) % sequence.length;
+        const nextEpoch = epochs.find((ep) => ep.id === sequence[nextIdx]);
+        if (nextEpoch) {
+          control.jumpTo(scale.positionOf(nextEpoch.anchor), true);
         }
-        // If at the end (today), clicking restarts replay from the cosmic web era
-        if (currentTargetEpochId === 'today' && u >= 0.99) {
-          const mw = epochs.find((ep) => ep.id === 'milkyWay');
-          if (mw) {
-            control.jumpTo(scale.positionOf(mw.anchor), true);
-            return;
-          }
-        }
-        control.jumpTo(targetPos, true);
       }
     }
   });
@@ -170,7 +157,7 @@ export function startApp(root: HTMLElement): void {
     }
 
     panel.update(view, m);
-    scene?.show(u);
+    scene?.show(u, isPlaying);
     control.update(u, view.epochIndex);
     control.setTexts({
       label: m.control.label,
