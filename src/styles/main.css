@@ -4,9 +4,9 @@
 :root {
   --bg: #05060a;
   --surface: rgb(14 16 24 / 0.82);
-  --header-surface: rgb(6 8 14 / 0.38);
-  --dock-surface: rgb(7 9 16 / 0.58);
-  --glass-line: rgb(255 255 255 / 0.08);
+  --header-surface: rgb(6 8 14 / 0.66);
+  --dock-surface: rgb(7 9 16 / 0.80);
+  --glass-line: rgb(255 255 255 / 0.10);
   --line: #2a2d3a;
   --text: #e9e6df;
   --muted: #9b9aa5;

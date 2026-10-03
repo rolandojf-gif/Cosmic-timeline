@@ -54,35 +54,40 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number, isPlay
 
   /**
    * Cinematic pacing curve for timeline playback:
-   * - Early epochs (Planck through Nucleosynthesis to cooling plasma, u < 0.58): visually
-   *   uniform fog, kept brisk (~2.0x, ~17 s at 1x) so it does not decelerate prematurely
-   *   before the visual transitions begin.
-   * - Transition into Recombination (0.58 to 0.62): smooth 2-second deceleration into
-   *   the CMB orange glow.
-   * - Recombination & Dark Ages (0.62 to 0.70): slow, atmospheric pace (0.38x, ~13 s at 1x)
-   *   allowing photon decoupling, CMB glow extinguishing, and deep dark ages to be savored.
+   * - Early epochs (Planck through Inflation, u < 0.12): serene, stately pace (~0.65x)
+   *   letting the quantum foam and metric stretching be appreciated without haste.
+   * - Reheating / Hot Big Bang flash (0.12 to 0.22): gentle deceleration (~0.42x)
+   *   letting the volumetric ignition and creation climax be savored and understood.
+   * - Quarks and Hadrons (0.22 to 0.38): unhurried pace (~0.58x) showing the transition
+   *   from relativistic quark soup to discrete nucleon confinement.
+   * - Nucleosynthesis to Pre-Recombination (0.38 to 0.58): steady pace (~0.65x).
+   * - Recombination & Dark Ages (0.58 to 0.70): slow, atmospheric pace (0.38x)
+   *   allowing photon decoupling and deep dark ages to be savored.
    * - Cosmic Web & Galaxies (0.70 to 0.88): unhurried pace (0.50x) allowing filaments to condense
-   *   and the Milky Way landmark callout to appear.
-   * - Solar System to Earth (0.88 to 0.94): transit smoothly through the short 27-Myr segment
-   *   (~1.6x, ~1.9 s at 1x) so playback does not stall or freeze on identical snapshots.
-   * - Earth to Today (0.94 to 1.0): serene, contemplative pace (~0.36x, ~8.0 s at 1x) preventing
-   *   a rushing slingshot over the final 4.5 billion years.
+   *   and landmark callouts to appear.
+   * - Solar System to Earth (0.88 to 0.94): transit smoothly through the short 27-Myr segment (~1.4x).
+   * - Earth to Today (0.94 to 1.0): serene, contemplative pace (~0.36x).
    */
   function pacingFactor(pos: number): number {
-    if (pos < 0.12) return 1.8;
-    if (pos < 0.15) {
-      const f = (pos - 0.12) / (0.15 - 0.12);
-      return 1.8 - (1.8 - 1.25) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    if (pos < 0.10) return 0.65;
+    if (pos < 0.14) {
+      const f = (pos - 0.10) / (0.14 - 0.10);
+      return 0.65 - (0.65 - 0.42) * (0.5 - 0.5 * Math.cos(Math.PI * f));
     }
-    if (pos < 0.25) return 1.25;
-    if (pos < 0.28) {
-      const f = (pos - 0.25) / (0.28 - 0.25);
-      return 1.25 + (1.85 - 1.25) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    if (pos < 0.22) return 0.42;
+    if (pos < 0.26) {
+      const f = (pos - 0.22) / (0.26 - 0.22);
+      return 0.42 + (0.58 - 0.42) * (0.5 - 0.5 * Math.cos(Math.PI * f));
     }
-    if (pos < 0.58) return 1.85;
+    if (pos < 0.36) return 0.58;
+    if (pos < 0.40) {
+      const f = (pos - 0.36) / (0.40 - 0.36);
+      return 0.58 + (0.65 - 0.58) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+    }
+    if (pos < 0.58) return 0.65;
     if (pos < 0.62) {
       const f = (pos - 0.58) / (0.62 - 0.58);
-      return 1.85 - (1.85 - 0.38) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+      return 0.65 - (0.65 - 0.38) * (0.5 - 0.5 * Math.cos(Math.PI * f));
     }
     if (pos < 0.70) return 0.38;
     if (pos < 0.78) {
@@ -92,12 +97,12 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number, isPlay
     if (pos < 0.88) return 0.50;
     if (pos < 0.90) {
       const f = (pos - 0.88) / (0.90 - 0.88);
-      return 0.50 + (1.60 - 0.50) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+      return 0.50 + (1.40 - 0.50) * (0.5 - 0.5 * Math.cos(Math.PI * f));
     }
-    if (pos < 0.94) return 1.60;
+    if (pos < 0.94) return 1.40;
     if (pos < 0.96) {
       const f = (pos - 0.94) / (0.96 - 0.94);
-      return 1.60 - (1.60 - 0.36) * (0.5 - 0.5 * Math.cos(Math.PI * f));
+      return 1.40 - (1.40 - 0.36) * (0.5 - 0.5 * Math.cos(Math.PI * f));
     }
     return 0.36;
   }

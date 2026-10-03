@@ -96,6 +96,7 @@ export function createInfoPanel(): InfoPanel {
   );
 
   let renderedEpoch = -1;
+  let renderedEpochName = '';
   let renderedMessages: Messages | null = null;
 
   return {
@@ -108,8 +109,8 @@ export function createInfoPanel(): InfoPanel {
       lookback.hidden = view.lookback === null;
       setText(lookback, view.lookback === null ? '' : `${m.panel.lookback}: ${view.lookback}`);
 
-      // Epoch texts change only with the stop or the language.
-      if (view.epochIndex !== renderedEpoch || languageChanged) {
+      // Epoch texts change only with the stop, sub-epoch transition, or language.
+      if (view.epochIndex !== renderedEpoch || view.epochName !== renderedEpochName || languageChanged) {
         setText(name, view.epochName);
         setText(evidence, `${m.panel.evidence}: ${view.evidence}`);
         interval.hidden = view.interval === null;
@@ -124,6 +125,7 @@ export function createInfoPanel(): InfoPanel {
         );
         sources.replaceChildren(`${m.panel.sources}: `, ...sourceList(view.sources));
         renderedEpoch = view.epochIndex;
+        renderedEpochName = view.epochName;
       }
       if (languageChanged) {
         setText(humanHeading, m.panel.human);

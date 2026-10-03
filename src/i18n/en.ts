@@ -118,6 +118,9 @@ export const en = {
       short: 'Inflation',
       description:
         'A hypothesis: an accelerated expansion that stretches the vacuum and dilutes any prior fluctuations, cooling the universe down to near absolute zero. As inflation slows, the decay of the inflaton dumps its vast energy into violent thermal reheating: this is the true Hot Big Bang, a simultaneous all-space ignition that floods the cosmos with particles and radiation at colossal temperatures.',
+      reheatingName: 'Reheating: Hot Big Bang',
+      reheatingDescription:
+        'As inflation halts, the decay of the inflaton releases its vast energy into violent thermal reheating: the true hot Big Bang. The cold vacuum ignites into an incandescent plasma of particles filling the entire cosmos with neither center nor edge.',
     },
     quarks: {
       name: 'Quark–gluon plasma',
@@ -195,6 +198,10 @@ export const en = {
       name: 'JADES-GS-z14-0',
       description: 'galaxy confirmed by spectroscopy with the James Webb Space Telescope',
     },
+    reheating: {
+      name: 'Reheating',
+      description: 'birth of the hot Big Bang: inflaton decay fills all of space with incandescent thermal plasma',
+    },
   },
   licences: {
     heading: 'Declared interpretations',
@@ -223,7 +230,7 @@ export const en = {
     plasma: {
       name: 'plasma',
       detail:
-        'The early medium evolves through illustrative physical regimes: quantum foam with micro-ripples in Planck, smoothing and supercooling in inflation, an all-space radiant flash during the thermal reheating of the Hot Big Bang, and three-dimensional turbulence distinguishing the free quark plasma from the confined hadronic fluid. It does not represent measured individual filaments, but the dynamic regimes of the medium.',
+        'The early medium evolves through illustrative physical regimes: quantum foam with micro-ripples in Planck, quantum stretching streaks in inflation, an all-space incandescent volumetric flare during the thermal reheating of the Hot Big Bang, and three-dimensional turbulence distinguishing the continuous quark plasma from confined hadronic globules. It does not represent measured individual filaments, but the dynamic regimes of the medium.',
     },
     cmbContrast: {
       name: 'microwave background contrast',
@@ -282,6 +289,8 @@ export const en = {
     },
   },
   callout: {
+    reheating: 'The Hot Big Bang',
+    reheatingSub: 'Reheating: birth of the thermal cosmos',
     milkyWay: 'Milky Way',
     milkyWaySub: 'Our galaxy forming',
     solarSystem: 'Solar System',

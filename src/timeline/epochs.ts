@@ -104,6 +104,9 @@ export const EPOCHS: readonly Epoch[] = [
     end: { kind: 'time', seconds: 1e-32 },
     evidence: 'speculative',
     sources: ['bicep-keck-2021', 'planck2018-x'],
+    landmarks: [
+      { id: 'reheating', at: { kind: 'time', seconds: 1e-32 }, sources: ['planck2018-x'] },
+    ],
   },
   {
     id: 'quarks',

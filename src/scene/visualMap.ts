@@ -147,6 +147,8 @@ export interface VisualState {
   readonly dFirstStars: number;
   readonly galaxiesVisible: number;
   readonly emit: number;
+  readonly stretch: number;
+  readonly clump: number;
 }
 
 export interface VisualMap {
@@ -204,6 +206,8 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
         let cmbCold: Triple = SPECULATIVE_COLOUR;
         let bloomStrength = 0.8;
         let bloomThreshold = 0.6;
+        let stretch = 0;
+        let clump = 0;
 
         if (lg <= -36.0) {
           // Planck era, quantum foam: a dim violet medium with fast, fine
@@ -219,9 +223,10 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
           bloomStrength = 0.70 - 0.40 * k;
           bloomThreshold = 0.60 + 0.15 * k;
           colour = SPECULATIVE_COLOUR;
+          stretch = 0;
         } else if (lg <= -32.0) {
-          // Inflation: the stretching flattens the foam into a dark, calm,
-          // cold indigo void.
+          // Inflation: exponential metric stretching flattens the foam into
+          // long hyperluminal vacuum streaks, supercooling into a dark indigo void.
           const s = smoothstep((lg + 36.0) / 4.0);
           turbulence = 0.05 - 0.02 * s;
           intensity = 0.18 - 0.03 * s;
@@ -231,7 +236,9 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
           bloomStrength = 0.30;
           bloomThreshold = 0.75;
           colour = mixTriple(SPECULATIVE_COLOUR, INFLATION_COLOUR, s);
+          stretch = 0.3 + 0.7 * s;
         } else {
+          stretch = Math.max(0, 1 - (lg + 32.0) / 2.5);
           // Reheating, the hot Big Bang: the inflaton decays and fills all of
           // space at once with hot plasma. No centre, no outside: the whole
           // field ignites. A brief peak, then it cools into the quark plasma
@@ -293,6 +300,8 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
           dFirstStars,
           galaxiesVisible: 0,
           emit,
+          stretch,
+          clump,
         };
       }
       const p = state.physical;
@@ -366,6 +375,8 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
         dFirstStars,
         galaxiesVisible,
         emit,
+        stretch: 0,
+        clump: hadronEra,
       };
     },
   };

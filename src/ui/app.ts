@@ -87,11 +87,15 @@ export function startApp(root: HTMLElement): void {
 
   const calloutLayer = el('div', { class: 'callout-layer' }, callout);
 
-  let currentTargetEpochId: 'milkyWay' | 'solarSystem' | 'earth' | 'today' | null = null;
+  let currentTargetEpochId: 'reheating' | 'milkyWay' | 'solarSystem' | 'earth' | 'today' | null = null;
   let targetScreenPos: { x: number; y: number; visible: boolean } | null = null;
 
   callout.addEventListener('click', (e) => {
     e.stopPropagation();
+    if (currentTargetEpochId === 'reheating') {
+      control.jumpTo(scale.positionOf(1e-30), true);
+      return;
+    }
     if (currentTargetEpochId) {
       const sequence: EpochId[] = ['milkyWay', 'solarSystem', 'earth', 'today'];
       const currentIdx = sequence.indexOf(currentTargetEpochId);
@@ -174,7 +178,13 @@ export function startApp(root: HTMLElement): void {
 
     const currentEpoch = epochs[view.epochIndex];
     const epochId = currentEpoch?.id;
-    if (epochId === 'milkyWay') {
+    if (epochId === 'inflation' && t >= 1e-32) {
+      currentTargetEpochId = 'reheating';
+      setText(calloutTitle, m.callout.reheating);
+      setText(calloutSub, m.callout.reheatingSub);
+      callout.setAttribute('aria-label', `${m.callout.reheating}: ${m.callout.reheatingSub}`);
+      targetScreenPos = { x: Math.round(window.innerWidth * 0.65), y: Math.round(window.innerHeight * 0.40), visible: true };
+    } else if (epochId === 'milkyWay') {
       currentTargetEpochId = 'milkyWay';
       setText(calloutTitle, m.callout.milkyWay);
       setText(calloutSub, m.callout.milkyWaySub);
@@ -227,6 +237,7 @@ export function startApp(root: HTMLElement): void {
         reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
         mobile: matchMedia('(max-width: 599px), (pointer: coarse)').matches,
         onTargetScreenPos: (pos) => {
+          if (currentTargetEpochId === 'reheating') return;
           targetScreenPos = pos;
           updateCalloutPosition();
         },

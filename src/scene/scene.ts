@@ -222,6 +222,8 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     uHigh: { value: 0.85 },
     uSigma: { value: 1 },
     uEmit: { value: 3 },
+    uStretch: { value: 0 },
+    uClump: { value: 0 },
   };
 
   const bgMaterial = new ShaderMaterial({
@@ -509,6 +511,8 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       SRGBColorSpace,
     );
     bgMaterial.uniforms.uCmbLevel!.value = state.cmbLevel;
+    bgMaterial.uniforms.uStretch!.value = state.stretch;
+    bgMaterial.uniforms.uClump!.value = state.clump;
 
     // Matter uniforms
     if (matterMaterial && haloMaterial) {

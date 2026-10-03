@@ -17,7 +17,7 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
   precision highp sampler3D;
   uniform sampler3D uNoise;
   uniform vec3 uOrigin;
-  uniform float uTime, uHaze, uIntensity, uTurbulence, uCmbLevel, uLow, uHigh, uSigma, uEmit;
+  uniform float uTime, uHaze, uIntensity, uTurbulence, uCmbLevel, uLow, uHigh, uSigma, uEmit, uStretch, uClump;
   uniform vec3 uColour, uCmbHot, uCmbCold;
   in vec3 vDir;
   out vec4 fragColour;
@@ -29,7 +29,13 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
   float density(vec3 p, float t) {
     float f = mix(0.45, 1.5, uTurbulence);
     vec3 q = p * f;
-    float speed = mix(0.01, 0.05, uTurbulence);
+    // Anisotropic hyperluminal metric stretching during cosmic inflation
+    if (uStretch > 0.001) {
+      float sFactor = 1.0 + uStretch * 6.5;
+      q = vec3(q.x * sFactor, q.y * sFactor, q.z / sFactor);
+    }
+    // Calm, majestic fluid animation speed (no frantic boiling / static noise)
+    float speed = mix(0.003, 0.014, uTurbulence);
     vec3 warp = vec3(
       n3(q * 0.4 + vec3(0.0, 0.0, t * speed)),
       n3(q * 0.4 + vec3(0.31, t * speed, 0.17)),
@@ -42,6 +48,11 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
     float ridge = 1.0 - abs(2.0 * b - 1.0);
     float r3 = ridge * ridge * ridge * uTurbulence;
     float d = a * (0.9 - 0.4 * uTurbulence) + r3 * 0.4 + c * 0.1;
+    // Nucleon confinement across hadron epoch: fluid breaks into discrete, dense globules
+    if (uClump > 0.001) {
+      float globules = smoothstep(0.44, 0.72, b) * 1.35;
+      d = mix(d, globules, uClump * 0.75);
+    }
     return smoothstep(uLow, uHigh, d);
   }
 
@@ -69,6 +80,11 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
         vec3 deep = uColour * 0.3;
         vec3 hot = mix(uColour, vec3(1.0), 0.6);
         vec3 emission = mix(mix(deep, uColour, smoothstep(0.0, 0.6, d)), hot, smoothstep(0.6, 1.0, d)) * (0.12 + uEmit * d * d * d);
+        // Reheating: incandescent volumetric flash ignites the entire volume at once
+        if (uIntensity > 1.0) {
+          float flare = (uIntensity - 1.0) * 4.0;
+          emission += vec3(1.0, 0.98, 0.91) * flare * (0.5 + 0.5 * d);
+        }
         // Near recombination the plasma is calm: what remains are the hotter
         // and colder regions of the microwave-background pattern.
         float calm = 1.0 - smoothstep(0.0, 0.12, uTurbulence);
