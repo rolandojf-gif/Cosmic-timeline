@@ -248,6 +248,13 @@ Todos los pasos del plan de integración se han completado y verificado en `feat
       - Cabecera con título, botón para fijar (`[📌 Fijar panel]`) y botón de cierre (`[✕]`).
       - Si no está fijado, el panel se repliega automáticamente al iniciar la reproducción continua para despejar el campo visual, permitiendo disfrutar de la escena tridimensional cinematográfica y del cintillo sin estorbos.
     - **Adaptación móvil**: En pantallas pequeñas, el panel científico se transforma en un bottom sheet interactivo y el cintillo se compacta en una versión vertical limpia y legible.
+18. **Afinado de controles concentrados, cintillo prominente, tarjetas de hitos y panel no invasivo**:
+    - **Panel científico no invasivo**: El cajón lateral termina con precisión sobre el dock inferior (`bottom: var(--dock-height, 140px)` sincronizado dinámicamente con `ResizeObserver`) y el dock tiene `z-index: 40`, de modo que el panel nunca cubre ni bloquea los botones de reproducción (reinicio, play, pausa, velocidad) ni las pastillas de paradas temporales, que permanecen 100 % operativas y visibles tanto en escritorio como en móvil.
+    - **Cabecera sticky del instante**: En el panel científico, la cabecera con acciones y el bloque de tiempo cósmico (`.drawer-sticky-header`) se mantienen anclados en la parte superior con fondo de cristal esmerilado al hacer scroll vertical, garantizando que el usuario nunca pierda de vista el tiempo ni el nombre de la época al explorar los datos técnicos y fuentes.
+    - **Cintillo horizontal con empaque (`.cosmic-ticker`)**: Ampliado a 1280 px con relleno más holgado, proporciones recalibradas (1,3 : 1,35 : 1,75), tipografía mayor y nítida sin recortes ni elipsis (`13,8 mil millones de años`, `Recalentamiento: Big Bang caliente`), y pulsos luminosos más vivos con sutil resplandor cósmico.
+    - **Tarjetas de hitos cósmicos prominentes (`.milestone-flash`)**: Reubicadas en el centro superior de la pantalla, con dimensiones ampliadas a 580 px, tipografía contundente, doble sombra dorada y transición elástica `cubic-bezier(0.34, 1.56, 0.64, 1)`.
+    - **Concentración de botones en la barra de reproducción**: El acceso al panel científico (`[ℹ Panel científico]`) y el cambio de idioma (`[English / Español]`) se concentran en el dock junto a los mandos de reproducción, unificando toda la interacción en una sola barra coherente a 32 px de altura.
+    - **Cabecera superior depurada**: Retirada la insignia epistémica (`.tier-badge`) de la cabecera para mantenerla limpia, equilibrada y centrada exclusivamente en el título y subtítulo del proyecto.
 
 ## 6. Forma de trabajo
 
