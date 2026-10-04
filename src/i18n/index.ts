@@ -13,17 +13,13 @@ export const MESSAGES: Readonly<Record<Locale, Messages>> = { es, en };
 const isLocale = (value: string): value is Locale => (LOCALES as readonly string[]).includes(value);
 
 /**
- * Locale from an explicit `?lang=` parameter, else the first preferred browser
- * language we support, else English (the more widely read of the two for
- * visitors who speak neither).
+ * Locale from an explicit `?lang=` parameter, else English. English is the
+ * default for every visitor (and for crawlers); Spanish is one click away or
+ * via `?lang=es`. The browser language list is deliberately ignored.
  */
-export function detectLocale(search: string, languages: readonly string[]): Locale {
+export function detectLocale(search: string, _languages: readonly string[] = []): Locale {
   const requested = new URLSearchParams(search).get('lang');
   if (requested !== null && isLocale(requested)) return requested;
-  for (const tag of languages) {
-    const primary = tag.toLowerCase().split('-')[0] ?? '';
-    if (isLocale(primary)) return primary;
-  }
   return 'en';
 }
 
