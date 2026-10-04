@@ -87,11 +87,12 @@ describe('coverage', () => {
 });
 
 describe('locale and interpolation', () => {
-  it('prefers ?lang, then the browser languages, then English', () => {
+  it('uses ?lang, else English regardless of browser language', () => {
     expect(detectLocale('?lang=en', ['es-ES'])).toBe('en');
-    expect(detectLocale('?lang=fr', ['es-ES', 'en'])).toBe('es');
+    expect(detectLocale('?lang=es', ['en'])).toBe('es');
+    expect(detectLocale('?lang=fr', ['es-ES', 'en'])).toBe('en');
     expect(detectLocale('', ['de-DE', 'en-GB'])).toBe('en');
-    expect(detectLocale('', ['ES-mx'])).toBe('es');
+    expect(detectLocale('', ['ES-mx'])).toBe('en');
     expect(detectLocale('', ['fr'])).toBe('en');
   });
 
