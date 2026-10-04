@@ -235,3 +235,47 @@ describe('radius of the region we observe today', () => {
     expect(viewQuarks.speculative).toBeNull();
   });
 });
+
+describe('cinematic ui view (ticker, flash cards, tier badges)', () => {
+  it('provides ticker information with time, epoch, and key insight at all epochs', () => {
+    const viewToday = panelView(context, cosmology.age, 'es', MESSAGES.es);
+    expect(viewToday.ticker.cosmicTimeLabel).toBe('Tiempo cósmico');
+    expect(viewToday.ticker.time).toBe('13,8 mil millones de años');
+    expect(viewToday.ticker.epochName).toBe('Hoy');
+    expect(viewToday.ticker.keyData).toContain('energía oscura');
+
+    const viewPlanck = panelView(context, at('planck'), 'en', MESSAGES.en);
+    expect(viewPlanck.ticker.cosmicTimeLabel).toBe('Cosmic time');
+    expect(viewPlanck.ticker.epochName).toBe('Planck epoch');
+    expect(viewPlanck.ticker.keyData).toContain('Quantum foam');
+  });
+
+  it('triggers milestone flash cards at key cosmic milestones', () => {
+    const viewReheat = panelView(context, 1e-30, 'es', MESSAGES.es);
+    expect(viewReheat.flashCard).not.toBeNull();
+    expect(viewReheat.flashCard!.id).toBe('reheating');
+    expect(viewReheat.flashCard!.title).toBe('El Big Bang caliente');
+
+    const viewRecomb = panelView(context, at('recombination'), 'en', MESSAGES.en);
+    expect(viewRecomb.flashCard).not.toBeNull();
+    expect(viewRecomb.flashCard!.id).toBe('recombination');
+    expect(viewRecomb.flashCard!.title).toBe('Recombination and first light');
+
+    const viewDarkAges = panelView(context, at('darkAges'), 'es', MESSAGES.es);
+    expect(viewDarkAges.flashCard).toBeNull();
+  });
+
+  it('provides correct tier badges across all regimes', () => {
+    const viewSpec = panelView(context, at('planck'), 'es', MESSAGES.es);
+    expect(viewSpec.tierKey).toBe('speculative');
+    expect(viewSpec.tierBadge).toBe('Frontera teórica');
+
+    const viewExtrap = panelView(context, at('quarks'), 'es', MESSAGES.es);
+    expect(viewExtrap.tierKey).toBe('extrapolated');
+    expect(viewExtrap.tierBadge).toBe('Física de aceleradores');
+
+    const viewObs = panelView(context, at('recombination'), 'es', MESSAGES.es);
+    expect(viewObs.tierKey).toBe('observed');
+    expect(viewObs.tierBadge).toBe('Régimen observacional');
+  });
+});

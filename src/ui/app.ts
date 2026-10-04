@@ -10,9 +10,11 @@ import type { ParticleScene } from '../scene/scene';
 import { createVisualMap } from '../scene/visualMap';
 import { EPOCHS, createTimeScale, resolveEpochs, type EpochId } from '../timeline';
 import { el, setText } from './dom';
+import { createFlashCard } from './flashCard';
 import { createInfoPanel } from './infoPanel';
 import { licenceVars } from './licenceVars';
 import { createLicenseLine } from './licenseLine';
+import { createTicker } from './ticker';
 import { createTimeControl } from './timeControl';
 import { panelView, type Context } from './view';
 
@@ -41,20 +43,53 @@ export function startApp(root: HTMLElement): void {
 
   const title = el('h1', { class: 'title' });
   const subtitle = el('p', { class: 'subtitle' });
+  const tierBadge = el('span', { class: 'tier-badge' });
+  const mastheadLeft = el('div', { class: 'masthead-left' }, el('div', { class: 'title-group' }, title, subtitle), tierBadge);
+
+  const panelToggle = el('button', {
+    type: 'button',
+    class: 'panel-toggle active',
+    'aria-expanded': 'true',
+  });
   const languageButton = el('button', { type: 'button', class: 'language' });
+  const mastheadRight = el('div', { class: 'masthead-right' }, panelToggle, languageButton);
+
   const panel = createInfoPanel();
-  // The instant lives in the header, outside the scrolling area, so it stays on screen.
+  const ticker = createTicker();
+  const flashCard = createFlashCard();
+
   const header = el(
     'header',
     { class: 'site-header' },
-    el('div', { class: 'masthead' }, el('div', {}, title, subtitle), languageButton),
-    panel.instant,
+    el('div', { class: 'masthead' }, mastheadLeft, mastheadRight),
   );
+
+  const stage = el('main', { class: 'stage drawer-open' }, el('div', { class: 'scene-window' }), panel.element);
+
+  function updateDrawerClasses(open: boolean, pinned: boolean): void {
+    stage.classList.toggle('drawer-open', open);
+    stage.classList.toggle('drawer-pinned', pinned);
+    panelToggle.classList.toggle('active', open);
+    panelToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  panel.setOnOpenChange((open, pinned) => {
+    updateDrawerClasses(open, pinned);
+  });
+
+  panelToggle.addEventListener('click', () => {
+    panel.setOpen(!panel.isOpen());
+  });
 
   let isPlaying = false;
   const control = createTimeControl(scale, (next, playing) => {
     u = next;
-    isPlaying = playing;
+    if (playing !== isPlaying) {
+      isPlaying = playing;
+      if (isPlaying && !panel.isPinned()) {
+        panel.setOpen(false);
+      }
+    }
     schedule();
   });
   const licences = createLicenseLine();
@@ -125,8 +160,9 @@ export function startApp(root: HTMLElement): void {
   root.replaceChildren(
     sceneLayer,
     header,
-    // On narrow screens the content starts below a transparent window onto the scene.
-    el('main', { class: 'stage' }, el('div', { class: 'scene-window' }), panel.element),
+    stage,
+    ticker.element,
+    flashCard.element,
     el('div', { class: 'dock' }, control.element, sceneNote, licences.element),
     calloutLayer,
   );
@@ -152,6 +188,8 @@ export function startApp(root: HTMLElement): void {
       document.querySelector('meta[name="description"]')?.setAttribute('content', m.meta.description);
       setText(title, m.meta.title);
       setText(subtitle, m.meta.subtitle);
+      setText(panelToggle, m.meta.sciencePanel);
+      panelToggle.setAttribute('aria-label', m.meta.sciencePanelLabel);
       setText(languageButton, m.meta.switchLanguage);
       languageButton.setAttribute('aria-label', m.meta.switchLanguageLabel);
       languageButton.setAttribute('lang', locale === 'es' ? 'en' : 'es');
@@ -161,6 +199,10 @@ export function startApp(root: HTMLElement): void {
     }
 
     panel.update(view, m);
+    ticker.update(view.ticker);
+    flashCard.show(view.flashCard, isPlaying);
+    setText(tierBadge, view.tierBadge);
+    tierBadge.dataset['tier'] = view.tierKey;
     scene?.show(u, isPlaying);
     control.update(u, view.epochIndex);
     control.setTexts({

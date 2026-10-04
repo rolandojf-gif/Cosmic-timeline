@@ -37,6 +37,13 @@ export const es = {
       'Recorrido interactivo por la historia del universo con los valores físicos de cada instante, calculados con el modelo cosmológico de Planck 2018.',
     switchLanguage: 'English',
     switchLanguageLabel: 'Ver en inglés',
+    sciencePanel: 'Panel científico',
+    sciencePanelLabel: 'Abrir o cerrar el panel de datos científicos',
+    tierBadges: {
+      speculative: 'Frontera teórica',
+      extrapolated: 'Física de aceleradores',
+      observed: 'Régimen observacional',
+    },
   },
   control: {
     label: 'Tiempo cósmico',
@@ -90,6 +97,10 @@ export const es = {
     sources: 'Fuentes',
     modelSources: 'Fuentes del modelo',
     comparisonSources: 'Fuentes de las comparaciones',
+    drawerTitle: 'Panel científico',
+    pinPanel: 'Fijar panel',
+    unpinPanel: 'Desfijar panel',
+    closePanel: 'Cerrar panel',
   },
   tier: {
     observed:
@@ -360,6 +371,71 @@ export const es = {
     earthSub: 'Acreción y formación planetaria',
     today: 'Vía Láctea',
     todaySub: 'Nuestro lugar en el cosmos',
+  },
+  ticker: {
+    cosmicTime: 'Tiempo cósmico',
+    lookback: 'Hace',
+    epoch: 'Época',
+    keyData: 'Dato clave',
+    items: {
+      planck: 'Espuma cuántica del espacio-tiempo a densidades extremas',
+      inflation: 'Expansión métrica hiperlumínica que alisa el espacio-tiempo',
+      reheating: 'Decaimiento del inflatón: nace el Big Bang caliente térmico',
+      primordialPlasma: 'Fuerzas unificadas y partículas elementales sin masa en equilibrio térmico',
+      quarks: 'Sopa ultradensa de quarks y gluones en estado de plasma líquido',
+      hadrons: 'Descenso térmico por debajo del cruce QCD: confinamiento de protones y neutrones',
+      nucleosynthesis: 'Fusión primordial: formación de núcleos de helio, deuterio y litio',
+      recombination: 'Los electrones se unen a los núcleos: el universo se vuelve transparente y libera el fondo cósmico',
+      darkAges: 'Oscuridad cósmica total antes del encendido de las primeras estrellas',
+      firstStars: 'Colapso gravitatorio de nubes primordiales: nace la Población III',
+      reionization: 'La radiación ultravioleta de las primeras galaxias ioniza de nuevo el gas intergaláctico',
+      milkyWay: 'Ensamblaje del disco galáctico primitivo en el filamento local',
+      solarSystem: 'Colapso de una nebulosa molecular rica en metales generados por supernovas',
+      earth: 'Acreción planetaria y enfriamiento de la corteza en la zona habitable',
+      today: 'Universo dominado por la energía oscura en expansión cósmica acelerada',
+    },
+  },
+  flash: {
+    close: 'Cerrar aviso',
+    milestone: 'Hito cósmico',
+    items: {
+      reheating: {
+        title: 'El Big Bang caliente',
+        detail: 'El decaimiento del inflatón inunda el espacio de radiación térmica. Nace el universo caliente y observable.',
+      },
+      hadrons: {
+        title: 'Confinamiento de quarks',
+        detail: 'Al enfriarse el plasma por debajo del cruce QCD, los quarks y gluones quedan atrapados para siempre en protones y neutrones.',
+      },
+      nucleosynthesis: {
+        title: 'Nucleosíntesis primordial',
+        detail: 'Los protones y neutrones se fusionan en los primeros núcleos atómicos de helio, deuterio y trazas de litio.',
+      },
+      recombination: {
+        title: 'Recombinación y primera luz',
+        detail: 'Los núcleos capturan electrones formando átomos neutros. La niebla se disipa y la primera luz viaja libre como el fondo cósmico.',
+      },
+      firstStars: {
+        title: 'Primeras estrellas',
+        detail: 'La gravedad vence la presión térmica en las sobredensidades primordiales. Los primeros soles masivos ponen fin a la edad oscura.',
+      },
+      milkyWay: {
+        title: 'Nacimiento de la Vía Láctea',
+        detail: 'La fusión de protogalaxias a lo largo de los filamentos cósmicos da forma al disco primordial de nuestra galaxia.',
+      },
+      solarSystem: {
+        title: 'El Sistema Solar',
+        detail: 'Una nube de gas enriquecida por generaciones previas de supernovas colapsa formando el Sol y el disco protoplanetario.',
+      },
+      earth: {
+        title: 'Formación de la Tierra',
+        detail: 'Colisiones de planetesimales agregan la Tierra primitiva; se forma el núcleo metálico, la Luna y los primeros océanos.',
+      },
+      today: {
+        title: 'El cosmos actual',
+        detail: 'Miles de millones de galaxias se alejan aceleradamente impulsadas por la energía oscura, con la humanidad observando su historia.',
+      },
+    },
   },
   scene: {
     unavailable: 'La escena no está disponible en este navegador: necesita WebGL.',

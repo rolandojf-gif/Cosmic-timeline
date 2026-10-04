@@ -11,6 +11,13 @@ export const en = {
       'An interactive journey through the history of the universe, with the physical values of every instant computed with the Planck 2018 cosmological model.',
     switchLanguage: 'Español',
     switchLanguageLabel: 'View in Spanish',
+    sciencePanel: 'Scientific panel',
+    sciencePanelLabel: 'Open or close the scientific data panel',
+    tierBadges: {
+      speculative: 'Theoretical frontier',
+      extrapolated: 'Collider physics',
+      observed: 'Observational regime',
+    },
   },
   control: {
     label: 'Cosmic time',
@@ -64,6 +71,10 @@ export const en = {
     sources: 'Sources',
     modelSources: 'Model sources',
     comparisonSources: 'Sources of the comparisons',
+    drawerTitle: 'Scientific panel',
+    pinPanel: 'Pin panel',
+    unpinPanel: 'Unpin panel',
+    closePanel: 'Close panel',
   },
   tier: {
     observed:
@@ -334,6 +345,71 @@ export const en = {
     earthSub: 'Accretion and planetary formation',
     today: 'Milky Way',
     todaySub: 'Our home in the cosmos',
+  },
+  ticker: {
+    cosmicTime: 'Cosmic time',
+    lookback: 'Lookback',
+    epoch: 'Epoch',
+    keyData: 'Key insight',
+    items: {
+      planck: 'Quantum foam of spacetime at extreme Planckian densities',
+      inflation: 'Superluminal metric expansion smoothing the fabric of spacetime',
+      reheating: 'Inflaton field decay: birth of the hot thermal Big Bang',
+      primordialPlasma: 'Unified forces and massless elementary particles in thermal equilibrium',
+      quarks: 'Ultradense quark-gluon plasma in a nearly perfect fluid state',
+      hadrons: 'Thermal drop below the QCD crossover: quark confinement into protons and neutrons',
+      nucleosynthesis: 'Primordial fusion: formation of helium, deuterium, and lithium nuclei',
+      recombination: 'Electrons bind to nuclei: the universe turns transparent and releases the cosmic microwave background',
+      darkAges: 'Pervasive cosmic darkness before the ignition of the first stars',
+      firstStars: 'Gravitational collapse of primordial pristine clouds: birth of Population III stars',
+      reionization: 'Ultraviolet photons from the first stars and galaxies ionise intergalactic gas',
+      milkyWay: 'Early galactic disk assembly along the local cosmic filament',
+      solarSystem: 'Gravitational collapse of a molecular cloud enriched with supernova heavy elements',
+      earth: 'Planetary accretion, differentiation, and crust cooling in the circumstellar habitable zone',
+      today: 'Dark-energy-dominated universe in accelerated cosmic expansion',
+    },
+  },
+  flash: {
+    close: 'Dismiss notification',
+    milestone: 'Cosmic milestone',
+    items: {
+      reheating: {
+        title: 'The Hot Big Bang',
+        detail: 'Decay of the inflaton field floods space with thermal radiation, igniting the hot observable universe.',
+      },
+      hadrons: {
+        title: 'Quark confinement',
+        detail: 'As the plasma cools below the QCD crossover, quarks and gluons become permanently bound into protons and neutrons.',
+      },
+      nucleosynthesis: {
+        title: 'Primordial nucleosynthesis',
+        detail: 'Protons and neutrons fuse into the very first atomic nuclei of helium, deuterium, and traces of lithium.',
+      },
+      recombination: {
+        title: 'Recombination and first light',
+        detail: 'Atomic nuclei capture electrons to form neutral atoms. The cosmic fog clears and the earliest light travels freely as the microwave background.',
+      },
+      firstStars: {
+        title: 'First stars',
+        detail: 'Gravity overcomes thermal pressure in primordial overdensities, igniting the first massive stars and ending the dark ages.',
+      },
+      milkyWay: {
+        title: 'Birth of the Milky Way',
+        detail: 'Merging protogalactic fragments along cosmic filaments assemble the primordial disk of our galaxy.',
+      },
+      solarSystem: {
+        title: 'The Solar System',
+        detail: 'A molecular cloud enriched by past supernova generations collapses to form the Sun and the protoplanetary disk.',
+      },
+      earth: {
+        title: 'Formation of Earth',
+        detail: 'Collisions of planetesimals aggregate the proto-Earth, differentiating the core and allowing surface oceans to condense.',
+      },
+      today: {
+        title: 'The cosmos today',
+        detail: 'Billions of galaxies drift apart in an accelerated expansion driven by dark energy, while we trace back our cosmic heritage.',
+      },
+    },
   },
   scene: {
     unavailable: 'The scene is not available in this browser: it needs WebGL.',
