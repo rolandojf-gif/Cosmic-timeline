@@ -14,6 +14,8 @@ export interface EpochText {
   readonly description: string;
   readonly reheatingName?: string;
   readonly reheatingDescription?: string;
+  readonly primordialPlasmaName?: string;
+  readonly primordialPlasmaDescription?: string;
 }
 
 export interface LandmarkText {
@@ -97,6 +99,38 @@ export const es = {
     speculative:
       'Ningún modelo confirmado describe este instante. Solo se muestra el tiempo; temperatura, factor de escala, corrimiento al rojo y radios no tienen aquí un valor fiable.',
   } satisfies Record<Tier, string>,
+  speculative: {
+    badge: 'Frontera de la física teórica',
+    badgeSub: 'Estimaciones de modelos no confirmados experimentalmente',
+    stateLabel: 'Estado del espacio-tiempo',
+    tempLabel: 'Temperatura teórica estimada',
+    forcesLabel: 'Fuerzas fundamentales',
+    limitLabel: 'Límite del dato experimental',
+    planck: {
+      state: 'Espuma cuántica: el espacio-tiempo continuo se descompone en fluctuaciones cuánticas a la escala de Planck.',
+      temp: 'Aproximadamente {temp}: temperatura límite de Planck, donde la gravedad exige una formulación cuántica.',
+      forces: 'Gravedad cuántica unificada: las cuatro fuerzas fundamentales operaban presumiblemente como una sola interacción.',
+      limit: 'Ningún experimento puede alcanzar energías de Planck ({energy}). Se carece de una teoría comprobada de gravedad cuántica.',
+    },
+    inflation: {
+      state: 'Vacío cuántico superenfriado en expansión exponencial acelerada impulsada por el campo inflatón.',
+      temp: 'Superenfriada: la violenta expansión métrica diluye toda radiación térmica previa, acercando la temperatura al cero absoluto.',
+      forces: 'Gravedad desacoplada; interacciones fuerte y electrodébil probablemente unificadas en la escala GUT.',
+      limit: 'La escala de energía de la inflación está acotada superiormente por límites en modos B del fondo de microondas, sin detección directa.',
+    },
+    reheating: {
+      state: 'Ignición térmica omnidireccional: el inflatón decae súbitamente y llena el espacio de un plasma incandescente.',
+      temp: 'Aproximadamente {temp}: el vacío frío se enciende en el auténtico Big Bang caliente tras el cese de la inflación.',
+      forces: 'Fuerza nuclear fuerte y electrodébil en desacoplamiento durante la termalización del plasma.',
+      limit: 'La temperatura de recalentamiento depende del modelo específico de inflatón y carece de cota inferior observacional estricta.',
+    },
+    primordialPlasma: {
+      state: 'Sopa térmica relativista: plasma ultradenso de partículas fundamentales sin masa en equilibrio térmico.',
+      temp: 'Enfriamiento continuo desde {tempHigh} hasta {tempLow} en la antesala de la escala electrodébil.',
+      forces: 'Fuerzas electromagnética y débil unificadas en una única interacción; el campo de Higgs aún no condensa masa.',
+      limit: 'Los colisionadores actuales como el LHC exploran energías hasta la escala electrodébil. Por encima no hay datos de laboratorio.',
+    },
+  },
   evidence: {
     observed: 'observado',
     'established-physics': 'física establecida, sin observación directa',
@@ -141,10 +175,13 @@ export const es = {
       name: 'Inflación',
       short: 'Inflación',
       description:
-        'Una hipótesis: una expansión acelerada que estira el vacío y diluye cualquier fluctuación previa, enfriando el universo casi hasta el cero absoluto. Al frenar la inflación, el decaimiento del inflatón libera su inmensa energía en un recalentamiento térmico violento: este es el auténtico Big Bang caliente, un estallido simultáneo en todo el espacio que inunda el cosmos de partículas y radiación a temperaturas colosales.',
+        'Una hipótesis: una expansión acelerada que estira el vacío y diluye cualquier fluctuación previa, enfriando el universo casi hasta el cero absoluto. Las fluctuaciones cuánticas del espacio se estiran a escalas macroscópicas, sembrando las futuras galaxias.',
       reheatingName: 'Recalentamiento: Big Bang caliente',
       reheatingDescription:
         'Al frenar la inflación, el decaimiento del inflatón libera su inmensa energía en un recalentamiento térmico violento: el auténtico Big Bang caliente. El vacío frío se enciende en un plasma incandescente de partículas que inunda todo el cosmos sin centro ni frontera.',
+      primordialPlasmaName: 'Plasma primordial',
+      primordialPlasmaDescription:
+        'Tras la ignición térmica del Big Bang caliente, el cosmos es una densa sopa ultra-relativista de todas las partículas del Modelo Estándar sin masa. A medida que el espacio se expande, el plasma se enfría de forma continua en su camino hacia el cruce electrodébil.',
     },
     quarks: {
       name: 'Plasma de quarks y gluones',

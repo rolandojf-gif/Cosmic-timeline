@@ -178,7 +178,7 @@ export function startApp(root: HTMLElement): void {
 
     const currentEpoch = epochs[view.epochIndex];
     const epochId = currentEpoch?.id;
-    if (epochId === 'inflation' && t >= 1e-32) {
+    if (epochId === 'inflation' && t >= 1e-32 && t <= 1e-28) {
       currentTargetEpochId = 'reheating';
       setText(calloutTitle, m.callout.reheating);
       setText(calloutSub, m.callout.reheatingSub);

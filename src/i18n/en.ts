@@ -73,6 +73,38 @@ export const en = {
     speculative:
       'No confirmed model describes this instant. Only the time is shown; temperature, scale factor, redshift and radii have no reliable value here.',
   },
+  speculative: {
+    badge: 'Theoretical physics frontier',
+    badgeSub: 'Estimates from theoretical models not confirmed by experiment',
+    stateLabel: 'State of spacetime',
+    tempLabel: 'Estimated theoretical temperature',
+    forcesLabel: 'Fundamental forces',
+    limitLabel: 'Limit of experimental data',
+    planck: {
+      state: 'Quantum foam: smooth continuous spacetime dissolves into quantum fluctuations at the Planck scale.',
+      temp: 'Approximately {temp}: Planck temperature limit, where gravity requires a quantum formulation.',
+      forces: 'Unified quantum gravity: all four fundamental interactions presumably operated as one.',
+      limit: 'No experiment can reach Planckian energies ({energy}). A confirmed quantum theory of gravity is currently lacking.',
+    },
+    inflation: {
+      state: 'Supercooled quantum vacuum in accelerated exponential expansion driven by the inflaton field.',
+      temp: 'Supercooled: violent metric expansion dilutes prior thermal radiation, driving temperature towards absolute zero.',
+      forces: 'Gravity decoupled; strong and electroweak interactions probably unified at the GUT scale.',
+      limit: 'The energy scale of inflation is only bounded from above by B-mode polarization limits in the CMB, without direct detection.',
+    },
+    reheating: {
+      state: 'Omnidirectional thermal ignition: the inflaton decays suddenly, filling space with an incandescent plasma.',
+      temp: 'Approximately {temp}: the cold vacuum ignites into the true hot Big Bang upon the cessation of inflation.',
+      forces: 'Strong and electroweak forces decoupling during the thermalization of the plasma.',
+      limit: 'The exact reheating temperature depends on the specific inflaton potential and lacks a strict observational lower bound.',
+    },
+    primordialPlasma: {
+      state: 'Relativistic thermal soup: ultra-dense plasma of massless fundamental particles in thermal equilibrium.',
+      temp: 'Continuous cooling from {tempHigh} down to {tempLow} heading towards the electroweak scale.',
+      forces: 'Electromagnetic and weak forces unified into a single interaction; the Higgs field has not yet condensed mass.',
+      limit: 'Modern colliders such as the LHC test particle physics up to the electroweak scale. Above this energy no laboratory data exists.',
+    },
+  },
   evidence: {
     observed: 'observed',
     'established-physics': 'established physics, not directly observed',
@@ -117,10 +149,13 @@ export const en = {
       name: 'Inflation',
       short: 'Inflation',
       description:
-        'A hypothesis: an accelerated expansion that stretches the vacuum and dilutes any prior fluctuations, cooling the universe down to near absolute zero. As inflation slows, the decay of the inflaton dumps its vast energy into violent thermal reheating: this is the true Hot Big Bang, a simultaneous all-space ignition that floods the cosmos with particles and radiation at colossal temperatures.',
+        'A hypothesis: an accelerated expansion that stretches the vacuum and dilutes any prior fluctuations, cooling the universe down to near absolute zero. Quantum fluctuations in space stretch across macroscopic scales, seeding future galaxies.',
       reheatingName: 'Reheating: Hot Big Bang',
       reheatingDescription:
         'As inflation halts, the decay of the inflaton releases its vast energy into violent thermal reheating: the true hot Big Bang. The cold vacuum ignites into an incandescent plasma of particles filling the entire cosmos with neither center nor edge.',
+      primordialPlasmaName: 'Primordial plasma',
+      primordialPlasmaDescription:
+        'Following the thermal ignition of the hot Big Bang, the cosmos is a dense relativistic soup of all massless Standard Model particles. As space expands, the plasma cools continuously before reaching the electroweak crossover.',
     },
     quarks: {
       name: 'Quark–gluon plasma',
