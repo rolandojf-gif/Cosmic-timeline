@@ -36,7 +36,11 @@ const NARROW_LABEL_GAP = 0.11;
 
 const percent = (u: number): string => `${(u * 100).toFixed(3)}%`;
 
-export function createTimeControl(scale: TimeScale, onChange: (u: number, isPlaying: boolean) => void): TimeControl {
+export function createTimeControl(
+  scale: TimeScale,
+  onChange: (u: number, isPlaying: boolean) => void,
+  extraActions?: readonly HTMLElement[],
+): TimeControl {
   let u = 0;
   let current = -1;
   let isPlaying = false;
@@ -178,7 +182,12 @@ export function createTimeControl(scale: TimeScale, onChange: (u: number, isPlay
     return btn;
   });
   const speedGroup = el('div', { class: 'speed-group', role: 'group' }, ...speedButtons);
-  const playbackActions = el('div', { class: 'playback-actions' }, btnReset, btnPlay, btnPause, speedGroup);
+  const playbackActionElements: HTMLElement[] = [btnReset, btnPlay, btnPause, speedGroup];
+  if (extraActions && extraActions.length > 0) {
+    const divider = el('div', { class: 'playback-divider', 'aria-hidden': 'true' });
+    playbackActionElements.push(divider, ...extraActions);
+  }
+  const playbackActions = el('div', { class: 'playback-actions' }, ...playbackActionElements);
 
   const fill = el('div', { class: 'control-fill' });
   const thumb = el('div', { class: 'control-thumb' });

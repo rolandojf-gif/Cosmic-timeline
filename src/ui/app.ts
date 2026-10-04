@@ -43,28 +43,22 @@ export function startApp(root: HTMLElement): void {
 
   const title = el('h1', { class: 'title' });
   const subtitle = el('p', { class: 'subtitle' });
-  const tierBadge = el('span', { class: 'tier-badge' });
-  const mastheadLeft = el('div', { class: 'masthead-left' }, el('div', { class: 'title-group' }, title, subtitle), tierBadge);
+  const masthead = el('div', { class: 'masthead' }, el('div', { class: 'title-group' }, title, subtitle));
 
   const panelToggle = el('button', {
     type: 'button',
-    class: 'panel-toggle active',
-    'aria-expanded': 'true',
+    class: 'panel-toggle',
+    'aria-expanded': 'false',
   });
   const languageButton = el('button', { type: 'button', class: 'language' });
-  const mastheadRight = el('div', { class: 'masthead-right' }, panelToggle, languageButton);
 
   const panel = createInfoPanel();
   const ticker = createTicker();
   const flashCard = createFlashCard();
 
-  const header = el(
-    'header',
-    { class: 'site-header' },
-    el('div', { class: 'masthead' }, mastheadLeft, mastheadRight),
-  );
+  const header = el('header', { class: 'site-header' }, masthead);
 
-  const stage = el('main', { class: 'stage drawer-open' }, el('div', { class: 'scene-window' }), panel.element);
+  const stage = el('main', { class: 'stage' }, el('div', { class: 'scene-window' }), panel.element);
 
   function updateDrawerClasses(open: boolean, pinned: boolean): void {
     stage.classList.toggle('drawer-open', open);
@@ -82,16 +76,20 @@ export function startApp(root: HTMLElement): void {
   });
 
   let isPlaying = false;
-  const control = createTimeControl(scale, (next, playing) => {
-    u = next;
-    if (playing !== isPlaying) {
-      isPlaying = playing;
-      if (isPlaying && !panel.isPinned()) {
-        panel.setOpen(false);
+  const control = createTimeControl(
+    scale,
+    (next, playing) => {
+      u = next;
+      if (playing !== isPlaying) {
+        isPlaying = playing;
+        if (isPlaying && !panel.isPinned()) {
+          panel.setOpen(false);
+        }
       }
-    }
-    schedule();
-  });
+      schedule();
+    },
+    [panelToggle, languageButton],
+  );
   const licences = createLicenseLine();
 
   const visualMap = createVisualMap(cosmology, epochs);
@@ -157,13 +155,24 @@ export function startApp(root: HTMLElement): void {
     callout.classList.add('visible');
   }
 
+  const dock = el('div', { class: 'dock' }, control.element, sceneNote, licences.element);
+  const updateDockHeight = () => {
+    const dockHeight = dock.offsetHeight;
+    if (dockHeight > 0) {
+      document.documentElement.style.setProperty('--dock-height', `${dockHeight}px`);
+    }
+  };
+  const dockObserver = new ResizeObserver(updateDockHeight);
+  dockObserver.observe(dock);
+  requestAnimationFrame(updateDockHeight);
+
   root.replaceChildren(
     sceneLayer,
     header,
     stage,
     ticker.element,
     flashCard.element,
-    el('div', { class: 'dock' }, control.element, sceneNote, licences.element),
+    dock,
     calloutLayer,
   );
 
@@ -201,8 +210,6 @@ export function startApp(root: HTMLElement): void {
     panel.update(view, m);
     ticker.update(view.ticker);
     flashCard.show(view.flashCard, isPlaying);
-    setText(tierBadge, view.tierBadge);
-    tierBadge.dataset['tier'] = view.tierKey;
     scene?.show(u, isPlaying);
     control.update(u, view.epochIndex);
     control.setTexts({

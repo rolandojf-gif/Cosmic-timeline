@@ -133,12 +133,12 @@ export function createInfoPanel(): InfoPanel {
   );
   const drawerActions = el('div', { class: 'drawer-actions' }, pinBtn, closeBtn);
   const drawerHeader = el('div', { class: 'drawer-header' }, drawerTitle, drawerActions);
+  const stickyHeader = el('div', { class: 'drawer-sticky-header' }, drawerHeader, instant);
 
   const element = el(
     'section',
     { class: 'panel' },
-    drawerHeader,
-    instant,
+    stickyHeader,
     el('div', { class: 'human' }, humanHeading, human.element, tier, speculativeCard),
     el('div', { class: 'epoch' }, evidence, description, interval, illustrative, landmarksHeading, landmarks, sources),
     technicalBlock,
@@ -148,7 +148,7 @@ export function createInfoPanel(): InfoPanel {
   let renderedEpochName = '';
   let renderedMessages: Messages | null = null;
 
-  let isOpen = true;
+  let isOpen = false;
   let isPinned = false;
   let onOpenChange: ((open: boolean, pinned: boolean) => void) | null = null;
 
