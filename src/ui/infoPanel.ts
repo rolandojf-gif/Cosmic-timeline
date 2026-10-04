@@ -179,6 +179,9 @@ export function createInfoPanel(): InfoPanel {
     isOpen: () => isOpen,
     isPinned: () => isPinned,
     setOpen(open) {
+      if (!open && isPinned) {
+        return;
+      }
       isOpen = open;
       syncState();
     },

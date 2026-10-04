@@ -74,7 +74,12 @@ export function startApp(root: HTMLElement): void {
   });
 
   panelToggle.addEventListener('click', () => {
-    panel.setOpen(!panel.isOpen());
+    if (panel.isOpen()) {
+      panel.setPinned(false);
+      panel.setOpen(false);
+    } else {
+      panel.setOpen(true);
+    }
   });
 
   let isPlaying = false;
@@ -83,9 +88,11 @@ export function startApp(root: HTMLElement): void {
     (next, playing, isMilestonePause) => {
       u = next;
       isPlaying = playing;
-      if (isPlaying && !panel.isPinned()) {
-        panel.setOpen(false);
-      } else if (!isPlaying && isMilestonePause && !panel.isPinned()) {
+      if (isPlaying) {
+        if (!panel.isPinned()) {
+          panel.setOpen(false);
+        }
+      } else if (isMilestonePause) {
         panel.setOpen(true);
       }
       schedule();
@@ -99,7 +106,9 @@ export function startApp(root: HTMLElement): void {
       control.setPlaying(false);
       panel.setOpen(true);
     } else {
-      panel.setOpen(false);
+      if (!panel.isPinned()) {
+        panel.setOpen(false);
+      }
       control.setPlaying(true);
     }
   };
