@@ -30,8 +30,8 @@ export interface TimeControl {
   readonly element: HTMLElement;
   update(u: number, currentStop: number): void;
   setTexts(texts: ControlTexts): void;
-  jumpTo(position: number, autoPlay?: boolean): void;
-  setPlaying(playing: boolean): void;
+  jumpTo(position: number, autoPlay?: boolean, isMilestone?: boolean): void;
+  setPlaying(playing: boolean, isMilestone?: boolean): void;
   isPlaying(): boolean;
   togglePlay(): void;
   setAutoPause(enabled: boolean): void;
@@ -47,7 +47,7 @@ const percent = (u: number): string => `${(u * 100).toFixed(3)}%`;
 
 export function createTimeControl(
   scale: TimeScale,
-  onChange: (u: number, isPlaying: boolean) => void,
+  onChange: (u: number, isPlaying: boolean, isMilestonePause?: boolean) => void,
   extraActions?: readonly HTMLElement[],
 ): TimeControl {
   let u = 0;
@@ -65,9 +65,9 @@ export function createTimeControl(
 
   // Track the position at once: several key presses can arrive before the
   // next render, and each must start from the previous one.
-  const change = (next: number): void => {
+  const change = (next: number, playing = isPlaying, isMilestonePause = false): void => {
     u = next;
-    onChange(next, isPlaying);
+    onChange(next, playing, isMilestonePause);
   };
 
   /**
@@ -136,19 +136,20 @@ export function createTimeControl(
       if (autoPauseEnabled) {
         const crossed = milestoneAnchors.find((m) => m > u + 0.0005 && m <= nextU + 0.0005);
         if (crossed !== undefined && Math.abs(crossed - lastPausedMilestone) > 0.002) {
-          nextU = crossed;
+          u = crossed;
           lastPausedMilestone = crossed;
-          change(nextU);
-          setPlaying(false);
+          setPlaying(false, true);
           return;
         }
       }
 
       if (nextU >= 1) {
-        nextU = 1;
-        setPlaying(false);
+        u = 1;
+        lastPausedMilestone = 1;
+        setPlaying(false, true);
+        return;
       }
-      change(nextU);
+      change(nextU, true, false);
     }
     lastTimestamp = timestamp;
     if (isPlaying) {
@@ -156,12 +157,12 @@ export function createTimeControl(
     }
   }
 
-  function setPlaying(playing: boolean): void {
+  function setPlaying(playing: boolean, isMilestone = false): void {
     if (isPlaying === playing) return;
     isPlaying = playing;
     if (isPlaying) {
       if (u >= 1) {
-        change(0);
+        u = 0;
       }
       lastPausedMilestone = u;
       lastTimestamp = performance.now();
@@ -170,6 +171,7 @@ export function createTimeControl(
       btnPlay.setAttribute('aria-pressed', 'true');
       btnPause.classList.remove('active');
       btnPause.setAttribute('aria-pressed', 'false');
+      change(u, true, false);
     } else {
       cancelAnimationFrame(animId);
       lastTimestamp = 0;
@@ -177,15 +179,26 @@ export function createTimeControl(
       btnPlay.setAttribute('aria-pressed', 'false');
       btnPause.classList.add('active');
       btnPause.setAttribute('aria-pressed', 'true');
+      change(u, false, isMilestone);
     }
   }
 
-  function jumpTo(position: number, autoPlay = true): void {
+  function jumpTo(position: number, autoPlay = true, isMilestone = false): void {
     lastPausedMilestone = position;
-    change(position);
+    u = position;
     if (autoPlay) {
-      lastTimestamp = performance.now();
-      setPlaying(true);
+      if (!isPlaying) {
+        setPlaying(true);
+      } else {
+        lastTimestamp = performance.now();
+        change(position, true, false);
+      }
+    } else {
+      if (isPlaying) {
+        setPlaying(false, isMilestone);
+      } else {
+        change(position, false, isMilestone);
+      }
     }
   }
 
@@ -194,7 +207,7 @@ export function createTimeControl(
   btnPrev.addEventListener('click', () => {
     const prevAnchor = [...milestoneAnchors].reverse().find((m) => m < u - 0.008);
     const target = prevAnchor !== undefined ? prevAnchor : 0;
-    jumpTo(target, isPlaying && !autoPauseEnabled);
+    jumpTo(target, isPlaying && !autoPauseEnabled, true);
   });
 
   const btnPlay = el('button', { type: 'button', class: 'playback-btn play' });
@@ -214,7 +227,7 @@ export function createTimeControl(
   btnNext.addEventListener('click', () => {
     const nextAnchor = milestoneAnchors.find((m) => m > u + 0.008);
     const target = nextAnchor !== undefined ? nextAnchor : 1;
-    jumpTo(target, isPlaying && !autoPauseEnabled);
+    jumpTo(target, isPlaying && !autoPauseEnabled, true);
   });
 
   const autoPauseIcon = el('span', { class: 'autopause-icon' }, '⏸');
@@ -309,9 +322,7 @@ export function createTimeControl(
   const stopButtons = scale.positions.map((p) => {
     const button = el('button', { type: 'button', class: 'stop-button' });
     button.addEventListener('click', () => {
-      change(p);
-      lastTimestamp = performance.now();
-      setPlaying(true);
+      jumpTo(p, isPlaying && !autoPauseEnabled, true);
     });
     return button;
   });

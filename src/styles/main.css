@@ -1291,6 +1291,11 @@ a:hover {
     max-width: calc(100% - 480px);
     margin-inline: 0;
   }
+
+  .stage.drawer-open ~ .milestone-flash {
+    left: calc(440px + (100% - 440px) / 2);
+    max-width: calc(100vw - 480px);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

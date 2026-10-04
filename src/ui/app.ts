@@ -80,13 +80,13 @@ export function startApp(root: HTMLElement): void {
   let isPlaying = false;
   const control = createTimeControl(
     scale,
-    (next, playing) => {
+    (next, playing, isMilestonePause) => {
       u = next;
-      if (playing !== isPlaying) {
-        isPlaying = playing;
-        if (isPlaying && !panel.isPinned()) {
-          panel.setOpen(false);
-        }
+      isPlaying = playing;
+      if (isPlaying && !panel.isPinned()) {
+        panel.setOpen(false);
+      } else if (!isPlaying && isMilestonePause && !panel.isPinned()) {
+        panel.setOpen(true);
       }
       schedule();
     },
