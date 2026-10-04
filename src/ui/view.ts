@@ -93,6 +93,25 @@ export interface SpeculativeView {
   readonly limit: string;
 }
 
+export interface TickerView {
+  readonly cosmicTimeLabel: string;
+  readonly time: string;
+  readonly lookbackLabel: string | null;
+  readonly lookback: string | null;
+  readonly epochLabel: string;
+  readonly epochName: string;
+  readonly keyDataLabel: string;
+  readonly keyData: string;
+}
+
+export interface FlashCardView {
+  readonly id: string;
+  readonly title: string;
+  readonly detail: string;
+  readonly milestoneLabel: string;
+  readonly closeLabel: string;
+}
+
 export interface PanelView {
   readonly epochIndex: number;
   readonly time: string;
@@ -110,11 +129,15 @@ export interface PanelView {
   /** Technical layer; null in the speculative tier. */
   readonly technical: readonly TechnicalRow[] | null;
   readonly tier: string;
+  readonly tierKey: 'speculative' | 'extrapolated' | 'observed';
+  readonly tierBadge: string;
   readonly speculative: SpeculativeView | null;
   readonly modelSources: readonly Source[];
   readonly comparisonSources: readonly Source[];
   /** aria-valuetext of the control. */
   readonly valueText: string;
+  readonly ticker: TickerView;
+  readonly flashCard: FlashCardView | null;
 }
 
 export function buildSpeculativeView(t: number, tEW: number, locale: Locale, m: Messages): SpeculativeView {
@@ -319,6 +342,58 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
     ];
   }
 
+  let tickerItemKey: keyof typeof m.ticker.items = 'today';
+  if (epoch.id === 'inflation') {
+    if (t < 1e-32) tickerItemKey = 'inflation';
+    else if (t <= 1e-28) tickerItemKey = 'reheating';
+    else tickerItemKey = 'primordialPlasma';
+  } else if (epoch.id in m.ticker.items) {
+    tickerItemKey = epoch.id as keyof typeof m.ticker.items;
+  }
+  const keyData = m.ticker.items[tickerItemKey];
+
+  const ticker: TickerView = {
+    cosmicTimeLabel: m.ticker.cosmicTime,
+    time,
+    lookbackLabel: lookbackSeconds > 0 ? m.ticker.lookback : null,
+    lookback: lookbackSeconds > 0 ? duration(lookbackSeconds) : null,
+    epochLabel: m.ticker.epoch,
+    epochName,
+    keyDataLabel: m.ticker.keyData,
+    keyData,
+  };
+
+  let milestoneId: keyof typeof m.flash.items | null = null;
+  if (epoch.id === 'inflation' && t >= 1e-32 && t <= 1e-28) {
+    milestoneId = 'reheating';
+  } else if (epoch.id === 'hadrons') {
+    milestoneId = 'hadrons';
+  } else if (epoch.id === 'nucleosynthesis') {
+    milestoneId = 'nucleosynthesis';
+  } else if (epoch.id === 'recombination') {
+    milestoneId = 'recombination';
+  } else if (epoch.id === 'firstStars') {
+    milestoneId = 'firstStars';
+  } else if (epoch.id === 'milkyWay') {
+    milestoneId = 'milkyWay';
+  } else if (epoch.id === 'solarSystem') {
+    milestoneId = 'solarSystem';
+  } else if (epoch.id === 'earth') {
+    milestoneId = 'earth';
+  } else if (epoch.id === 'today') {
+    milestoneId = 'today';
+  }
+
+  const flashCard: FlashCardView | null = milestoneId
+    ? {
+        id: milestoneId,
+        title: m.flash.items[milestoneId].title,
+        detail: m.flash.items[milestoneId].detail,
+        milestoneLabel: m.flash.milestone,
+        closeLabel: m.flash.close,
+      }
+    : null;
+
   return {
     epochIndex,
     time,
@@ -333,9 +408,13 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
     human,
     technical,
     tier: m.tier[state.tier],
+    tierKey: state.tier,
+    tierBadge: m.meta.tierBadges[state.tier],
     speculative: state.physical === null ? buildSpeculativeView(t, tEW, locale, m) : null,
     modelSources: MODEL_SOURCES.map((id) => SOURCES[id]),
     comparisonSources: COMPARISON_SOURCES.map((id) => SOURCES[id]),
     valueText: fill(m.control.valueText, { time, epoch: epochName }),
+    ticker,
+    flashCard,
   };
 }

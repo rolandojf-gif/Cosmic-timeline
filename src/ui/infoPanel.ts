@@ -12,6 +12,11 @@ export interface InfoPanel {
   readonly instant: HTMLElement;
   /** Everything else: meant for the scrolling area. */
   readonly element: HTMLElement;
+  isOpen(): boolean;
+  isPinned(): boolean;
+  setOpen(open: boolean): void;
+  setPinned(pinned: boolean): void;
+  setOnOpenChange(callback: (open: boolean, pinned: boolean) => void): void;
   update(view: PanelView, m: Messages): void;
 }
 
@@ -111,9 +116,29 @@ export function createInfoPanel(): InfoPanel {
   const specDisclaimer = el('p', { class: 'tier', 'data-tier': 'speculative' });
   const speculativeCard = el('div', { class: 'speculative-card' }, specHeader, specList, specDisclaimer);
 
+  const drawerTitle = el('h3', { class: 'drawer-title' });
+  const pinBtn = el('button', {
+    type: 'button',
+    class: 'drawer-btn drawer-pin',
+    'aria-pressed': 'false',
+  });
+  const closeBtn = el(
+    'button',
+    {
+      type: 'button',
+      class: 'drawer-btn drawer-close',
+      'aria-label': 'Cerrar panel',
+    },
+    '✕',
+  );
+  const drawerActions = el('div', { class: 'drawer-actions' }, pinBtn, closeBtn);
+  const drawerHeader = el('div', { class: 'drawer-header' }, drawerTitle, drawerActions);
+
   const element = el(
     'section',
     { class: 'panel' },
+    drawerHeader,
+    instant,
     el('div', { class: 'human' }, humanHeading, human.element, tier, speculativeCard),
     el('div', { class: 'epoch' }, evidence, description, interval, illustrative, landmarksHeading, landmarks, sources),
     technicalBlock,
@@ -123,11 +148,53 @@ export function createInfoPanel(): InfoPanel {
   let renderedEpochName = '';
   let renderedMessages: Messages | null = null;
 
+  let isOpen = true;
+  let isPinned = false;
+  let onOpenChange: ((open: boolean, pinned: boolean) => void) | null = null;
+
+  function syncState(): void {
+    pinBtn.setAttribute('aria-pressed', isPinned ? 'true' : 'false');
+    pinBtn.classList.toggle('active', isPinned);
+    if (renderedMessages) {
+      setText(pinBtn, isPinned ? renderedMessages.panel.unpinPanel : renderedMessages.panel.pinPanel);
+    }
+    onOpenChange?.(isOpen, isPinned);
+  }
+
+  pinBtn.addEventListener('click', () => {
+    isPinned = !isPinned;
+    if (isPinned) isOpen = true;
+    syncState();
+  });
+
+  closeBtn.addEventListener('click', () => {
+    isOpen = false;
+    isPinned = false;
+    syncState();
+  });
+
   return {
     instant,
     element,
+    isOpen: () => isOpen,
+    isPinned: () => isPinned,
+    setOpen(open) {
+      isOpen = open;
+      syncState();
+    },
+    setPinned(pinned) {
+      isPinned = pinned;
+      if (isPinned) isOpen = true;
+      syncState();
+    },
+    setOnOpenChange(callback) {
+      onOpenChange = callback;
+    },
     update(view, m) {
       const languageChanged = m !== renderedMessages;
+      setText(drawerTitle, m.panel.drawerTitle);
+      setText(pinBtn, isPinned ? m.panel.unpinPanel : m.panel.pinPanel);
+      closeBtn.setAttribute('aria-label', m.panel.closePanel);
       setText(timeLabel, m.panel.time);
       setText(time, view.time);
       lookback.hidden = view.lookback === null;

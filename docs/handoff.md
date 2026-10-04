@@ -234,6 +234,20 @@ Todos los pasos del plan de integración se han completado y verificado en `feat
         - **Inflación**: Implementado el parámetro `uStretch` que estira anisotrópicamente las coordenadas espaciales ($8\times$ en el eje longitudinal), generando las estrías cuánticas de expansión métrica hiperlumínica.
         - **Recalentamiento**: Llamarada volumétrica omnidireccional en el raymarching que inunda todo el campo de luz blanca y dorada incandescente sin centro ni bordes.
         - **Quarks vs Hadrones**: En quarks, fluido continuo y viscoso sin confinamiento (`uClump = 0`); en hadrones, activación de `uClump` modulado por el cruce QCD para fragmentar el medio en grumos y glóbulos densos más discretos (nucleones).
+17. **Rediseño Cinemático Híbrido (Opción 1 aprobada)**:
+    - **Cintillo horizontal prominente (`.cosmic-ticker`)**: Barra panorámica con diseño en 3 columnas anclada justo sobre el control de tiempo:
+      1. *Tiempo cósmico*: valor destacado y tiempo transcurrido (`lookback`).
+      2. *Época*: pulso luminoso continuo (`tickerPulseAnim`) con el nombre del régimen o hito.
+      3. *Dato clave*: síntesis didáctica e instantánea del estado físico del cosmos en cada uno de los 15 instantes del recorrido.
+    - **Cabecera enriquecida (`.site-header`)**:
+      - Título y subtítulo acompañados de la insignia epistémica (`.tier-badge`): *Frontera teórica*, *Física de aceleradores* o *Régimen observacional* según el nivel de certeza científica.
+      - Botón de acceso directo al panel científico (`[ℹ Panel científico]`), con estado activo e indicador desplegable.
+    - **Flash cards de hitos (`.milestone-flash`)**: Tarjeta flotante discreta en la esquina superior derecha que emerge al ingresar a hitos cósmicos fundamentales (Recalentamiento / Big Bang caliente, confinamiento hadrónico, nucleosíntesis primordial, recombinación, primeras estrellas, Vía Láctea, Sistema Solar, Tierra y hoy); desaparece automáticamente tras 5 segundos durante la reproducción para no saturar la vista, o permanece en pausa y al pasar el ratón.
+    - **Panel científico como cajón desplegable (`.stage` / `.panel`)**:
+      - Panel deslizable desde la izquierda con efecto de cristal esmerilado y desenfoque (`backdrop-filter`).
+      - Cabecera con título, botón para fijar (`[📌 Fijar panel]`) y botón de cierre (`[✕]`).
+      - Si no está fijado, el panel se repliega automáticamente al iniciar la reproducción continua para despejar el campo visual, permitiendo disfrutar de la escena tridimensional cinematográfica y del cintillo sin estorbos.
+    - **Adaptación móvil**: En pantallas pequeñas, el panel científico se transforma en un bottom sheet interactivo y el cintillo se compacta en una versión vertical limpia y legible.
 
 ## 6. Forma de trabajo
 
