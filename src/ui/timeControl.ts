@@ -19,6 +19,10 @@ export interface ControlTexts {
   readonly play: string;
   readonly pause: string;
   readonly reset: string;
+  readonly prevStop: string;
+  readonly nextStop: string;
+  readonly autoPause: string;
+  readonly autoPauseLabel: string;
   readonly speed: string;
 }
 
@@ -26,7 +30,12 @@ export interface TimeControl {
   readonly element: HTMLElement;
   update(u: number, currentStop: number): void;
   setTexts(texts: ControlTexts): void;
-  jumpTo(position: number, autoPlay?: boolean): void;
+  jumpTo(position: number, autoPlay?: boolean, isMilestone?: boolean): void;
+  setPlaying(playing: boolean, isMilestone?: boolean): void;
+  isPlaying(): boolean;
+  togglePlay(): void;
+  setAutoPause(enabled: boolean): void;
+  isAutoPauseEnabled(): boolean;
 }
 
 /** Ruler labels every this many powers of ten. */
@@ -38,7 +47,7 @@ const percent = (u: number): string => `${(u * 100).toFixed(3)}%`;
 
 export function createTimeControl(
   scale: TimeScale,
-  onChange: (u: number, isPlaying: boolean) => void,
+  onChange: (u: number, isPlaying: boolean, isMilestonePause?: boolean) => void,
   extraActions?: readonly HTMLElement[],
 ): TimeControl {
   let u = 0;
@@ -49,11 +58,16 @@ export function createTimeControl(
   let lastTimestamp = 0;
   let animId = 0;
 
+  const reheatingPos = scale.positionOf(1e-32);
+  const milestoneAnchors = [...new Set([...scale.positions, reheatingPos])].sort((a, b) => a - b);
+  let autoPauseEnabled = true;
+  let lastPausedMilestone = -1;
+
   // Track the position at once: several key presses can arrive before the
   // next render, and each must start from the previous one.
-  const change = (next: number): void => {
+  const change = (next: number, playing = isPlaying, isMilestonePause = false): void => {
     u = next;
-    onChange(next, isPlaying);
+    onChange(next, playing, isMilestonePause);
   };
 
   /**
@@ -118,11 +132,24 @@ export function createTimeControl(
       const rate = pacingFactor(u);
       const du = (dt * speed * rate) / BASE_DURATION_SECONDS;
       let nextU = u + du;
-      if (nextU >= 1) {
-        nextU = 1;
-        setPlaying(false);
+
+      if (autoPauseEnabled) {
+        const crossed = milestoneAnchors.find((m) => m > u + 0.0005 && m <= nextU + 0.0005);
+        if (crossed !== undefined && Math.abs(crossed - lastPausedMilestone) > 0.002) {
+          u = crossed;
+          lastPausedMilestone = crossed;
+          setPlaying(false, true);
+          return;
+        }
       }
-      change(nextU);
+
+      if (nextU >= 1) {
+        u = 1;
+        lastPausedMilestone = 1;
+        setPlaying(false, true);
+        return;
+      }
+      change(nextU, true, false);
     }
     lastTimestamp = timestamp;
     if (isPlaying) {
@@ -130,19 +157,21 @@ export function createTimeControl(
     }
   }
 
-  function setPlaying(playing: boolean): void {
+  function setPlaying(playing: boolean, isMilestone = false): void {
     if (isPlaying === playing) return;
     isPlaying = playing;
     if (isPlaying) {
       if (u >= 1) {
-        change(0);
+        u = 0;
       }
+      lastPausedMilestone = u;
       lastTimestamp = performance.now();
       animId = requestAnimationFrame(playLoop);
       btnPlay.classList.add('active');
       btnPlay.setAttribute('aria-pressed', 'true');
       btnPause.classList.remove('active');
       btnPause.setAttribute('aria-pressed', 'false');
+      change(u, true, false);
     } else {
       cancelAnimationFrame(animId);
       lastTimestamp = 0;
@@ -150,13 +179,35 @@ export function createTimeControl(
       btnPlay.setAttribute('aria-pressed', 'false');
       btnPause.classList.add('active');
       btnPause.setAttribute('aria-pressed', 'true');
+      change(u, false, isMilestone);
     }
   }
 
-  const btnReset = el('button', { type: 'button', class: 'playback-btn reset' });
-  setText(btnReset, '⏮');
-  btnReset.addEventListener('click', () => {
-    change(0);
+  function jumpTo(position: number, autoPlay = true, isMilestone = false): void {
+    lastPausedMilestone = position;
+    u = position;
+    if (autoPlay) {
+      if (!isPlaying) {
+        setPlaying(true);
+      } else {
+        lastTimestamp = performance.now();
+        change(position, true, false);
+      }
+    } else {
+      if (isPlaying) {
+        setPlaying(false, isMilestone);
+      } else {
+        change(position, false, isMilestone);
+      }
+    }
+  }
+
+  const btnPrev = el('button', { type: 'button', class: 'playback-btn prev' });
+  setText(btnPrev, '⏮');
+  btnPrev.addEventListener('click', () => {
+    const prevAnchor = [...milestoneAnchors].reverse().find((m) => m < u - 0.008);
+    const target = prevAnchor !== undefined ? prevAnchor : 0;
+    jumpTo(target, isPlaying && !autoPauseEnabled, true);
   });
 
   const btnPlay = el('button', { type: 'button', class: 'playback-btn play' });
@@ -171,6 +222,32 @@ export function createTimeControl(
     setPlaying(false);
   });
 
+  const btnNext = el('button', { type: 'button', class: 'playback-btn next' });
+  setText(btnNext, '⏭');
+  btnNext.addEventListener('click', () => {
+    const nextAnchor = milestoneAnchors.find((m) => m > u + 0.008);
+    const target = nextAnchor !== undefined ? nextAnchor : 1;
+    jumpTo(target, isPlaying && !autoPauseEnabled, true);
+  });
+
+  const autoPauseIcon = el('span', { class: 'autopause-icon' }, '⏸');
+  const autoPauseText = el('span', { class: 'autopause-text' });
+  const btnAutoPause = el(
+    'button',
+    {
+      type: 'button',
+      class: 'autopause-btn active',
+      'aria-pressed': 'true',
+    },
+    autoPauseIcon,
+    autoPauseText,
+  );
+  btnAutoPause.addEventListener('click', () => {
+    autoPauseEnabled = !autoPauseEnabled;
+    btnAutoPause.classList.toggle('active', autoPauseEnabled);
+    btnAutoPause.setAttribute('aria-pressed', autoPauseEnabled ? 'true' : 'false');
+  });
+
   const SPEEDS = [1, 2, 4] as const;
   const speedButtons = SPEEDS.map((s) => {
     const btn = el('button', { type: 'button', class: s === speed ? 'speed-btn active' : 'speed-btn' });
@@ -182,7 +259,14 @@ export function createTimeControl(
     return btn;
   });
   const speedGroup = el('div', { class: 'speed-group', role: 'group' }, ...speedButtons);
-  const playbackActionElements: HTMLElement[] = [btnReset, btnPlay, btnPause, speedGroup];
+  const playbackActionElements: HTMLElement[] = [
+    btnPrev,
+    btnPlay,
+    btnPause,
+    btnNext,
+    speedGroup,
+    btnAutoPause,
+  ];
   if (extraActions && extraActions.length > 0) {
     const divider = el('div', { class: 'playback-divider', 'aria-hidden': 'true' });
     playbackActionElements.push(divider, ...extraActions);
@@ -238,9 +322,7 @@ export function createTimeControl(
   const stopButtons = scale.positions.map((p) => {
     const button = el('button', { type: 'button', class: 'stop-button' });
     button.addEventListener('click', () => {
-      change(p);
-      lastTimestamp = performance.now();
-      setPlaying(true);
+      jumpTo(p, isPlaying && !autoPauseEnabled, true);
     });
     return button;
   });
@@ -301,21 +383,27 @@ export function createTimeControl(
     setTexts(texts) {
       slider.setAttribute('aria-label', texts.label);
       slider.setAttribute('aria-valuetext', texts.valueText);
+      btnPrev.setAttribute('aria-label', texts.prevStop);
       btnPlay.setAttribute('aria-label', texts.play);
       btnPause.setAttribute('aria-label', texts.pause);
-      btnReset.setAttribute('aria-label', texts.reset);
+      btnNext.setAttribute('aria-label', texts.nextStop);
       speedGroup.setAttribute('aria-label', texts.speed);
+      btnAutoPause.setAttribute('aria-label', texts.autoPauseLabel);
+      setText(autoPauseText, texts.autoPause);
       stopsNav.setAttribute('aria-label', texts.stopsLabel);
       texts.stopLabels.forEach((label, i) => setText(stopButtons[i]!, label));
       setText(rulerCaption, texts.rulerCaption);
       setText(hint, texts.keyboardHint);
     },
-    jumpTo(position, autoPlay = true) {
-      change(position);
-      if (autoPlay) {
-        lastTimestamp = performance.now();
-        setPlaying(true);
-      }
+    jumpTo,
+    setPlaying,
+    isPlaying: () => isPlaying,
+    togglePlay: () => setPlaying(!isPlaying),
+    setAutoPause(enabled: boolean) {
+      autoPauseEnabled = enabled;
+      btnAutoPause.classList.toggle('active', autoPauseEnabled);
+      btnAutoPause.setAttribute('aria-pressed', autoPauseEnabled ? 'true' : 'false');
     },
+    isAutoPauseEnabled: () => autoPauseEnabled,
   };
 }

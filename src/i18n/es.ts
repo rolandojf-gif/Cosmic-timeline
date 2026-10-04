@@ -54,6 +54,10 @@ export const es = {
     play: 'Reproducir',
     pause: 'Pausar',
     reset: 'Reiniciar',
+    prevStop: 'Época anterior',
+    nextStop: 'Época siguiente',
+    autoPause: 'Pausa en hitos',
+    autoPauseLabel: 'Pausar automáticamente al alcanzar hitos cósmicos',
     speed: 'Velocidad',
   },
   panel: {

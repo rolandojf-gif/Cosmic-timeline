@@ -69,6 +69,7 @@ export interface SceneOptions {
   readonly reducedMotion: boolean;
   readonly mobile: boolean;
   readonly onTargetScreenPos?: (pos: { x: number; y: number; visible: boolean }) => void;
+  readonly onSceneClick?: () => void;
 }
 
 export interface ParticleScene {
@@ -605,15 +606,24 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   // --- Interactive camera gestures: drag look/pan & wheel zoom ---
   const pointers = new Map<number, { x: number; y: number }>();
   let prevPinchDist = 0;
+  let clickCandidate: { x: number; y: number; time: number } | null = null;
+  let didMovePointer = false;
 
   function onPointerDown(e: PointerEvent): void {
     if (e.button !== 0 && e.button !== 1 && e.button !== 2) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 1) {
       canvas.setPointerCapture?.(e.pointerId);
-    } else if (pointers.size === 2) {
-      const [p1, p2] = Array.from(pointers.values());
-      prevPinchDist = Math.hypot(p1!.x - p2!.x, p1!.y - p2!.y);
+      if (e.button === 0) {
+        clickCandidate = { x: e.clientX, y: e.clientY, time: performance.now() };
+        didMovePointer = false;
+      }
+    } else {
+      clickCandidate = null;
+      if (pointers.size === 2) {
+        const [p1, p2] = Array.from(pointers.values());
+        prevPinchDist = Math.hypot(p1!.x - p2!.x, p1!.y - p2!.y);
+      }
     }
     scheduleFrame();
   }
@@ -621,6 +631,13 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   function onPointerMove(e: PointerEvent): void {
     const prev = pointers.get(e.pointerId);
     if (!prev) return;
+
+    if (clickCandidate) {
+      const dist = Math.hypot(e.clientX - clickCandidate.x, e.clientY - clickCandidate.y);
+      if (dist > 8) {
+        didMovePointer = true;
+      }
+    }
 
     if (pointers.size === 1) {
       const dx = e.clientX - prev.x;
@@ -661,6 +678,13 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   }
 
   function onPointerUp(e: PointerEvent): void {
+    if (clickCandidate && !didMovePointer && e.button === 0) {
+      const elapsed = performance.now() - clickCandidate.time;
+      if (elapsed < 500) {
+        options.onSceneClick?.();
+      }
+    }
+    clickCandidate = null;
     pointers.delete(e.pointerId);
     if (pointers.size < 2) {
       prevPinchDist = 0;

@@ -392,8 +392,8 @@ a:hover {
   width: calc(100% - 32px);
   max-width: 1280px;
   display: grid;
-  grid-template-columns: 1.3fr 1.35fr 1.75fr;
-  align-items: center;
+  grid-template-columns: 1.25fr 1.45fr 1.7fr;
+  align-items: stretch;
   gap: 20px;
   padding: 16px 26px;
   background: rgb(7 9 16 / 0.88);
@@ -409,7 +409,7 @@ a:hover {
 .ticker-col {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   min-width: 0;
 }
 
@@ -430,7 +430,8 @@ a:hover {
   text-transform: uppercase;
   color: var(--accent);
   opacity: 0.9;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  line-height: 1.2;
 }
 
 .ticker-value {
@@ -449,7 +450,7 @@ a:hover {
   font-size: 0.86rem;
   color: var(--muted);
   white-space: nowrap;
-  margin-top: 3px;
+  margin-top: 5px;
   font-weight: 400;
 }
 
@@ -458,11 +459,12 @@ a:hover {
   align-items: center;
   gap: 10px;
   min-width: 0;
+  line-height: 1.18;
 }
 
 .ticker-pulse {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: var(--accent);
   box-shadow: 0 0 12px var(--accent);
@@ -482,13 +484,13 @@ a:hover {
 }
 
 .ticker-epoch-name {
-  font-size: clamp(0.98rem, 1.35vw, 1.24rem);
-  font-weight: 600;
+  font-size: clamp(1.22rem, 1.75vw, 1.58rem);
+  font-weight: 700;
   color: var(--accent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.22;
+  line-height: 1.18;
 }
 
 .ticker-insight-text {
@@ -500,6 +502,22 @@ a:hover {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+@keyframes tickerFlashAnim {
+  0% {
+    background: rgb(230 196 143 / 0.28);
+    box-shadow: 0 0 16px rgb(230 196 143 / 0.35);
+    border-radius: 8px;
+  }
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+.ticker-col.ticker-flash {
+  animation: tickerFlashAnim 1.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Floating Milestone Flash Card */
@@ -521,9 +539,11 @@ a:hover {
   box-shadow: 0 20px 54px rgb(0 0 0 / 0.8), 0 0 36px rgb(230 196 143 / 0.22);
   opacity: 0;
   pointer-events: none;
+  cursor: pointer;
   transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
               transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 0.4s ease;
+              box-shadow 0.35s ease,
+              border-color 0.3s ease;
 }
 
 .milestone-flash.visible {
@@ -533,10 +553,17 @@ a:hover {
   box-shadow: 0 24px 60px rgb(0 0 0 / 0.85), 0 0 44px rgb(230 196 143 / 0.3);
 }
 
+.milestone-flash.visible:hover,
+.milestone-flash.visible:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 28px 68px rgb(0 0 0 / 0.9), 0 0 52px rgb(230 196 143 / 0.45);
+  transform: translate(-50%, -2px) scale(1.015);
+}
+
 .flash-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   margin-bottom: 10px;
 }
 
@@ -561,22 +588,6 @@ a:hover {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--accent);
-}
-
-.flash-close {
-  background: none;
-  border: none;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 1.05rem;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-}
-
-.flash-close:hover {
-  color: var(--text);
-  background: rgb(255 255 255 / 0.12);
 }
 
 .flash-title {
@@ -901,6 +912,46 @@ a:hover {
   font-weight: 600;
 }
 
+.autopause-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgb(15 18 28 / 0.6);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(8px);
+}
+
+.autopause-btn:hover {
+  color: var(--text);
+  border-color: var(--faint);
+  background: rgb(25 29 44 / 0.8);
+}
+
+.autopause-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgb(230 196 143 / 0.18);
+  box-shadow: 0 0 10px rgb(230 196 143 / 0.2);
+}
+
+.autopause-icon {
+  font-size: 0.82rem;
+}
+
+.autopause-text {
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
 .playback-divider {
   width: 1px;
   height: 20px;
@@ -1202,7 +1253,8 @@ a:hover {
   }
 
   .ticker-epoch-name {
-    font-size: 1.05rem;
+    font-size: 1.18rem;
+    font-weight: 700;
   }
 
   .milestone-flash {
@@ -1226,6 +1278,10 @@ a:hover {
   .flash-detail {
     font-size: 0.94rem;
   }
+
+  .autopause-text {
+    display: none;
+  }
 }
 
 @media (min-width: 900px) {
@@ -1234,6 +1290,11 @@ a:hover {
     transform: translateX(-50%);
     max-width: calc(100% - 480px);
     margin-inline: 0;
+  }
+
+  .stage.drawer-open ~ .milestone-flash {
+    left: calc(440px + (100% - 440px) / 2);
+    max-width: calc(100vw - 480px);
   }
 }
 
