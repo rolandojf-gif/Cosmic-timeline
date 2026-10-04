@@ -28,6 +28,10 @@ export const en = {
     play: 'Play',
     pause: 'Pause',
     reset: 'Reset',
+    prevStop: 'Previous epoch',
+    nextStop: 'Next epoch',
+    autoPause: 'Pause at milestones',
+    autoPauseLabel: 'Automatically pause when reaching cosmic milestones',
     speed: 'Speed',
   },
   panel: {

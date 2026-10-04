@@ -240,6 +240,10 @@ export function startApp(root: HTMLElement): void {
       play: m.control.play,
       pause: m.control.pause,
       reset: m.control.reset,
+      prevStop: m.control.prevStop,
+      nextStop: m.control.nextStop,
+      autoPause: m.control.autoPause,
+      autoPauseLabel: m.control.autoPauseLabel,
       speed: m.control.speed,
     });
 

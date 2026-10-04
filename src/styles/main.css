@@ -504,6 +504,22 @@ a:hover {
   overflow: hidden;
 }
 
+@keyframes tickerFlashAnim {
+  0% {
+    background: rgb(230 196 143 / 0.28);
+    box-shadow: 0 0 16px rgb(230 196 143 / 0.35);
+    border-radius: 8px;
+  }
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+}
+
+.ticker-col.ticker-flash {
+  animation: tickerFlashAnim 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* Floating Milestone Flash Card */
 
 .milestone-flash {
@@ -896,6 +912,46 @@ a:hover {
   font-weight: 600;
 }
 
+.autopause-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgb(15 18 28 / 0.6);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(8px);
+}
+
+.autopause-btn:hover {
+  color: var(--text);
+  border-color: var(--faint);
+  background: rgb(25 29 44 / 0.8);
+}
+
+.autopause-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgb(230 196 143 / 0.18);
+  box-shadow: 0 0 10px rgb(230 196 143 / 0.2);
+}
+
+.autopause-icon {
+  font-size: 0.82rem;
+}
+
+.autopause-text {
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+
 .playback-divider {
   width: 1px;
   height: 20px;
@@ -1221,6 +1277,10 @@ a:hover {
 
   .flash-detail {
     font-size: 0.94rem;
+  }
+
+  .autopause-text {
+    display: none;
   }
 }
 

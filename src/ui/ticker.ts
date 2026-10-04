@@ -27,6 +27,15 @@ export function createTicker(): Ticker {
 
   const element = el('div', { class: 'cosmic-ticker' }, timeCol, epochCol, keyDataCol);
 
+  let prevEpochName = '';
+  let prevKeyData = '';
+
+  function triggerHighlight(col: HTMLElement): void {
+    col.classList.remove('ticker-flash');
+    void col.offsetWidth; // Force reflow to restart animation
+    col.classList.add('ticker-flash');
+  }
+
   return {
     element,
     update(ticker) {
@@ -40,9 +49,17 @@ export function createTicker(): Ticker {
       }
 
       setText(epochLabel, ticker.epochLabel);
+      if (prevEpochName !== '' && ticker.epochName !== prevEpochName) {
+        triggerHighlight(epochCol);
+      }
+      prevEpochName = ticker.epochName;
       setText(epochName, ticker.epochName);
 
       setText(keyDataLabel, ticker.keyDataLabel);
+      if (prevKeyData !== '' && ticker.keyData !== prevKeyData) {
+        triggerHighlight(keyDataCol);
+      }
+      prevKeyData = ticker.keyData;
       setText(keyDataText, ticker.keyData);
     },
   };
