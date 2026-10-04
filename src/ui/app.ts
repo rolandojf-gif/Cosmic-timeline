@@ -54,7 +54,9 @@ export function startApp(root: HTMLElement): void {
 
   const panel = createInfoPanel();
   const ticker = createTicker();
-  const flashCard = createFlashCard();
+
+  let togglePlayAndPanel = (): void => {};
+  const flashCard = createFlashCard(() => togglePlayAndPanel());
 
   const header = el('header', { class: 'site-header' }, masthead);
 
@@ -90,12 +92,28 @@ export function startApp(root: HTMLElement): void {
     },
     [panelToggle, languageButton],
   );
+
+  togglePlayAndPanel = () => {
+    const playing = control.isPlaying();
+    if (playing) {
+      control.setPlaying(false);
+      panel.setOpen(true);
+    } else {
+      panel.setOpen(false);
+      control.setPlaying(true);
+    }
+  };
   const licences = createLicenseLine();
 
   const visualMap = createVisualMap(cosmology, epochs);
   // three.js arrives in its own chunk after the panel is up (see loadScene below).
   let scene: ParticleScene | null = null;
   const sceneLayer = el('div', { class: 'scene' });
+  sceneLayer.addEventListener('click', (e) => {
+    if (e.target === sceneLayer) {
+      togglePlayAndPanel();
+    }
+  });
   const sceneNote = el('p', { class: 'scene-note' });
   sceneNote.hidden = true;
   // Why the scene is missing, when it is: no WebGL, or the chunk failed to load.
@@ -290,6 +308,7 @@ export function startApp(root: HTMLElement): void {
           targetScreenPos = pos;
           updateCalloutPosition();
         },
+        onSceneClick: () => togglePlayAndPanel(),
       });
       // Field generation and WebGL setup, after the panel is already visible.
       performance.measure('cosmic-timeline:scene', { start: sceneStart });

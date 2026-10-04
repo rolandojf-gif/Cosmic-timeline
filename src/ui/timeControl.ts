@@ -27,6 +27,9 @@ export interface TimeControl {
   update(u: number, currentStop: number): void;
   setTexts(texts: ControlTexts): void;
   jumpTo(position: number, autoPlay?: boolean): void;
+  setPlaying(playing: boolean): void;
+  isPlaying(): boolean;
+  togglePlay(): void;
 }
 
 /** Ruler labels every this many powers of ten. */
@@ -317,5 +320,8 @@ export function createTimeControl(
         setPlaying(true);
       }
     },
+    setPlaying,
+    isPlaying: () => isPlaying,
+    togglePlay: () => setPlaying(!isPlaying),
   };
 }

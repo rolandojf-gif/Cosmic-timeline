@@ -255,6 +255,11 @@ Todos los pasos del plan de integración se han completado y verificado en `feat
     - **Tarjetas de hitos cósmicos prominentes (`.milestone-flash`)**: Reubicadas en el centro superior de la pantalla, con dimensiones ampliadas a 580 px, tipografía contundente, doble sombra dorada y transición elástica `cubic-bezier(0.34, 1.56, 0.64, 1)`.
     - **Concentración de botones en la barra de reproducción**: El acceso al panel científico (`[ℹ Panel científico]`) y el cambio de idioma (`[English / Español]`) se concentran en el dock junto a los mandos de reproducción, unificando toda la interacción en una sola barra coherente a 32 px de altura.
     - **Cabecera superior depurada**: Retirada la insignia epistémica (`.tier-badge`) de la cabecera para mantenerla limpia, equilibrada y centrada exclusivamente en el título y subtítulo del proyecto.
+19. **Interacción cinemática pausa/panel por clic y cintillo perfeccionado**:
+    - **Pausa y panel cinemático por clic en escena**: Al hacer clic en cualquier punto despejado de la escena 3D durante la reproducción (distinguiendo entre arrastre de cámara y clic limpio), la animación se pausa inmediatamente y se despliega el panel científico para lectura sosegada. Un segundo clic sobre la escena reanuda la reproducción y oculta el panel.
+    - **Mismo comportamiento en tarjetas de hitos**: Las tarjetas de hitos (`.milestone-flash`) son ahora botones clicables directos con cursor pointer y hover dorado; al pulsarlas se pausa la animación y se despliega el panel científico, y al volver a pulsar se reanuda la marcha. Se eliminó por completo el botón `✕` que resultaba superfluo.
+    - **Alineación exacta del cintillo horizontal**: Se solucionó el desplazamiento vertical inferior de "Época" en `.cosmic-ticker` configurando `align-items: stretch` en la cuadrícula y `justify-content: flex-start` en las columnas, situando los tres títulos de columna (`TIEMPO CÓSMICO`, `ÉPOCA` y `DATO CLAVE`) en la misma línea horizontal superior exacta.
+    - **Dato de época destacado**: Se agrandó la tipografía del nombre de la época a `clamp(1.22rem, 1.75vw, 1.58rem)` con peso `700`, igualando la escala e impacto visual del valor del tiempo cósmico.
 
 ## 6. Forma de trabajo
 

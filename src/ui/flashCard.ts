@@ -11,22 +11,12 @@ export interface FlashCard {
   dismiss(): void;
 }
 
-export function createFlashCard(): FlashCard {
+export function createFlashCard(onClick?: () => void): FlashCard {
   const icon = el('span', { class: 'flash-icon' }, '✦');
   const tag = el('span', { class: 'flash-tag' });
   const tagGroup = el('div', { class: 'flash-tag-group' }, icon, tag);
 
-  const closeBtn = el(
-    'button',
-    {
-      type: 'button',
-      class: 'flash-close',
-      'aria-label': 'Cerrar aviso',
-    },
-    '✕',
-  );
-
-  const header = el('div', { class: 'flash-header' }, tagGroup, closeBtn);
+  const header = el('div', { class: 'flash-header' }, tagGroup);
   const title = el('h4', { class: 'flash-title' });
   const detail = el('p', { class: 'flash-detail' });
 
@@ -35,12 +25,26 @@ export function createFlashCard(): FlashCard {
     {
       class: 'milestone-flash',
       'aria-live': 'polite',
+      role: 'button',
+      tabindex: '0',
     },
     header,
     title,
     detail,
   );
   element.hidden = true;
+
+  element.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onClick?.();
+  });
+  element.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick?.();
+    }
+  });
 
   let currentId: string | null = null;
   let dismissedId: string | null = null;
@@ -74,10 +78,6 @@ export function createFlashCard(): FlashCard {
     dismissedId = currentId;
   }
 
-  closeBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    dismiss();
-  });
 
   element.addEventListener('mouseenter', () => {
     isHovered = true;
@@ -117,7 +117,6 @@ export function createFlashCard(): FlashCard {
       }
 
       setText(tag, card.milestoneLabel);
-      closeBtn.setAttribute('aria-label', card.closeLabel);
       setText(title, card.title);
       setText(detail, card.detail);
 
