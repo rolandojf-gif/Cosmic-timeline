@@ -87,10 +87,34 @@ export function createInfoPanel(): InfoPanel {
   // Open by default: technical data is visible without needing to expand, but foldable.
   const technicalBlock = el('details', { class: 'technical', open: '' }, technicalSummary, technical.element, model, comparisons);
 
+  const specBadge = el('span', { class: 'speculative-badge' });
+  const specBadgeSub = el('span', { class: 'speculative-badge-sub' });
+  const specHeader = el('div', { class: 'speculative-header' }, specBadge, specBadgeSub);
+
+  const specStateDt = el('dt', {});
+  const specStateDd = el('dd', {});
+  const specStateRow = el('div', { class: 'value-row speculative-row' }, specStateDt, specStateDd);
+
+  const specTempDt = el('dt', {});
+  const specTempDd = el('dd', {});
+  const specTempRow = el('div', { class: 'value-row speculative-row' }, specTempDt, specTempDd);
+
+  const specForcesDt = el('dt', {});
+  const specForcesDd = el('dd', {});
+  const specForcesRow = el('div', { class: 'value-row speculative-row' }, specForcesDt, specForcesDd);
+
+  const specLimitDt = el('dt', {});
+  const specLimitDd = el('dd', {});
+  const specLimitRow = el('div', { class: 'value-row speculative-row' }, specLimitDt, specLimitDd);
+
+  const specList = el('dl', { class: 'speculative-values' }, specStateRow, specTempRow, specForcesRow, specLimitRow);
+  const specDisclaimer = el('p', { class: 'tier', 'data-tier': 'speculative' });
+  const speculativeCard = el('div', { class: 'speculative-card' }, specHeader, specList, specDisclaimer);
+
   const element = el(
     'section',
     { class: 'panel' },
-    el('div', { class: 'human' }, humanHeading, human.element, tier),
+    el('div', { class: 'human' }, humanHeading, human.element, tier, speculativeCard),
     el('div', { class: 'epoch' }, evidence, description, interval, illustrative, landmarksHeading, landmarks, sources),
     technicalBlock,
   );
@@ -134,10 +158,29 @@ export function createInfoPanel(): InfoPanel {
         comparisons.replaceChildren(`${m.panel.comparisonSources}: `, ...sourceList(view.comparisonSources), '.');
       }
 
-      setText(tier, view.tier);
-      tier.dataset['tier'] = view.human === null ? 'speculative' : 'model';
-      human.element.hidden = view.human === null;
-      if (view.human !== null) human.update(view.human, languageChanged);
+      if (view.speculative !== null) {
+        setText(specBadge, view.speculative.badge);
+        setText(specBadgeSub, view.speculative.badgeSub);
+        setText(specStateDt, view.speculative.stateLabel);
+        setText(specStateDd, view.speculative.state);
+        setText(specTempDt, view.speculative.tempLabel);
+        setText(specTempDd, view.speculative.temperature);
+        setText(specForcesDt, view.speculative.forcesLabel);
+        setText(specForcesDd, view.speculative.forces);
+        setText(specLimitDt, view.speculative.limitLabel);
+        setText(specLimitDd, view.speculative.limit);
+        setText(specDisclaimer, view.tier);
+        speculativeCard.hidden = false;
+        human.element.hidden = true;
+        tier.hidden = true;
+      } else {
+        speculativeCard.hidden = true;
+        human.element.hidden = false;
+        tier.hidden = false;
+        setText(tier, view.tier);
+        tier.dataset['tier'] = 'model';
+        if (view.human !== null) human.update(view.human, languageChanged);
+      }
       // In the speculative tier the model gives no values, technical or otherwise.
       technicalBlock.hidden = view.technical === null;
       if (view.technical !== null) technical.update(view.technical, languageChanged);

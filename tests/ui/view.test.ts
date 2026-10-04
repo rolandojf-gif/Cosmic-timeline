@@ -201,4 +201,37 @@ describe('radius of the region we observe today', () => {
       ['https://doi.org/10.1038/s41586-024-07860-9'],
     ]);
   });
+
+  it('differentiates inflation, reheating and primordial plasma phases within the early universe', () => {
+    const tInflation = 1e-34;
+    const tReheating = 5.23e-31;
+    const tPrimordial = 5.15e-12; // 5.15 picoseconds
+
+    const viewInflation = panelView(context, tInflation, 'es', MESSAGES.es);
+    expect(viewInflation.epochName).toBe('Inflación');
+    expect(viewInflation.interval).toBe('Intervalo: de 1 × 10⁻³⁶ s a 1 × 10⁻³² s');
+
+    const viewReheating = panelView(context, tReheating, 'es', MESSAGES.es);
+    expect(viewReheating.epochName).toBe('Recalentamiento: Big Bang caliente');
+    expect(viewReheating.interval).toBe('Intervalo: de 1 × 10⁻³² s a 1 × 10⁻²⁸ s');
+
+    const viewPrimordial = panelView(context, tPrimordial, 'es', MESSAGES.es);
+    expect(viewPrimordial.epochName).toBe('Plasma primordial');
+    expect(viewPrimordial.interval).toBe('Intervalo: de 1 × 10⁻²⁸ s a 9,35 picosegundos');
+  });
+
+  it('provides structured theoretical frontier information in the speculative tier', () => {
+    const viewPlanck = panelView(context, at('planck'), 'es', MESSAGES.es);
+    expect(viewPlanck.speculative).not.toBeNull();
+    expect(viewPlanck.speculative!.badge).toBe('Frontera de la física teórica');
+    expect(viewPlanck.speculative!.state).toContain('Espuma cuántica');
+
+    const viewReheat = panelView(context, 5.23e-31, 'es', MESSAGES.es);
+    expect(viewReheat.speculative).not.toBeNull();
+    expect(viewReheat.speculative!.state).toContain('Ignición térmica');
+    expect(viewReheat.speculative!.temperature).toContain('1 × 10²⁷ K');
+
+    const viewQuarks = panelView(context, at('quarks'), 'es', MESSAGES.es);
+    expect(viewQuarks.speculative).toBeNull();
+  });
 });

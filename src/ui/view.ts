@@ -7,9 +7,11 @@ import { fill, type Locale, type Messages } from '../i18n';
 import {
   ASTRONOMICAL_UNIT,
   CELSIUS_ZERO_K,
+  ELECTROWEAK_CROSSOVER_GEV,
   LIGHT_YEAR,
   SUN_CENTRAL_TEMPERATURE_K,
   SUN_SURFACE_TEMPERATURE_K,
+  gevToKelvin,
   type Cosmology,
 } from '../physics';
 import {
@@ -78,6 +80,19 @@ export interface TechnicalRow {
   readonly meaning: string | null;
 }
 
+export interface SpeculativeView {
+  readonly badge: string;
+  readonly badgeSub: string;
+  readonly stateLabel: string;
+  readonly state: string;
+  readonly tempLabel: string;
+  readonly temperature: string;
+  readonly forcesLabel: string;
+  readonly forces: string;
+  readonly limitLabel: string;
+  readonly limit: string;
+}
+
 export interface PanelView {
   readonly epochIndex: number;
   readonly time: string;
@@ -95,10 +110,68 @@ export interface PanelView {
   /** Technical layer; null in the speculative tier. */
   readonly technical: readonly TechnicalRow[] | null;
   readonly tier: string;
+  readonly speculative: SpeculativeView | null;
   readonly modelSources: readonly Source[];
   readonly comparisonSources: readonly Source[];
   /** aria-valuetext of the control. */
   readonly valueText: string;
+}
+
+export function buildSpeculativeView(t: number, tEW: number, locale: Locale, m: Messages): SpeculativeView {
+  const spec = m.speculative;
+  let phase: { state: string; temp: string; forces: string; limit: string };
+
+  if (t < 1e-36) {
+    phase = {
+      state: spec.planck.state,
+      temp: fill(spec.planck.temp, {
+        temp: formatTemperature(1.417e32, locale, m.units),
+      }),
+      forces: spec.planck.forces,
+      limit: fill(spec.planck.limit, {
+        energy: formatThermalEnergy(1.417e32, locale, m.units),
+      }),
+    };
+  } else if (t < 1e-32) {
+    phase = {
+      state: spec.inflation.state,
+      temp: spec.inflation.temp,
+      forces: spec.inflation.forces,
+      limit: spec.inflation.limit,
+    };
+  } else if (t <= 1e-28) {
+    phase = {
+      state: spec.reheating.state,
+      temp: fill(spec.reheating.temp, {
+        temp: formatTemperature(1e27, locale, m.units),
+      }),
+      forces: spec.reheating.forces,
+      limit: spec.reheating.limit,
+    };
+  } else {
+    phase = {
+      state: spec.primordialPlasma.state,
+      temp: fill(spec.primordialPlasma.temp, {
+        tempHigh: formatTemperature(1e27, locale, m.units),
+        tempLow: formatTemperature(gevToKelvin(ELECTROWEAK_CROSSOVER_GEV), locale, m.units),
+      }),
+      forces: spec.primordialPlasma.forces,
+      limit: spec.primordialPlasma.limit,
+    };
+  }
+
+  return {
+    badge: spec.badge,
+    badgeSub: spec.badgeSub,
+    stateLabel: spec.stateLabel,
+    state: phase.state,
+    tempLabel: spec.tempLabel,
+    temperature: phase.temp,
+    forcesLabel: spec.forcesLabel,
+    forces: phase.forces,
+    limitLabel: spec.limitLabel,
+    limit: phase.limit,
+  };
 }
 
 export function panelView(context: Context, t: number, locale: Locale, m: Messages): PanelView {
@@ -113,9 +186,30 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
   const time = duration(t);
   const lookbackSeconds = cosmology.age - t;
 
-  const isReheating = epoch.id === 'inflation' && t >= 1e-32;
-  const epochName = isReheating && m.epochs.inflation.reheatingName ? m.epochs.inflation.reheatingName : text.name;
-  const rawDescription = isReheating && m.epochs.inflation.reheatingDescription ? m.epochs.inflation.reheatingDescription : text.description;
+  const tEW = cosmology.timeAtTemperature(gevToKelvin(ELECTROWEAK_CROSSOVER_GEV));
+
+  let epochName = text.name;
+  let rawDescription = text.description;
+  let intervalText: string | null =
+    resolved.start !== resolved.end
+      ? fill(m.panel.interval, { start: duration(resolved.start), end: duration(resolved.end) })
+      : null;
+
+  if (epoch.id === 'inflation') {
+    if (t < 1e-32) {
+      epochName = text.name;
+      rawDescription = text.description;
+      intervalText = fill(m.panel.interval, { start: duration(1e-36), end: duration(1e-32) });
+    } else if (t <= 1e-28) {
+      epochName = m.epochs.inflation.reheatingName ?? text.name;
+      rawDescription = m.epochs.inflation.reheatingDescription ?? text.description;
+      intervalText = fill(m.panel.interval, { start: duration(1e-32), end: duration(1e-28) });
+    } else {
+      epochName = m.epochs.inflation.primordialPlasmaName ?? text.name;
+      rawDescription = m.epochs.inflation.primordialPlasmaDescription ?? text.description;
+      intervalText = fill(m.panel.interval, { start: duration(1e-28), end: duration(tEW) });
+    }
+  }
 
   const description = fill(rawDescription, {
     acceleration: duration(cosmology.age - milestones.acceleration),
@@ -231,10 +325,7 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
     lookback: lookbackSeconds > 0 ? duration(lookbackSeconds) : null,
     epochName,
     evidence: m.evidence[epoch.evidence],
-    interval:
-      resolved.start !== resolved.end
-        ? fill(m.panel.interval, { start: duration(resolved.start), end: duration(resolved.end) })
-        : null,
+    interval: intervalText,
     illustrative: epoch.illustrativeAnchor ? m.panel.illustrative : null,
     description,
     landmarks,
@@ -242,6 +333,7 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
     human,
     technical,
     tier: m.tier[state.tier],
+    speculative: state.physical === null ? buildSpeculativeView(t, tEW, locale, m) : null,
     modelSources: MODEL_SOURCES.map((id) => SOURCES[id]),
     comparisonSources: COMPARISON_SOURCES.map((id) => SOURCES[id]),
     valueText: fill(m.control.valueText, { time, epoch: epochName }),
