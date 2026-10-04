@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cosmic-timeline.netlify.app/sitemap.xml
