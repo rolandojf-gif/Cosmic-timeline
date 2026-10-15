@@ -76,6 +76,8 @@ export const en = {
     modelSources: 'Model sources',
     comparisonSources: 'Sources of the comparisons',
     drawerTitle: 'Scientific panel',
+    moreDetails: 'Read details',
+    lessDetails: 'Less',
     pinPanel: 'Pin panel',
     unpinPanel: 'Unpin panel',
     closePanel: 'Close panel',

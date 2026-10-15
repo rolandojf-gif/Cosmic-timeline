@@ -359,6 +359,12 @@ a:hover {
   font-weight: 600;
 }
 
+/* Mobile-only reading affordances. Desktop scientific drawer is unchanged. */
+.drawer-expand,
+.mobile-brief {
+  display: none;
+}
+
 .drawer-sticky-header .instant {
   margin-bottom: 0;
   padding-bottom: 0;
@@ -1187,11 +1193,12 @@ a:hover {
   }
 }
 
+/* Dedicated mobile presentation: the cosmos remains visible during pauses.
+   Compact stop summary -> explicit, independently scrolling reading sheet. */
 @media (max-width: 599px) {
-  .ruler-label.crowded {
-    display: none;
-  }
-
+  .ruler-label.crowded,
+  .ruler,
+  .ruler-caption,
   .subtitle {
     display: none;
   }
@@ -1205,66 +1212,191 @@ a:hover {
     flex-wrap: wrap;
   }
 
+  /* The long desktop drawer must not occupy the entire phone screen. */
   .stage {
     top: auto;
     left: 0;
     right: 0;
     bottom: var(--dock-height, 140px);
     width: 100%;
-    max-width: 100vw;
+    max-width: none;
     height: auto;
-    max-height: calc(100vh - 56px - var(--dock-height, 140px));
-    border-right: none;
-    border-top: 1px solid var(--glass-line);
-    border-radius: 16px 16px 0 0;
-    transform: translateY(105%);
-    box-shadow: 0 -12px 40px rgb(0 0 0 / 0.7);
-    padding: 0 var(--gutter) 24px;
+    max-height: calc(100dvh - var(--dock-height, 140px) - 64px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    border-right: 0;
+    border-top: 1px solid rgb(230 196 143 / 0.26);
+    border-radius: 18px 18px 0 0;
+    background: rgb(7 9 16 / 0.98);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    transform: translateY(110%);
+    box-shadow: 0 -14px 40px rgb(0 0 0 / 0.64);
+    padding: 0 var(--gutter) 14px;
+  }
+
+  .has-scene .stage {
+    background: rgb(7 9 16 / 0.98);
   }
 
   .stage.drawer-open {
     transform: translateY(0);
   }
 
-  .cosmic-ticker {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 12px 16px;
+  /* Auto-pauses show a small summary, not an unreadable full-height panel. */
+  .stage.drawer-open:not(.drawer-expanded) {
+    max-height: min(30dvh, calc(100dvh - var(--dock-height, 140px) - 64px));
+  }
+
+  .stage.drawer-open:not(.drawer-expanded) .panel > .human,
+  .stage.drawer-open:not(.drawer-expanded) .panel > .epoch,
+  .stage.drawer-open:not(.drawer-expanded) .panel > .technical {
+    display: none;
+  }
+
+  .stage.drawer-expanded {
+    height: min(64dvh, calc(100dvh - var(--dock-height, 140px) - 64px));
+    max-height: calc(100dvh - var(--dock-height, 140px) - 64px);
+  }
+
+  .drawer-sticky-header {
+    top: 0;
+    padding: 12px var(--gutter);
+    margin: 0 calc(-1 * var(--gutter)) 12px;
+    box-shadow: none;
+    background: #0b0d15;
+  }
+
+  .drawer-header {
+    padding-bottom: 6px;
     margin-bottom: 8px;
-    border-radius: 12px;
   }
 
-  .ticker-col-time {
-    border-right: none;
-    padding-right: 0;
+  .drawer-title {
+    font-size: 0.73rem;
+    letter-spacing: 0.08em;
   }
 
+  .drawer-btn {
+    min-height: 36px;
+  }
+
+  .drawer-pin {
+    display: none;
+  }
+
+  .drawer-expand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .drawer-sticky-header .time-value {
+    font-size: 1.38rem;
+    line-height: 1.18;
+    overflow-wrap: anywhere;
+  }
+
+  .drawer-sticky-header .epoch-name {
+    font-size: 1.08rem;
+    line-height: 1.32;
+  }
+
+  .stage.drawer-open:not(.drawer-expanded) .time-label,
+  .stage.drawer-open:not(.drawer-expanded) .lookback {
+    display: none;
+  }
+
+  .mobile-brief {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 8px 0 0;
+    color: var(--text);
+    font-size: 0.94rem;
+    line-height: 1.5;
+  }
+
+  .stage.drawer-expanded .mobile-brief {
+    display: none;
+  }
+
+  .stage.drawer-expanded .human,
+  .stage.drawer-expanded .epoch,
+  .stage.drawer-expanded .technical {
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+
+  .stage.drawer-expanded .epoch-description {
+    line-height: 1.65;
+  }
+
+  .stage.drawer-expanded .sources,
+  .stage.drawer-expanded .model,
+  .stage.drawer-expanded .landmark-sources {
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* A slim status strip replaces the desktop's multi-row data dashboard. */
+  .cosmic-ticker {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 8px;
+    width: calc(100% - 20px);
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    border-radius: 10px;
+    align-items: center;
+  }
+
+  .ticker-col-time,
   .ticker-col-epoch {
-    border-right: none;
-    padding-right: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
   }
 
-  .ticker-col-insight {
+  .ticker-col-insight,
+  .cosmic-ticker .ticker-label,
+  .ticker-sub {
     display: none;
   }
 
   .ticker-value {
-    font-size: 1.15rem;
+    font-size: 0.94rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
   }
 
   .ticker-epoch-name {
-    font-size: 1.18rem;
-    font-weight: 700;
+    font-size: 0.94rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  /* When reading, don't stack a ticker and a second pop-up over the sheet. */
+  .stage.drawer-open ~ .cosmic-ticker,
+  .stage.drawer-open ~ .milestone-flash {
+    display: none !important;
   }
 
   .milestone-flash {
-    top: 56px;
+    top: 52px;
     left: 50%;
-    transform: translate(-50%, -24px) scale(0.92);
-    width: calc(100vw - 20px);
-    max-width: calc(100vw - 20px);
-    padding: 18px 20px;
-    border-radius: 14px;
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    max-height: min(25dvh, 160px);
+    overflow-y: auto;
+    padding: 12px 14px;
+    border-radius: 12px;
+    transform: translate(-50%, -20px) scale(0.96);
   }
 
   .milestone-flash.visible {
@@ -1272,15 +1404,94 @@ a:hover {
   }
 
   .flash-title {
-    font-size: 1.18rem;
+    font-size: 1.04rem;
   }
 
   .flash-detail {
-    font-size: 0.94rem;
+    font-size: 0.86rem;
+    line-height: 1.45;
   }
 
-  .autopause-text {
+  .flash-header {
+    margin-bottom: 6px;
+  }
+
+  /* Keep every main action reachable in two predictable touch-friendly rows. */
+  .dock {
+    padding: 6px 12px max(6px, env(safe-area-inset-bottom));
+  }
+
+  .playback-bar {
+    display: block;
+    margin-bottom: 0;
+  }
+
+  .playback-actions {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    width: 100%;
+  }
+
+  .playback-btn,
+  .autopause-btn,
+  .panel-toggle,
+  .language {
+    width: 100%;
+    min-width: 0;
+    height: 38px;
+    justify-content: center;
+  }
+
+  .playback-divider,
+  .autopause-text,
+  .panel-toggle::before {
     display: none;
+  }
+
+  .speed-group {
+    margin: 0;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .speed-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 3px;
+    font-size: 0.7rem;
+  }
+
+  .autopause-btn {
+    padding: 0 5px;
+  }
+
+  .panel-toggle {
+    padding: 0 4px;
+    font-size: 0.75rem;
+  }
+
+  .language {
+    padding: 0 4px;
+  }
+
+  .control-slider {
+    height: 36px;
+  }
+
+  .stops ol {
+    gap: 5px;
+    padding: 0 0 4px;
+  }
+
+  .stop-button {
+    min-height: 32px;
+    padding: 4px 9px;
+    font-size: 0.73rem;
+  }
+
+  .licences {
+    font-size: 0.68rem;
   }
 }
 

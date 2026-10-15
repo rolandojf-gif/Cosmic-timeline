@@ -102,6 +102,8 @@ export const es = {
     modelSources: 'Fuentes del modelo',
     comparisonSources: 'Fuentes de las comparaciones',
     drawerTitle: 'Panel científico',
+    moreDetails: 'Ver detalles',
+    lessDetails: 'Menos',
     pinPanel: 'Fijar panel',
     unpinPanel: 'Desfijar panel',
     closePanel: 'Cerrar panel',

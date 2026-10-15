@@ -14,9 +14,11 @@ export interface InfoPanel {
   readonly element: HTMLElement;
   isOpen(): boolean;
   isPinned(): boolean;
+  isExpanded(): boolean;
   setOpen(open: boolean): void;
   setPinned(pinned: boolean): void;
-  setOnOpenChange(callback: (open: boolean, pinned: boolean) => void): void;
+  setExpanded(expanded: boolean): void;
+  setOnOpenChange(callback: (open: boolean, pinned: boolean, expanded: boolean) => void): void;
   update(view: PanelView, m: Messages): void;
 }
 
@@ -89,8 +91,10 @@ export function createInfoPanel(): InfoPanel {
   });
   const model = el('p', { class: 'model' });
   const comparisons = el('p', { class: 'model' });
-  // Open by default: technical data is visible without needing to expand, but foldable.
-  const technicalBlock = el('details', { class: 'technical', open: '' }, technicalSummary, technical.element, model, comparisons);
+  // Desktop stays unchanged. On narrow screens, the technical appendix is
+  // collapsed by default so the readable scientific explanation comes first.
+  const narrowViewport = matchMedia('(max-width: 599px)');
+  const technicalBlock = el('details', { class: 'technical', ...(narrowViewport.matches ? {} : { open: '' }) }, technicalSummary, technical.element, model, comparisons);
 
   const specBadge = el('span', { class: 'speculative-badge' });
   const specBadgeSub = el('span', { class: 'speculative-badge-sub' });
@@ -117,6 +121,11 @@ export function createInfoPanel(): InfoPanel {
   const speculativeCard = el('div', { class: 'speculative-card' }, specHeader, specList, specDisclaimer);
 
   const drawerTitle = el('h3', { class: 'drawer-title' });
+  const expandBtn = el('button', {
+    type: 'button',
+    class: 'drawer-btn drawer-expand',
+    'aria-expanded': 'false',
+  });
   const pinBtn = el('button', {
     type: 'button',
     class: 'drawer-btn drawer-pin',
@@ -131,9 +140,10 @@ export function createInfoPanel(): InfoPanel {
     },
     '✕',
   );
-  const drawerActions = el('div', { class: 'drawer-actions' }, pinBtn, closeBtn);
+  const drawerActions = el('div', { class: 'drawer-actions' }, expandBtn, pinBtn, closeBtn);
   const drawerHeader = el('div', { class: 'drawer-header' }, drawerTitle, drawerActions);
-  const stickyHeader = el('div', { class: 'drawer-sticky-header' }, drawerHeader, instant);
+  const mobileBrief = el('p', { class: 'mobile-brief' });
+  const stickyHeader = el('div', { class: 'drawer-sticky-header' }, drawerHeader, instant, mobileBrief);
 
   const element = el(
     'section',
@@ -150,16 +160,27 @@ export function createInfoPanel(): InfoPanel {
 
   let isOpen = false;
   let isPinned = false;
-  let onOpenChange: ((open: boolean, pinned: boolean) => void) | null = null;
+  let isExpanded = false;
+  let onOpenChange: ((open: boolean, pinned: boolean, expanded: boolean) => void) | null = null;
 
   function syncState(): void {
+    expandBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+    if (renderedMessages) {
+      setText(expandBtn, isExpanded ? renderedMessages.panel.lessDetails : renderedMessages.panel.moreDetails);
+    }
     pinBtn.setAttribute('aria-pressed', isPinned ? 'true' : 'false');
     pinBtn.classList.toggle('active', isPinned);
     if (renderedMessages) {
       setText(pinBtn, isPinned ? renderedMessages.panel.unpinPanel : renderedMessages.panel.pinPanel);
     }
-    onOpenChange?.(isOpen, isPinned);
+    onOpenChange?.(isOpen, isPinned, isExpanded);
   }
+
+  expandBtn.addEventListener('click', () => {
+    isExpanded = !isExpanded;
+    isOpen = true;
+    syncState();
+  });
 
   pinBtn.addEventListener('click', () => {
     isPinned = !isPinned;
@@ -170,6 +191,7 @@ export function createInfoPanel(): InfoPanel {
   closeBtn.addEventListener('click', () => {
     isOpen = false;
     isPinned = false;
+    isExpanded = false;
     syncState();
   });
 
@@ -178,11 +200,18 @@ export function createInfoPanel(): InfoPanel {
     element,
     isOpen: () => isOpen,
     isPinned: () => isPinned,
+    isExpanded: () => isExpanded,
     setOpen(open) {
       if (!open && isPinned) {
         return;
       }
       isOpen = open;
+      if (!open) isExpanded = false;
+      syncState();
+    },
+    setExpanded(expanded) {
+      isExpanded = expanded;
+      if (expanded) isOpen = true;
       syncState();
     },
     setPinned(pinned) {
@@ -196,10 +225,12 @@ export function createInfoPanel(): InfoPanel {
     update(view, m) {
       const languageChanged = m !== renderedMessages;
       setText(drawerTitle, m.panel.drawerTitle);
+      setText(expandBtn, isExpanded ? m.panel.lessDetails : m.panel.moreDetails);
       setText(pinBtn, isPinned ? m.panel.unpinPanel : m.panel.pinPanel);
       closeBtn.setAttribute('aria-label', m.panel.closePanel);
       setText(timeLabel, m.panel.time);
       setText(time, view.time);
+      setText(mobileBrief, view.flashCard?.detail ?? view.description);
       lookback.hidden = view.lookback === null;
       setText(lookback, view.lookback === null ? '' : `${m.panel.lookback}: ${view.lookback}`);
 
