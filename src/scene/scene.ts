@@ -39,6 +39,7 @@ import type { CosmicWeb } from './cosmicWeb';
 import { generateCosmicWeb } from './cosmicWebLoader';
 import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
+import { sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
 import {
   BACKGROUND_FRAGMENT_SHADER,
   BACKGROUND_VERTEX_SHADER,
@@ -75,7 +76,7 @@ export interface SceneOptions {
 export interface ParticleScene {
   readonly element: HTMLCanvasElement;
   /** Ease towards control position u (or jump with reduced motion / direct sync). */
-  show(u: number, immediate?: boolean): void;
+  show(u: number, immediate?: boolean, playing?: boolean): void;
   dispose(): void;
 }
 
@@ -378,6 +379,14 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let disposed = false;
   let animFrameId = 0;
   let isRunning = false;
+  let playbackActive = false;
+  // Keep original scene quality: only limit how often composer.render() runs.
+  const fpsCap = sceneFpsCap(window.location.search);
+  let lastRenderedMs = 0;
+  // Advance visual time only while playing, transitioning, or interacting.
+  // This prevents camera/background animation from jumping after a long pause.
+  let visualSeconds = 0;
+  let lastMotionTimestamp = 0;
 
   // --- Development FPS counter (?fps in URL or press 'f' key) ---
   let fpsVisible = typeof location !== 'undefined' && new URLSearchParams(location.search).has('fps');
@@ -428,7 +437,19 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   function step(timestamp: number): void {
     animFrameId = 0;
-    if (disposed) return;
+    if (disposed || document.hidden) {
+      isRunning = false;
+      return;
+    }
+
+    // requestAnimationFrame may tick at 60–144+ Hz; avoid sending the entire
+    // 2.1M-particle + bloom + raymarch pipeline to the GPU on every callback.
+    // We still request the next RAF so UI and camera input never wait on timers.
+    if (!shouldRenderFrame(timestamp, lastRenderedMs, fpsCap)) {
+      animFrameId = requestAnimationFrame(step);
+      return;
+    }
+    lastRenderedMs = timestamp;
 
     const nowSec = timestamp / 1000;
     const isTransitioning = !tween.doneAt(nowSec);
@@ -454,6 +475,17 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       Math.abs(currentFov - targetFov) > 0.01 ||
       currentPan.distanceToSquared(targetPan) > 1e-6;
 
+    const needsMotion = sceneNeedsFrames(playbackActive, isTransitioning, isInteracting);
+    if (needsMotion && !options.reducedMotion) {
+      if (lastMotionTimestamp > 0) {
+        // Clamp any OS/browser scheduling stalls so playback does not jump.
+        visualSeconds += Math.min((timestamp - lastMotionTimestamp) / 1000, 0.1);
+      }
+      lastMotionTimestamp = timestamp;
+    } else {
+      lastMotionTimestamp = 0;
+    }
+
     // Apply interactive rotation: yaw around world Y, pitch around local X
     rotEuler.set(currentPitch, currentYaw, 0, 'YXZ');
     rotQuat.setFromEuler(rotEuler);
@@ -463,9 +495,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     if (!options.reducedMotion) {
       const driftSpeed = 0.0003;
       const driftOffset = new Vector3(
-        (nowSec * driftSpeed * 0.8) % 1,
-        (nowSec * driftSpeed * 0.4) % 1,
-        (nowSec * driftSpeed * 0.6) % 1,
+        (visualSeconds * driftSpeed * 0.8) % 1,
+        (visualSeconds * driftSpeed * 0.4) % 1,
+        (visualSeconds * driftSpeed * 0.6) % 1,
       );
       camBox.copy(baseCamBox).add(driftOffset).add(currentPan);
       camBox.set(
@@ -488,7 +520,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     bgMaterial.uniforms.uCamera!.value = camera.matrixWorld;
     bgMaterial.uniforms.uProjInv!.value = camera.projectionMatrixInverse;
     bgMaterial.uniforms.uOrigin!.value.copy(camBox).multiplyScalar(4);
-    bgMaterial.uniforms.uTime!.value = nowSec;
+    bgMaterial.uniforms.uTime!.value = visualSeconds;
     bgMaterial.uniforms.uHaze!.value = state.haze;
     (bgMaterial.uniforms.uColour!.value as Color).setRGB(
       state.colour[0],
@@ -575,12 +607,17 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       lastFpsTime = timestamp;
     }
 
-    // Render loop continuation: keep running if transitioning, continuous drift, or interaction damping is active
-    if (!document.hidden && (!options.reducedMotion || isTransitioning || isInteracting)) {
+    // Sleep completely when paused and settled. No redraw needed until a
+    // new timeline position, a camera gesture, resize or cosmic-web load.
+    if (sceneNeedsFrames(playbackActive, isTransitioning, isInteracting)) {
       animFrameId = requestAnimationFrame(step);
       isRunning = true;
     } else {
       isRunning = false;
+      lastMotionTimestamp = 0;
+      if (fpsVisible) fpsEl.textContent = 'paused · 0 fps';
+      frameCount = 0;
+      lastFpsTime = timestamp;
     }
   }
 
@@ -592,6 +629,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   }
 
   function onVisibilityChange(): void {
+    lastMotionTimestamp = 0;
     if (document.hidden) {
       if (animFrameId) {
         cancelAnimationFrame(animFrameId);
@@ -722,8 +760,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   return {
     element: canvas,
-    show(u: number, immediate?: boolean) {
+    show(u: number, immediate?: boolean, playing = false) {
       currentU = u;
+      playbackActive = playing;
       const nowSec = performance.now() / 1000;
       if (options.reducedMotion || isFirstJump || immediate) {
         tween.jump(u);
