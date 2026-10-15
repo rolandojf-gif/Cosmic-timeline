@@ -74,7 +74,7 @@ Resultado: la radiación deja de verse hacia los 3,15 millones de años (z ≈ 2
 
 ## `density`
 
-**Número de partículas.** 2 097 152 partículas ($128^3$) en escritorio y 262 144 ($64^3$) en móvil (`PARTICLES_DESKTOP`, `PARTICLES_MOBILE`). Representan elementos de fluido de materia en la red de Zel'dovich.
+**Número de partículas.** Por defecto, 262 144 elementos ($64^3$) en escritorio y 110 592 ($48^3$) en móvil (`PARTICLES_DESKTOP`, `PARTICLES_MOBILE`). `?quality=high` recupera $128^3$ partículas y bloom; `?quality=low` fuerza el presupuesto ligero. El modo normal adapta únicamente la resolución interna del render ante caídas sostenidas de FPS, sin alterar la física, el tiempo ni la geometría ya generada. La segunda capa de halos utiliza una muestra determinista y distribuida de 1/8 de los elementos. Son elementos ilustrativos de fluido en la red de Zel'dovich, no átomos concretos.
 
 ## `peaks`
 
