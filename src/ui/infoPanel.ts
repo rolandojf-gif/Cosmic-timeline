@@ -230,7 +230,7 @@ export function createInfoPanel(): InfoPanel {
       closeBtn.setAttribute('aria-label', m.panel.closePanel);
       setText(timeLabel, m.panel.time);
       setText(time, view.time);
-      setText(mobileBrief, view.description);
+      setText(mobileBrief, view.flashCard?.detail ?? view.description);
       lookback.hidden = view.lookback === null;
       setText(lookback, view.lookback === null ? '' : `${m.panel.lookback}: ${view.lookback}`);
 
