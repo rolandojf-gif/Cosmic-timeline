@@ -17,7 +17,8 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
   precision highp sampler3D;
   uniform sampler3D uNoise;
   uniform vec3 uOrigin;
-  uniform float uTime, uHaze, uIntensity, uTurbulence, uCmbLevel, uLow, uHigh, uSigma, uEmit, uStretch, uClump;
+  uniform float uTime, uHaze, uIntensity, uTurbulence, uCmbLevel, uLow, uHigh, uSigma, uEmit, uStretch, uClump, uRayScale;
+  uniform int uRaySteps;
   uniform vec3 uColour, uCmbHot, uCmbCold;
   in vec3 vDir;
   out vec4 fragColour;
@@ -73,10 +74,11 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
       // ray sees more of the same glow.
       float s = 0.02;
       for (int i = 0; i < 28; i++) {
+        if (i >= uRaySteps || transmittance < 0.015) break;
         vec3 p = uOrigin + dir * s;
         float d = density(p, uTime);
         float sigma = mix(0.05, 2.0, d) * uHaze * uSigma;
-        float ds = 0.015 + s * 0.15;
+        float ds = (0.015 + s * 0.15) * uRayScale;
         vec3 deep = uColour * 0.3;
         vec3 hot = mix(uColour, vec3(1.0), 0.6);
         vec3 emission = mix(mix(deep, uColour, smoothstep(0.0, 0.6, d)), hot, smoothstep(0.6, 1.0, d)) * (0.12 + uEmit * d * d * d);
@@ -115,12 +117,17 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
 export const MATTER_VERTEX_SHADER = /* glsl */ `
   uniform int uN;
   uniform float uD, uBox, uPsiScale, uLambdaScale, uGas, uGain, uProj, uPointScale, uHalo;
+  uniform int uHaloSubset;
   uniform vec3 uCam;
   in vec3 aLambda;
   out float vBright;
   out float vDense;
   void main() {
     int i = gl_VertexID;
+    if (uHaloSubset == 1) {
+      uint k = uint(gl_VertexID);
+      i = int(k * 8u + (((k * 1103515245u + 12345u) >> 16u) & 7u));
+    }
     uint h = uint(i) * 747796405u + 2891336453u;
     h = ((h >> ((h >> 28u) + 4u)) ^ h) * 277803737u;
     vec3 jitter = vec3(float(h & 1023u), float((h >> 10u) & 1023u), float((h >> 20u) & 1023u)) / 1023.0;
@@ -144,7 +151,6 @@ export const MATTER_VERTEX_SHADER = /* glsl */ `
     // filaments read as continuous glowing gas.
     if (uHalo > 0.0) {
       size *= 5.0;
-      if (i % 8 != 0) size = 0.0;
       vBright *= 8.0 * uHalo;
     }
     gl_PointSize = size;
