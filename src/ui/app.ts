@@ -233,7 +233,7 @@ export function startApp(root: HTMLElement): void {
       document.querySelector('meta[name="description"]')?.setAttribute('content', m.meta.description);
       setText(title, m.meta.title);
       setText(subtitle, m.meta.subtitle);
-      setText(panelToggle, m.meta.sciencePanel);
+      setText(panelToggle, mobileLayout.matches ? 'Info' : m.meta.sciencePanel);
       panelToggle.setAttribute('aria-label', m.meta.sciencePanelLabel);
       setText(languageButton, m.meta.switchLanguage);
       languageButton.setAttribute('aria-label', m.meta.switchLanguageLabel);
