@@ -27,3 +27,10 @@ export function shouldRenderFrame(nowMs: number, lastRenderedMs: number, fpsCap:
 export function sceneNeedsFrames(playing: boolean, transitioning: boolean, interacting: boolean): boolean {
   return playing || transitioning || interacting;
 }
+
+/** Preserve camera damping per *second*, not per frame, when FPS is capped. */
+export function cameraDamping(frameMs: number, reducedMotion: boolean): number {
+  if (reducedMotion) return 1;
+  const clampedMs = Math.max(0, Math.min(frameMs, 100));
+  return 1 - Math.pow(0.88, clampedMs / (1000 / 60));
+}
