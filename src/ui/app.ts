@@ -237,7 +237,7 @@ export function startApp(root: HTMLElement): void {
     panel.update(view, m);
     ticker.update(view.ticker);
     flashCard.show(view.flashCard, isPlaying);
-    scene?.show(u, isPlaying);
+    scene?.show(u, isPlaying, isPlaying);
     control.update(u, view.epochIndex);
     control.setTexts({
       label: m.control.label,
@@ -331,7 +331,7 @@ export function startApp(root: HTMLElement): void {
     }
     if (scene) {
       sceneLayer.append(scene.element);
-      scene.show(u);
+      scene.show(u, control.isPlaying(), control.isPlaying());
     }
     sceneNote.hidden = scene !== null;
     document.body.classList.toggle('has-scene', scene !== null);
