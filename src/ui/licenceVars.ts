@@ -7,21 +7,18 @@ import { DEFAULT_EQUAL_SHARE } from '../timeline';
 import {
   COLOUR_SATURATION_K,
   DRIFT_SECONDS,
+  PARTICLES_DESKTOP,
+  PARTICLES_MOBILE,
   TRANSITION_SECONDS,
   type LicenceId,
 } from '../scene/visualMap';
 import { formatCelsius, formatCount, formatDuration, formatNumber, formatPercent } from './format';
-import { budgetFor, profileFromSearch } from '../scene/renderQuality';
 
 export type LicenceVars = Readonly<Record<LicenceId, Readonly<Record<string, string>>>>;
 
 /** `growth`: how many times distances grow over the scene's range (VisualMap.growth). */
 export function licenceVars(locale: Locale, m: Messages, growth: number): LicenceVars {
   const count = (x: number): string => formatCount(x, locale, m.units);
-  // These figures match the actual selected GPU profiles, including ?quality=high.
-  const search = typeof location === 'undefined' ? '' : location.search;
-  const desktopParticles = budgetFor(profileFromSearch(search, false)).n ** 3;
-  const mobileParticles = budgetFor(profileFromSearch(search, true)).n ** 3;
   return {
     controlScale: { equalShare: formatPercent(DEFAULT_EQUAL_SHARE, locale) },
     colour: { saturation: count(COLOUR_SATURATION_K) },
@@ -32,7 +29,7 @@ export function licenceVars(locale: Locale, m: Messages, growth: number): Licenc
     separation: { range: count(growth) },
     motion: { drift: formatDuration(DRIFT_SECONDS, locale, m.units) },
     structure: {},
-    density: { desktop: formatNumber(desktopParticles, locale), mobile: formatNumber(mobileParticles, locale) },
+    density: { desktop: formatNumber(PARTICLES_DESKTOP, locale), mobile: formatNumber(PARTICLES_MOBILE, locale) },
     peaks: {},
     galaxySize: {},
     camera: {},

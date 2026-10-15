@@ -99,9 +99,9 @@ export const HAZE_CLEARING_FACTOR = 1.5;
 /** structure: stars switch on over this factor in time after the first-stars anchor. */
 export const STARS_RAMP_FACTOR = 3;
 
-/** density: default balanced desktop and low mobile budgets; overrides are presentation-only. */
-export const PARTICLES_DESKTOP = 262_144;
-export const PARTICLES_MOBILE = 110_592;
+/** density: number of particles (128³ desktop, 64³ mobile). */
+export const PARTICLES_DESKTOP = 2_097_152;
+export const PARTICLES_MOBILE = 262_144;
 
 /** transitions: duration of a step between instants [s], with ease-in-out. */
 export const TRANSITION_SECONDS = 1.75;

@@ -39,7 +39,6 @@ import type { CosmicWeb } from './cosmicWeb';
 import { generateCosmicWeb } from './cosmicWebLoader';
 import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
-import { adaptedDpr, budgetFor, haloParticleIndex, profileFromSearch } from './renderQuality';
 import {
   BACKGROUND_FRAGMENT_SHADER,
   BACKGROUND_VERTEX_SHADER,
@@ -80,19 +79,13 @@ export interface ParticleScene {
   dispose(): void;
 }
 
-function buildMatterGeometry(web: CosmicWeb, n: number, haloOnly = false): BufferGeometry {
+function buildMatterGeometry(web: CosmicWeb, n: number): BufferGeometry {
   const n3 = n * n * n;
-  const count = haloOnly ? n3 / 8 : n3;
-  const psi = new Int16Array(3 * count);
-  const lambda = new Int16Array(3 * count);
-  for (let sample = 0; sample < count; sample++) {
-    const index = haloOnly ? haloParticleIndex(sample) : sample;
-    for (let axis = 0; axis < 3; axis++) {
-      const source = 3 * index + axis;
-      const target = 3 * sample + axis;
-      psi[target] = Math.round(Math.max(-1, Math.min(1, web.displacement[source]! / PSI_SCALE)) * 32767);
-      lambda[target] = Math.round(Math.max(-1, Math.min(1, web.eigenvalues[source]! / LAMBDA_SCALE)) * 32767);
-    }
+  const psi = new Int16Array(3 * n3);
+  const lambda = new Int16Array(3 * n3);
+  for (let i = 0; i < 3 * n3; i++) {
+    psi[i] = Math.round(Math.max(-1, Math.min(1, web.displacement[i]! / PSI_SCALE)) * 32767);
+    lambda[i] = Math.round(Math.max(-1, Math.min(1, web.eigenvalues[i]! / LAMBDA_SCALE)) * 32767);
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new Int16BufferAttribute(psi, 3, true));
@@ -172,12 +165,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   const canvas = renderer.domElement;
   canvas.setAttribute('aria-hidden', 'true');
-  // Opt into the original cinematic load with ?quality=high.
-  // Default stays balanced and adapts ONLY framebuffer resolution at runtime.
-  const profile = profileFromSearch(window.location.search, options.mobile);
-  const budget = budgetFor(profile);
-  let currentDpr = Math.min(window.devicePixelRatio || 1, budget.maxDpr);
-  renderer.setPixelRatio(currentDpr);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, options.mobile ? 1.5 : 2));
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1;
 
@@ -211,7 +199,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   const rotQuat = new Quaternion();
 
   // --- Background: 3D noise texture and raymarched plasma/CMB sky ---
-  const noiseSize = budget.noiseSize;
+  const noiseSize = 64;
   const noise = new Data3DTexture(tileableNoise(noiseSize), noiseSize, noiseSize, noiseSize);
   noise.format = RedFormat;
   noise.minFilter = noise.magFilter = LinearFilter;
@@ -237,8 +225,6 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     uEmit: { value: 3 },
     uStretch: { value: 0 },
     uClump: { value: 0 },
-    uRaySteps: { value: budget.raySteps },
-    uRayScale: { value: budget.rayScale },
   };
 
   const bgMaterial = new ShaderMaterial({
@@ -257,14 +243,12 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   // --- Post-processing Composer ---
   const composer = new EffectComposer(renderer);
-  if (budget.bloom) {
-    composer.renderTarget1.texture.type = HalfFloatType;
-    composer.renderTarget2.texture.type = HalfFloatType;
-  }
+  composer.renderTarget1.texture.type = HalfFloatType;
+  composer.renderTarget2.texture.type = HalfFloatType;
   composer.addPass(new RenderPass(scene, camera));
 
   let bloomPass: UnrealBloomPass | null = null;
-  if (budget.bloom) {
+  if (!options.mobile) {
     bloomPass = new UnrealBloomPass(new Vector2(innerWidth, innerHeight), 0.6, 0.5, 0.7);
     composer.addPass(bloomPass);
   }
@@ -279,7 +263,6 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   // --- Matter & Galaxies: populated when Cosmic Web worker resolves ---
   let matterGeometry: BufferGeometry | null = null;
-  let haloGeometry: BufferGeometry | null = null;
   let matterMaterial: ShaderMaterial | null = null;
   let haloMaterial: ShaderMaterial | null = null;
   let galaxiesGeometry: BufferGeometry | null = null;
@@ -287,7 +270,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let targetQ: Vector3 | null = null;
   let targetPsi: Vector3 | null = null;
 
-  const N = budget.n;
+  const N = options.mobile ? 64 : 128;
   const initialProjScale = innerHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
 
   void generateCosmicWeb(
@@ -320,9 +303,6 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     }
 
     matterGeometry = buildMatterGeometry(web, N);
-    // Halos formerly submitted all N³ vertices a second time, drawing just 1/8.
-    // Build only the spatially distributed 1/8 samples instead.
-    haloGeometry = buildMatterGeometry(web, N, true);
     const height = canvas.clientHeight || window.innerHeight;
     const projScale = height / (2 * Math.tan((camera.fov * Math.PI) / 360));
 
@@ -342,9 +322,8 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
         uGas: { value: 0 },
         uGain: { value: 1 },
         uProj: { value: projScale },
-        uPointScale: { value: Math.max(1, 0.75 * 128 / N) },
+        uPointScale: { value: 1 },
         uHalo: { value: 0 },
-        uHaloSubset: { value: 0 },
       },
       vertexShader: MATTER_VERTEX_SHADER,
       fragmentShader: MATTER_FRAGMENT_SHADER,
@@ -356,8 +335,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
     haloMaterial = matterMaterial.clone();
     haloMaterial.uniforms.uHalo!.value = 0.6;
-    haloMaterial.uniforms.uHaloSubset!.value = 1;
-    const halo = new Points(haloGeometry, haloMaterial);
+    const halo = new Points(matterGeometry, haloMaterial);
     halo.frustumCulled = false;
     scene.add(halo);
 
@@ -412,9 +390,6 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   let lastFpsTime = performance.now();
   let frameCount = 0;
-  let previousFrame = 0;
-  let totalFrameMs = 0;
-  let sampledFrames = 0;
 
   function onKeyDown(e: KeyboardEvent): void {
     if (e.key === 'f' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
@@ -454,28 +429,6 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   function step(timestamp: number): void {
     animFrameId = 0;
     if (disposed) return;
-
-    // Sustained frame-time feedback with hysteresis: don't rebuild the cosmic
-    // field or change the camera during playback. Only resize GPU buffers.
-    if (previousFrame > 0) {
-      const frameMs = timestamp - previousFrame;
-      if (frameMs > 0 && frameMs < 150) {
-        totalFrameMs += frameMs;
-        sampledFrames++;
-      }
-    }
-    previousFrame = timestamp;
-    if (sampledFrames >= 120) {
-      const nextDpr = adaptedDpr(currentDpr, totalFrameMs / sampledFrames, budget);
-      totalFrameMs = 0;
-      sampledFrames = 0;
-      if (Math.abs(nextDpr - currentDpr) > 0.001) {
-        currentDpr = nextDpr;
-        renderer.setPixelRatio(currentDpr);
-        composer.setPixelRatio(currentDpr);
-        resize();
-      }
-    }
 
     const nowSec = timestamp / 1000;
     const isTransitioning = !tween.doneAt(nowSec);
@@ -639,9 +592,6 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   }
 
   function onVisibilityChange(): void {
-    previousFrame = 0;
-    totalFrameMs = 0;
-    sampledFrames = 0;
     if (document.hidden) {
       if (animFrameId) {
         cancelAnimationFrame(animFrameId);
@@ -806,7 +756,6 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       background.geometry.dispose();
 
       matterGeometry?.dispose();
-      haloGeometry?.dispose();
       matterMaterial?.dispose();
       haloMaterial?.dispose();
       galaxiesGeometry?.dispose();
