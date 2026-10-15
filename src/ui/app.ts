@@ -36,6 +36,7 @@ export function startApp(root: HTMLElement): void {
   performance.measure('cosmic-timeline:model', { start: modelStart });
 
   let locale: Locale = detectLocale(location.search, navigator.languages);
+  const mobileLayout = matchMedia('(max-width: 599px)');
   // The journey starts at the beginning of the control.
   let u = 0;
   let localeChanged = true;
@@ -60,17 +61,19 @@ export function startApp(root: HTMLElement): void {
 
   const header = el('header', { class: 'site-header' }, masthead);
 
-  const stage = el('main', { class: 'stage' }, el('div', { class: 'scene-window' }), panel.element);
+  const stage = el('main', { class: 'stage', id: 'science-panel' }, el('div', { class: 'scene-window' }), panel.element);
+  panelToggle.setAttribute('aria-controls', stage.id);
 
-  function updateDrawerClasses(open: boolean, pinned: boolean): void {
+  function updateDrawerClasses(open: boolean, pinned: boolean, expanded: boolean): void {
     stage.classList.toggle('drawer-open', open);
     stage.classList.toggle('drawer-pinned', pinned);
+    stage.classList.toggle('drawer-expanded', expanded);
     panelToggle.classList.toggle('active', open);
     panelToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
-  panel.setOnOpenChange((open, pinned) => {
-    updateDrawerClasses(open, pinned);
+  panel.setOnOpenChange((open, pinned, expanded) => {
+    updateDrawerClasses(open, pinned, expanded);
   });
 
   panelToggle.addEventListener('click', () => {
@@ -78,6 +81,8 @@ export function startApp(root: HTMLElement): void {
       panel.setPinned(false);
       panel.setOpen(false);
     } else {
+      // Explicit tap on Info opens the full reading sheet on phones.
+      if (mobileLayout.matches) panel.setExpanded(true);
       panel.setOpen(true);
     }
   });
@@ -93,6 +98,9 @@ export function startApp(root: HTMLElement): void {
           panel.setOpen(false);
         }
       } else if (isMilestonePause) {
+        // Mobile auto-pause shows a short, readable summary instead of a
+        // giant drawer. The visitor can expand it on demand.
+        if (mobileLayout.matches) panel.setExpanded(false);
         panel.setOpen(true);
       }
       schedule();
@@ -104,6 +112,7 @@ export function startApp(root: HTMLElement): void {
     const playing = control.isPlaying();
     if (playing) {
       control.setPlaying(false);
+      if (mobileLayout.matches) panel.setExpanded(false);
       panel.setOpen(true);
     } else {
       if (!panel.isPinned()) {
