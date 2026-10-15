@@ -39,7 +39,7 @@ import type { CosmicWeb } from './cosmicWeb';
 import { generateCosmicWeb } from './cosmicWebLoader';
 import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
-import { sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
+import { cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
 import {
   BACKGROUND_FRAGMENT_SHADER,
   BACKGROUND_VERTEX_SHADER,
@@ -449,6 +449,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       animFrameId = requestAnimationFrame(step);
       return;
     }
+    const frameMs = lastRenderedMs > 0 ? timestamp - lastRenderedMs : 1000 / 60;
     lastRenderedMs = timestamp;
 
     const nowSec = timestamp / 1000;
@@ -457,7 +458,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     const state = options.stateAt(u);
 
     // Smooth damping for interactive camera controls
-    const damp = options.reducedMotion ? 1 : 0.12;
+    const damp = cameraDamping(frameMs, options.reducedMotion);
     currentYaw = MathUtils.lerp(currentYaw, targetYaw, damp);
     currentPitch = MathUtils.lerp(currentPitch, targetPitch, damp);
     currentPan.lerp(targetPan, damp);
