@@ -1,6 +1,11 @@
-/** Only *automatic* playback stops invite the visitor to continue.
- * Manual Pause, timeline scrubbing, or selecting a stop do not show the cue.
+/** Invite the visitor to resume whenever the journey actually stops.
+ * Don't display the cue on initial load or while scrubbing the slider.
+ * Manual Pause and milestone navigation should also be discoverable.
  */
-export function shouldShowContinueCue(playing: boolean, automaticPause: boolean | undefined): boolean {
-  return !playing && automaticPause === true;
+export function shouldShowContinueCue(
+  playing: boolean,
+  atMilestone: boolean | undefined,
+  wasPlaying: boolean,
+): boolean {
+  return !playing && (atMilestone === true || wasPlaying);
 }
