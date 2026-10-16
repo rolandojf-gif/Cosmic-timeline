@@ -40,6 +40,7 @@ import { generateCosmicWeb } from './cosmicWebLoader';
 import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
 import { cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
+import { GpuFrameTimer, parseSceneDiagnostics } from './gpuDiagnostics';
 import {
   BACKGROUND_FRAGMENT_SHADER,
   BACKGROUND_VERTEX_SHADER,
@@ -166,6 +167,18 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   const canvas = renderer.domElement;
   canvas.setAttribute('aria-hidden', 'true');
+  // GPU diagnostics only run when explicitly requested by ?gpuDiag=1.
+  const gpuDiag = parseSceneDiagnostics(window.location.search);
+  const gpuTimer = gpuDiag.enabled
+    ? new GpuFrameTimer(renderer.getContext() as WebGL2RenderingContext)
+    : null;
+  const diagnosticDisplay = document.createElement('pre');
+  if (gpuDiag.enabled) {
+    diagnosticDisplay.className = 'gpu-diagnostic';
+    diagnosticDisplay.style.cssText = 'position:fixed;bottom:56px;right:12px;z-index:9999;max-width:min(360px,90vw);padding:10px 12px;border:1px solid #666;background:rgba(4,6,12,.94);color:#d6f4d8;font:12px/1.5 monospace;pointer-events:none;white-space:pre-wrap;border-radius:6px;';
+    diagnosticDisplay.textContent = 'GPU diagnostic starting…';
+    document.body.appendChild(diagnosticDisplay);
+  }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, options.mobile ? 1.5 : 2));
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1;
@@ -264,6 +277,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   // --- Matter & Galaxies: populated when Cosmic Web worker resolves ---
   let matterGeometry: BufferGeometry | null = null;
+  let matterPoints: Points | null = null;
+  let haloPoints: Points | null = null;
+  let galaxyPoints: Points | null = null;
   let matterMaterial: ShaderMaterial | null = null;
   let haloMaterial: ShaderMaterial | null = null;
   let galaxiesGeometry: BufferGeometry | null = null;
@@ -330,15 +346,15 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       fragmentShader: MATTER_FRAGMENT_SHADER,
     });
 
-    const matter = new Points(matterGeometry, matterMaterial);
-    matter.frustumCulled = false;
-    scene.add(matter);
+    matterPoints = new Points(matterGeometry, matterMaterial);
+    matterPoints.frustumCulled = false;
+    scene.add(matterPoints);
 
     haloMaterial = matterMaterial.clone();
     haloMaterial.uniforms.uHalo!.value = 0.6;
-    const halo = new Points(matterGeometry, haloMaterial);
-    halo.frustumCulled = false;
-    scene.add(halo);
+    haloPoints = new Points(matterGeometry, haloMaterial);
+    haloPoints.frustumCulled = false;
+    scene.add(haloPoints);
 
     const firstState = options.stateAt(currentU);
     const { geometry: galGeom, boost, targetQ: tQ, targetPsi: tPsi } = buildGalaxies(web, firstState.dFirstStars, N);
@@ -365,9 +381,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       fragmentShader: GALAXIES_FRAGMENT_SHADER,
     });
 
-    const galaxies = new Points(galaxiesGeometry, galaxiesMaterial);
-    galaxies.frustumCulled = false;
-    scene.add(galaxies);
+    galaxyPoints = new Points(galaxiesGeometry, galaxiesMaterial);
+    galaxyPoints.frustumCulled = false;
+    scene.add(galaxyPoints);
 
     scheduleFrame();
   });
@@ -399,6 +415,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   let lastFpsTime = performance.now();
   let frameCount = 0;
+  let diagnosticFrames = 0;
+  let diagnosticCpuMs = 0;
+  let lastDiagnosticAt = 0;
 
   function onKeyDown(e: KeyboardEvent): void {
     if (e.key === 'f' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
@@ -575,7 +594,37 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       bloomPass.threshold = state.bloomThreshold;
     }
 
+    // The default branch makes NO alterations to rendering. Individual
+    // diagnostic URLs intentionally hide one layer to quantify its cost.
+    if (gpuDiag.enabled) {
+      background.visible = gpuDiag.skip !== 'plasma';
+      if (matterPoints) matterPoints.visible = gpuDiag.skip !== 'matter';
+      if (haloPoints) haloPoints.visible = gpuDiag.skip !== 'halos';
+      if (galaxyPoints) galaxyPoints.visible = gpuDiag.skip !== 'galaxies';
+      if (bloomPass) bloomPass.enabled = gpuDiag.skip !== 'bloom';
+    }
+    gpuTimer?.poll();
+    gpuTimer?.start();
+    const submitStart = gpuDiag.enabled ? performance.now() : 0;
     composer.render();
+    gpuTimer?.end();
+    if (gpuDiag.enabled) {
+      diagnosticCpuMs += performance.now() - submitStart;
+      diagnosticFrames++;
+      if (timestamp - lastDiagnosticAt >= 1000) {
+        const gpuMs = gpuTimer?.lastMs;
+        diagnosticDisplay.textContent =
+          'GPU DIAGNOSTICS · ' + (gpuDiag.skip === 'none' ? 'ALL LAYERS' : 'SKIP '+gpuDiag.skip.toUpperCase()) + '\\n' +
+          'GPU frame: ' + (gpuMs === null || gpuMs === undefined ? 'unavailable' : gpuMs.toFixed(2)+' ms') + '\\n' +
+          'CPU submit: ' + (diagnosticCpuMs / diagnosticFrames).toFixed(2) + ' ms avg\\n' +
+          'FPS cap: ' + fpsCap + ' · DPR: ' + renderer.getPixelRatio().toFixed(2) + '\\n' +
+          '128³ desktop matter and original bloom\\n' +
+          'GPU %: read in Windows Task Manager';
+        diagnosticFrames = 0;
+        diagnosticCpuMs = 0;
+        lastDiagnosticAt = timestamp;
+      }
+    }
 
     // Target galaxy screen projection for local landmark callouts (Milky Way / Solar System / Earth)
     if (options.onTargetScreenPos && targetQ && targetPsi) {
@@ -790,6 +839,8 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       fpsEl.remove();
+      gpuTimer?.dispose();
+      diagnosticDisplay.remove();
 
       noise.dispose();
       bgMaterial.dispose();
