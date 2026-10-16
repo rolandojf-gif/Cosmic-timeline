@@ -18,11 +18,6 @@
 
 import type { VisualState } from './visualMap';
 
-/** ?o1=0 draws the invisible layers anyway, for A/B comparison. */
-export function skipInvisibleLayers(search: string): boolean {
-  return new URLSearchParams(search).get('o1') !== '0';
-}
-
 export interface DrawnLayers {
   /** Matter and its halo pass, which share uGas. */
   readonly matter: boolean;

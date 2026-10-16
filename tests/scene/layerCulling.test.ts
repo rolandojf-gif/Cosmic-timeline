@@ -3,7 +3,8 @@
 
 import { describe, expect, it } from 'vitest';
 import { createCosmology } from '../../src/physics';
-import { drawnLayers, skipInvisibleLayers } from '../../src/scene/layerCulling';
+import { drawnLayers } from '../../src/scene/layerCulling';
+import { optimisationsFromUrl } from '../../src/scene/optimisations';
 import {
   GALAXIES_FRAGMENT_SHADER,
   GALAXIES_VERTEX_SHADER,
@@ -19,11 +20,11 @@ const map = createVisualMap(cosmology, epochs);
 const scale = createTimeScale(epochs.map((e) => e.anchor));
 
 describe('O1: skipping fully invisible particle layers', () => {
-  it('is on by default and ?o1=0 turns it off', () => {
-    expect(skipInvisibleLayers('')).toBe(true);
-    expect(skipInvisibleLayers('?fps&o1=1')).toBe(true);
-    expect(skipInvisibleLayers('?o1=0')).toBe(false);
-    expect(skipInvisibleLayers('?bench&o1=0')).toBe(false);
+  it('is on by default and ?o1=0 turns it off, independently of the others', () => {
+    expect(optimisationsFromUrl('')).toEqual({ o1: true, o2: true, o3: true, o4: true });
+    expect(optimisationsFromUrl('?fps&o1=1').o1).toBe(true);
+    expect(optimisationsFromUrl('?o1=0')).toEqual({ o1: false, o2: true, o3: true, o4: true });
+    expect(optimisationsFromUrl('?bench&o1=0&o3=0')).toEqual({ o1: false, o2: true, o3: false, o4: true });
   });
 
   it('skips a layer only when its uniform is exactly zero', () => {

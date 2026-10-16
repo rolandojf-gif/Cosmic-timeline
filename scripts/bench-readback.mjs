@@ -6,11 +6,11 @@
 //
 // For every control position (the thirteen stops, a uniform grid and both sides
 // of each layer's visibility threshold) it renders one frozen frame and reports,
-// per buffer, SHA-256 of the RGB and of the alpha channels separately. When the
-// build exposes a runtime toggle for a change (bench.scene.setOptimisation), it
-// also renders the frame without and with it in the same page and counts every
-// pixel whose RGB or alpha differs, with the largest difference. A repeat of
-// the "without" frame checks that the renderer itself is deterministic.
+// per buffer, SHA-256 of the RGB and of the alpha channels separately. With
+// LADDER=o2,o3,o4 (builds with bench.scene.setOptimisation) it renders the
+// frame with all of them off, then turns each on in turn in the same page and,
+// for every step, counts the pixels whose RGB or alpha changed and the largest
+// change. A repeat of the first frame checks that the renderer is deterministic.
 import { createRequire } from 'node:module';
 import { writeFileSync } from 'node:fs';
 
@@ -20,6 +20,8 @@ const out = process.argv[2] ?? 'bench-readback.json';
 const profile = process.argv[3] ?? 'desktop';
 const extra = process.argv[4] ?? '';
 const port = process.env.PORT ?? '5174';
+// Optimisations to compare, in order (?bench builds with setOptimisation).
+const ladder = (process.env.LADDER ?? '').split(',').filter(Boolean);
 
 const browser = await chromium.launch({
   args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
@@ -69,7 +71,7 @@ const only = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null;
 const results = [];
 for (const pos of positions.filter((p) => !only || only.has(p.label))) {
   const t0 = Date.now();
-  const r = await page.evaluate(async (u) => {
+  const r = await page.evaluate(async ({ u, ladder }) => {
     const bench = window.__cosmicBench.scene;
     const hex = async (bytes) =>
       Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)))
@@ -145,24 +147,29 @@ for (const pos of positions.filter((p) => !only || only.has(p.label))) {
       return c;
     };
 
-    if (typeof bench.setOptimisation !== 'function') {
+    if (typeof bench.setOptimisation !== 'function' || ladder.length === 0) {
       const t = performance.now();
       const one = bench.capture(u);
       return { captureMs: performance.now() - t, only: await summarise(one) };
     }
-    bench.setOptimisation(false);
-    const off = bench.capture(u);
-    const offAgain = bench.capture(u);
-    bench.setOptimisation(true);
-    const on = bench.capture(u);
-    bench.setOptimisation(null);
-    return {
-      off: await summarise(off),
-      on: await summarise(on),
-      repeat: compare(off, offAgain),
-      diff: compare(off, on),
-    };
-  }, pos.u);
+    // Ladder: everything under test off, then each one turned on in order.
+    for (const id of ladder) bench.setOptimisation(id, false);
+    const base = bench.capture(u);
+    const repeat = compare(base, bench.capture(u));
+    const steps = [{ id: 'base', buffers: await summarise(base) }];
+    const diffs = [];
+    let prev = base;
+    for (const id of ladder) {
+      bench.setOptimisation(id, true);
+      const cur = bench.capture(u);
+      diffs.push({ id, ...compare(prev, cur) });
+      steps.push({ id, buffers: await summarise(cur) });
+      prev = cur;
+    }
+    const total = compare(base, prev);
+    for (const id of ladder) bench.setOptimisation(id, null);
+    return { steps, repeat, diffs, total };
+  }, { u: pos.u, ladder });
   results.push({ ...pos, ...r });
   console.log(pos.label, pos.u.toFixed(6), `${Date.now() - t0} ms`);
 }

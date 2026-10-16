@@ -40,7 +40,8 @@ import { generateCosmicWeb } from './cosmicWebLoader';
 import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
 import { cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
-import { drawnLayers, skipInvisibleLayers } from './layerCulling';
+import { drawnLayers } from './layerCulling';
+import { optimisationsFromUrl, type OptimisationId } from './optimisations';
 import { ProbePass, benchRequested, readCanvas, readFloatTarget, type BenchBuffer, type SceneBench } from './sceneBench';
 import {
   BACKGROUND_FRAGMENT_SHADER,
@@ -406,9 +407,15 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let playbackActive = false;
   // Keep original scene quality: only limit how often composer.render() runs.
   const fpsCap = sceneFpsCap(window.location.search);
-  // O1: layers that would add exactly +0 to every RGB value are not drawn.
-  const skipInvisibleDefault = skipInvisibleLayers(window.location.search);
-  let skipInvisible = skipInvisibleDefault;
+  // Exact optimisations (see optimisations.ts); ?oN=0 turns one off.
+  const optimisationDefaults = optimisationsFromUrl(window.location.search);
+  const optimisation = { ...optimisationDefaults };
+
+  // Applies the optimisations that live in materials and geometry (o1 is
+  // decided per frame in step()).
+  function applyOptimisations(): void {
+    scheduleFrame();
+  }
   let lastRenderedMs = 0;
   // Advance visual time only while playing, transitioning, or interacting.
   // This prevents camera/background animation from jumping after a long pause.
@@ -596,7 +603,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       galaxiesMaterial.uniforms.uVisible!.value = state.galaxiesVisible;
     }
 
-    const drawn = drawnLayers(state, skipInvisible);
+    const drawn = drawnLayers(state, optimisation.o1);
     if (matterPoints) matterPoints.visible = drawn.matter;
     if (haloPoints) haloPoints.visible = drawn.matter;
     if (galaxyPoints) galaxyPoints.visible = drawn.galaxies;
@@ -796,8 +803,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   const bench: SceneBench | undefined = probes
     ? {
         ready: webReady,
-        setOptimisation(on: boolean | null): void {
-          skipInvisible = on ?? skipInvisibleDefault;
+        setOptimisation(id: OptimisationId, on: boolean | null): void {
+          optimisation[id] = on ?? optimisationDefaults[id];
+          applyOptimisations();
         },
         capture(u: number): Record<string, BenchBuffer> {
           if (animFrameId) {

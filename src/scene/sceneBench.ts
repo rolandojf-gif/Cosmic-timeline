@@ -7,6 +7,7 @@
 
 import type { WebGLRenderer, WebGLRenderTarget } from 'three';
 import { Pass } from 'three/examples/jsm/postprocessing/Pass.js';
+import type { OptimisationId } from './optimisations';
 
 export function benchRequested(search: string): boolean {
   return new URLSearchParams(search).has('bench');
@@ -69,6 +70,6 @@ export interface SceneBench {
    * paused) and returns every intermediate buffer by name.
    */
   capture(u: number): Record<string, BenchBuffer>;
-  /** Turns the optimisation under test off/on (null: back to the URL default). */
-  setOptimisation(on: boolean | null): void;
+  /** Turns one optimisation off/on (null: back to the URL default). */
+  setOptimisation(id: OptimisationId, on: boolean | null): void;
 }
