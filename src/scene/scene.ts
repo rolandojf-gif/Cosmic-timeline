@@ -40,6 +40,8 @@ import { generateCosmicWeb } from './cosmicWebLoader';
 import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
 import { cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
+import { diagnosticsFromUrl } from './diagnostics';
+import { createGpuFrameTimer } from './gpuTimer';
 import { drawnLayers } from './layerCulling';
 import { optimisationsFromUrl, type OptimisationId } from './optimisations';
 import { ProbePass, benchRequested, readCanvas, readFloatTarget, type BenchBuffer, type SceneBench } from './sceneBench';
@@ -442,8 +444,18 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   fpsEl.className = 'scene-fps';
   fpsEl.style.cssText =
     'position:fixed;bottom:12px;right:12px;padding:4px 8px;background:rgba(0,0,0,0.8);color:#4ade80;font:11px monospace;border-radius:4px;z-index:9999;pointer-events:none;letter-spacing:0.05em;border:1px solid rgba(255,255,255,0.1);';
+  fpsEl.style.whiteSpace = 'pre';
   fpsEl.hidden = !fpsVisible;
   document.body.appendChild(fpsEl);
+  // GPU time per frame (when the browser allows it) and what is being drawn,
+  // so a measurement on another machine says which GPU and settings it is.
+  const gpuTimer = createGpuFrameTimer(renderer.getContext() as WebGL2RenderingContext);
+  const diagnostics = diagnosticsFromUrl(window.location.search);
+  const rendererName = (() => {
+    const gl = renderer.getContext();
+    const info = gl.getExtension('WEBGL_debug_renderer_info');
+    return String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+  })();
 
   let lastFpsTime = performance.now();
   let frameCount = 0;
@@ -618,9 +630,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     }
 
     const drawn = drawnLayers(state, optimisation.o1);
-    if (matterPoints) matterPoints.visible = drawn.matter;
-    if (haloPoints) haloPoints.visible = drawn.matter;
-    if (galaxyPoints) galaxyPoints.visible = drawn.galaxies;
+    if (matterPoints) matterPoints.visible = drawn.matter && !diagnostics.has('nomatter');
+    if (haloPoints) haloPoints.visible = drawn.matter && !diagnostics.has('nomatter') && !diagnostics.has('nohalo');
+    if (galaxyPoints) galaxyPoints.visible = drawn.galaxies && !diagnostics.has('nogalaxies');
+    if (bloomPass) bloomPass.enabled = !diagnostics.has('nobloom');
 
     // Bloom parameters
     if (bloomPass) {
@@ -628,7 +641,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       bloomPass.threshold = state.bloomThreshold;
     }
 
+    if (fpsVisible) gpuTimer.begin();
     composer.render();
+    if (fpsVisible) gpuTimer.end();
 
     // Target galaxy screen projection for local landmark callouts (Milky Way / Solar System / Earth)
     if (options.onTargetScreenPos && targetQ && targetPsi) {
@@ -655,7 +670,17 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       if (fpsVisible) {
         const fps = Math.round((frameCount * 1000) / (timestamp - lastFpsTime));
         const ms = ((timestamp - lastFpsTime) / frameCount).toFixed(1);
-        fpsEl.textContent = `${fps} fps · ${ms} ms`;
+        const gpuMs = gpuTimer.takeMean();
+        const gpu = !gpuTimer.available ? 'GPU n/d' : Number.isNaN(gpuMs) ? 'GPU …' : `GPU ${gpuMs.toFixed(1)} ms`;
+        const off = Object.entries(optimisation)
+          .filter(([, on]) => !on)
+          .map(([id]) => `${id}=0`);
+        const extra = [...diagnostics, ...off];
+        fpsEl.textContent =
+          `${fps} fps · ${ms} ms · ${gpu}\n` +
+          `${renderer.domElement.width}×${renderer.domElement.height} px · DPR ${renderer.getPixelRatio()}\n` +
+          rendererName +
+          (extra.length > 0 ? `\n${extra.join(' ')}` : '');
       }
       frameCount = 0;
       lastFpsTime = timestamp;
