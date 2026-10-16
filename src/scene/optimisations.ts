@@ -4,10 +4,14 @@
 //
 //   o1  skip particle layers whose brightness uniform is exactly 0
 //   o2  clip away matter/halo points whose brightness is exactly 0
-//   o3  draw the halo pass from an index of its 1-in-8 particles
 //   o4  discard matter/halo fragments whose colour is exactly 0
+//
+// o3 (drawing the halo pass from an index of its 1-in-8 particles) was tried
+// and dropped: the other 7 in 8 get gl_PointSize 0, which the spec leaves
+// undefined, and SwiftShader rasterises them as bright 1-pixel points that are
+// part of the approved image, so skipping them changed it.
 
-export const OPTIMISATIONS = ['o1', 'o2', 'o3', 'o4'] as const;
+export const OPTIMISATIONS = ['o1', 'o2', 'o4'] as const;
 export type OptimisationId = (typeof OPTIMISATIONS)[number];
 export type OptimisationFlags = Record<OptimisationId, boolean>;
 

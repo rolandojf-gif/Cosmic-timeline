@@ -21,10 +21,10 @@ const scale = createTimeScale(epochs.map((e) => e.anchor));
 
 describe('O1: skipping fully invisible particle layers', () => {
   it('is on by default and ?o1=0 turns it off, independently of the others', () => {
-    expect(optimisationsFromUrl('')).toEqual({ o1: true, o2: true, o3: true, o4: true });
+    expect(optimisationsFromUrl('')).toEqual({ o1: true, o2: true, o4: true });
     expect(optimisationsFromUrl('?fps&o1=1').o1).toBe(true);
-    expect(optimisationsFromUrl('?o1=0')).toEqual({ o1: false, o2: true, o3: true, o4: true });
-    expect(optimisationsFromUrl('?bench&o1=0&o3=0')).toEqual({ o1: false, o2: true, o3: false, o4: true });
+    expect(optimisationsFromUrl('?o1=0')).toEqual({ o1: false, o2: true, o4: true });
+    expect(optimisationsFromUrl('?bench&o1=0&o4=0')).toEqual({ o1: false, o2: true, o4: false });
   });
 
   it('skips a layer only when its uniform is exactly zero', () => {
