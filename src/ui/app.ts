@@ -101,7 +101,7 @@ export function startApp(root: HTMLElement): void {
   let isPlaying = false;
   const control = createTimeControl(
     scale,
-    (next, playing, isMilestonePause, automaticPause) => {
+    (next, playing, isMilestonePause) => {
       u = next;
       const wasPlaying = isPlaying;
       isPlaying = playing;
