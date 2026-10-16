@@ -39,36 +39,24 @@ than 0.5 / 0.7 / 0.85 / 1 revert to the default.
 - Check small mobile viewport and desktop, including redrawing after a resize.
 - The benchmark 96% GPU reported in a screenshot is an observed machine-level
   value, **not proof the whole usage belongs to this one browser tab**.
-- Do not merge into `main` until a real-device visual and GPU-use check.
+- Main merge only after successful CI, hardware visual check and user approval.
 
-## Post-recombination investigation (isolated A/B, NOT enabled by default)
+## Post-recombination: indexed halo draw (enabled by default)
 
-The combined halo-indexing + DPR cap experiment was rejected because the
-cosmic web lost its cinematic appearance. That configuration was removed.
+The earlier combined indexed-halo **plus DPR cap** experiment was rejected
+because the cosmic web looked poor. The DPR cap was permanently removed.
+The user subsequently tested the **indexed-halo-only** variant: it kept
+the approved spectacular image, with GPU usage roughly 85% on the tested
+laptop, down from about 95%. It is now enabled by default.
 
-The current diagnostic patch keeps the approved **full DPR, same matter
-geometry, identical halo shader, original bloom and grading** on the
-default preview. Every experimental change requires an explicit URL option:
+- Same complete 128³ matter cloud; same halo shader, visible samples, HDR,
+  full DPR, bloom and grading.
+- The halo pass submits only the 1-in-8 indices already made visible by its
+  shader. The other 7/8 were invisible but consumed vertex work.
+- To compare the original slower halo draw, use `?haloMode=legacy`.
+- `?gpuProbe=halos`, `?gpuProbe=bloom`, `?gpuProbe=matter` and
+  `?gpuProbe=galaxies` remain intentional, opt-in, visually degraded
+  diagnostics. Never use them as the default.
 
-| Query parameter | Change | Intended use |
-| --- | --- | --- |
-| `?fps` | Show FPS | Same approved image |
-| `?fps&haloMode=indexed` | Submit only halo vertices originally visible (`gl_VertexID % 8 === 0`) | Test 1/8 vertex submissions while retaining original halo inputs and bloom |
-| `?fps&gpuProbe=halos` | Hide halo pass | *Diagnostic only*: expect a visibly dimmer scene |
-| `?fps&gpuProbe=bloom` | Skip bloom pass | *Diagnostic only*: expect much less glow |
-| `?fps&gpuProbe=matter` | Hide the main full-density matter pass | *Diagnostic only*: expect much fewer points |
-| `?fps&gpuProbe=galaxies` | Hide galaxy pass | *Diagnostic only* |
-
-**Test sequence at the same fixed epoch (First Stars and Milky Way):**
-close the previous tab before opening the next. First record normal GPU
-%, FPS and appearance. Repeat with `haloMode=indexed`; if it still looks
-identical and uses less GPU, that isolated optimisation can be considered.
-If the GPU remains saturated, use `gpuProbe=halos` and
-`gpuProbe=bloom` in turn (these **intentionally degrade the image**) to
-identify which pass is expensive. Report separate GPU numbers. Avoid
-drawing conclusions from GPU utilisation alone; it's the machine-wide
-figure and is influenced by resolution, thermal limits, other apps and
-browser composition.
-
-**Do not deploy a degraded diagnostic configuration or alter the default
-DPR/particles/bloom. Do not merge without the user's visual approval.**
+No specific GPU utilisation or FPS is guaranteed across other hardware.
+The benchmark is global Windows GPU usage, not a reliable per-tab measure.
