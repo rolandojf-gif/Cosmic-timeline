@@ -103,8 +103,9 @@ export function startApp(root: HTMLElement): void {
     scale,
     (next, playing, isMilestonePause, automaticPause) => {
       u = next;
+      const wasPlaying = isPlaying;
       isPlaying = playing;
-      const awaitingContinue = shouldShowContinueCue(playing, automaticPause);
+      const awaitingContinue = shouldShowContinueCue(playing, isMilestonePause, wasPlaying);
       continueCue.hidden = !awaitingContinue;
       control.element.classList.toggle('milestone-awaiting-play', awaitingContinue);
       if (isPlaying) {
