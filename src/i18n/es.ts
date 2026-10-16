@@ -52,6 +52,8 @@ export const es = {
     rulerCaption: 'Escala real del tiempo, en segundos: una marca por cada factor diez.',
     keyboardHint: 'Flechas: avance fino (con Mayús, más largo). Re Pág y Av Pág: parada siguiente o anterior.',
     play: 'Reproducir',
+    continue: 'Continuar',
+    continueHint: 'Continuar el viaje. También puedes tocar la escena o pulsar Reproducir.',
     pause: 'Pausar',
     reset: 'Reiniciar',
     prevStop: 'Época anterior',
