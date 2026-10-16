@@ -47,7 +47,7 @@ const percent = (u: number): string => `${(u * 100).toFixed(3)}%`;
 
 export function createTimeControl(
   scale: TimeScale,
-  onChange: (u: number, isPlaying: boolean, isMilestonePause?: boolean) => void,
+  onChange: (u: number, isPlaying: boolean, isMilestonePause?: boolean, automaticPause?: boolean) => void,
   extraActions?: readonly HTMLElement[],
 ): TimeControl {
   let u = 0;
@@ -65,9 +65,9 @@ export function createTimeControl(
 
   // Track the position at once: several key presses can arrive before the
   // next render, and each must start from the previous one.
-  const change = (next: number, playing = isPlaying, isMilestonePause = false): void => {
+  const change = (next: number, playing = isPlaying, isMilestonePause = false, automaticPause = false): void => {
     u = next;
-    onChange(next, playing, isMilestonePause);
+    onChange(next, playing, isMilestonePause, automaticPause);
   };
 
   /**
@@ -138,7 +138,7 @@ export function createTimeControl(
         if (crossed !== undefined && Math.abs(crossed - lastPausedMilestone) > 0.002) {
           u = crossed;
           lastPausedMilestone = crossed;
-          setPlaying(false, true);
+          setPlaying(false, true, true);
           return;
         }
       }
@@ -146,7 +146,7 @@ export function createTimeControl(
       if (nextU >= 1) {
         u = 1;
         lastPausedMilestone = 1;
-        setPlaying(false, true);
+        setPlaying(false, true, true);
         return;
       }
       change(nextU, true, false);
@@ -157,7 +157,7 @@ export function createTimeControl(
     }
   }
 
-  function setPlaying(playing: boolean, isMilestone = false): void {
+  function setPlaying(playing: boolean, isMilestone = false, automaticPause = false): void {
     if (isPlaying === playing) return;
     isPlaying = playing;
     if (isPlaying) {
@@ -179,7 +179,7 @@ export function createTimeControl(
       btnPlay.setAttribute('aria-pressed', 'false');
       btnPause.classList.add('active');
       btnPause.setAttribute('aria-pressed', 'true');
-      change(u, false, isMilestone);
+      change(u, false, isMilestone, automaticPause);
     }
   }
 
