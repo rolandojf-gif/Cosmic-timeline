@@ -531,8 +531,12 @@ a:hover {
 .resume-cue {
   position: fixed;
   z-index: 35;
-  right: clamp(20px, 9vw, 150px);
-  top: 49%;
+  /* Sit below the centre of the unobstructed scene, safely above the dock. */
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: calc(var(--dock-height, 140px) + clamp(44px, 8dvh, 96px));
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 11px;
@@ -548,7 +552,7 @@ a:hover {
   font: 600 0.86rem/1.3 system-ui, sans-serif;
   letter-spacing: 0.035em;
   cursor: pointer;
-  animation: resumeCueGlow 2.8s ease-in-out infinite;
+  animation: resumeCueBreath 3.8s ease-in-out infinite;
 }
 
 .resume-cue__icon { color: var(--accent); font-size: 0.92rem; }
@@ -560,27 +564,40 @@ a:hover {
 .control.milestone-awaiting-play .playback-btn.play {
   border-color: var(--accent);
   color: var(--accent);
-  animation: resumeCueGlow 2.8s ease-in-out infinite;
+  animation: resumeCueBreath 3.8s ease-in-out infinite;
 }
 
-@keyframes resumeCueGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(230 196 143 / 0.05); }
-  40% { box-shadow: 0 0 0 5px rgb(230 196 143 / 0.16), 0 0 22px rgb(230 196 143 / 0.2); }
+/* Slow, barely perceptible breathing; no zoom or movement of the button. */
+@keyframes resumeCueBreath {
+  0%, 100% {
+    opacity: 0.88;
+    box-shadow: 0 3px 20px rgb(0 0 0 / 0.4), 0 0 0 0 rgb(230 196 143 / 0);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 4px 24px rgb(0 0 0 / 0.46), 0 0 0 3px rgb(230 196 143 / 0.08), 0 0 18px rgb(230 196 143 / 0.1);
+  }
 }
 
 /* Expanded mobile reading sheet takes priority over the playback hint. */
 @media (max-width: 599px) {
   .resume-cue {
-    top: 27dvh;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
+    /* Above the compact milestone sheet, but lower than the old top cue. */
+    top: auto;
+    bottom: calc(var(--dock-height, 140px) + min(30dvh, 240px) + 16px);
     white-space: nowrap;
     min-height: 44px;
     padding: 10px 17px;
     font-size: 0.82rem;
   }
   .stage.drawer-expanded ~ .resume-cue { display: none; }
+}
+
+/* Centre on the visible cosmos rather than the scientific left column. */
+@media (min-width: 900px) {
+  .stage.drawer-open ~ .resume-cue {
+    left: calc(440px + (100% - 440px) / 2);
+  }
 }
 
 /* Floating Milestone Flash Card */
