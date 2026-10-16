@@ -42,6 +42,7 @@ import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
 import { cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
 import { plasmaRenderScale, scaledBufferSize, visibleLayers } from './plasmaQuality';
+import { gpuProbe, haloMode, indexedHaloGeometry } from './haloProfiling';
 import {
   BACKGROUND_FRAGMENT_SHADER,
   BACKGROUND_VERTEX_SHADER,
@@ -303,6 +304,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   // --- Matter & Galaxies: populated when Cosmic Web worker resolves ---
   let matterGeometry: BufferGeometry | null = null;
+  let indexedHalos: BufferGeometry | null = null;
   let matterMaterial: ShaderMaterial | null = null;
   let haloMaterial: ShaderMaterial | null = null;
   let matterPoints: Points | null = null;
@@ -378,7 +380,12 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
     haloMaterial = matterMaterial.clone();
     haloMaterial.uniforms.uHalo!.value = 0.6;
-    haloPoints = new Points(matterGeometry, haloMaterial);
+    // Explicit A/B only: in default mode the approved full-size halo draw
+    // remains untouched. Indexed mode submits ONLY its original visible i%8
+    // vertices with identical inputs to the existing shader.
+    indexedHalos = haloMode(window.location.search) === 'indexed'
+      ? indexedHaloGeometry(matterGeometry) : null;
+    haloPoints = new Points(indexedHalos ?? matterGeometry, haloMaterial);
     haloPoints.frustumCulled = false;
     scene.add(haloPoints);
 
@@ -618,9 +625,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     // epoch. This is particularly important for early opaque plasma, where
     // the original program drew 2 * 128^3 fully black particles per frame.
     const layers = visibleLayers(state);
-    if (matterPoints) matterPoints.visible = layers.matter;
-    if (haloPoints) haloPoints.visible = layers.halos;
-    if (galaxyPoints) galaxyPoints.visible = layers.galaxies;
+    const probe = gpuProbe(window.location.search);
+    if (matterPoints) matterPoints.visible = layers.matter && probe !== 'matter';
+    if (haloPoints) haloPoints.visible = layers.halos && probe !== 'halos';
+    if (galaxyPoints) galaxyPoints.visible = layers.galaxies && probe !== 'galaxies';
     compositeMesh.visible = layers.plasma;
 
     // The original 28-sample shader and emissive range are preserved in
@@ -633,6 +641,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
     // Bloom and colour grading remain at the original screen resolution.
     if (bloomPass) {
+      bloomPass.enabled = probe !== 'bloom';
       bloomPass.strength = state.bloomStrength;
       bloomPass.threshold = state.bloomThreshold;
     }
@@ -860,6 +869,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       compositeMesh.geometry.dispose();
       plasmaTarget.dispose();
 
+      indexedHalos?.dispose();
       matterGeometry?.dispose();
       matterMaterial?.dispose();
       haloMaterial?.dispose();
