@@ -614,11 +614,11 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       if (timestamp - lastDiagnosticAt >= 1000) {
         const gpuMs = gpuTimer?.lastMs;
         diagnosticDisplay.textContent =
-          'GPU DIAGNOSTICS · ' + (gpuDiag.skip === 'none' ? 'ALL LAYERS' : 'SKIP '+gpuDiag.skip.toUpperCase()) + '\\n' +
-          'GPU frame: ' + (gpuMs === null || gpuMs === undefined ? 'unavailable' : gpuMs.toFixed(2)+' ms') + '\\n' +
-          'CPU submit: ' + (diagnosticCpuMs / diagnosticFrames).toFixed(2) + ' ms avg\\n' +
-          'FPS cap: ' + fpsCap + ' · DPR: ' + renderer.getPixelRatio().toFixed(2) + '\\n' +
-          '128³ desktop matter and original bloom\\n' +
+          'GPU DIAGNOSTICS · ' + (gpuDiag.skip === 'none' ? 'ALL LAYERS' : 'SKIP '+gpuDiag.skip.toUpperCase()) + '\n' +
+          'GPU frame: ' + (gpuMs === null || gpuMs === undefined ? 'unavailable' : gpuMs.toFixed(2)+' ms') + '\n' +
+          'CPU submit: ' + (diagnosticCpuMs / diagnosticFrames).toFixed(2) + ' ms avg\n' +
+          'FPS cap: ' + fpsCap + ' · DPR: ' + renderer.getPixelRatio().toFixed(2) + '\n' +
+          '128³ desktop matter and original bloom\n' +
           'GPU %: read in Windows Task Manager';
         diagnosticFrames = 0;
         diagnosticCpuMs = 0;
