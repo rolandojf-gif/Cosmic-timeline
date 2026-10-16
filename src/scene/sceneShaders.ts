@@ -150,6 +150,12 @@ export const MATTER_VERTEX_SHADER = /* glsl */ `
     gl_PointSize = size;
     vBright *= 9.0 / max(size * size, 1.0);
     gl_Position = projectionMatrix * mv;
+#ifdef CULL_DARK_POINTS
+    // o2: a point whose brightness is exactly 0 adds ±0 to every pixel it
+    // covers (beyond the fade radius, in emptied voids, too close). Put it
+    // outside the clip volume, sprite included, so it is never rasterised.
+    if (vBright == 0.0) gl_Position = vec4(4.0, 4.0, 4.0, 1.0);
+#endif
   }
 `;
 

@@ -161,6 +161,13 @@ function buildGalaxies(
   return { geometry, boost, targetQ, targetPsi };
 }
 
+function setDefine(material: ShaderMaterial, name: string, on: boolean): void {
+  if (on === (name in material.defines)) return;
+  if (on) material.defines[name] = '';
+  else delete material.defines[name];
+  material.needsUpdate = true;
+}
+
 export function createParticleScene(options: SceneOptions): ParticleScene | null {
   let renderer: WebGLRenderer;
   try {
@@ -369,6 +376,8 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     targetQ = tQ;
     targetPsi = tPsi;
 
+    applyOptimisations();
+
     galaxiesMaterial = new ShaderMaterial({
       glslVersion: GLSL3,
       blending: AdditiveBlending,
@@ -414,6 +423,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   // Applies the optimisations that live in materials and geometry (o1 is
   // decided per frame in step()).
   function applyOptimisations(): void {
+    for (const material of [matterMaterial, haloMaterial]) {
+      if (!material) continue;
+      setDefine(material, 'CULL_DARK_POINTS', optimisation.o2);
+    }
     scheduleFrame();
   }
   let lastRenderedMs = 0;
