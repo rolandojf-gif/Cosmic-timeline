@@ -341,6 +341,12 @@ export function startApp(root: HTMLElement): void {
     if (scene) {
       sceneLayer.append(scene.element);
       scene.show(u, control.isPlaying(), control.isPlaying());
+      if (scene.bench) {
+        // ?bench: hooks for scripts/bench-readback.mjs (validation only).
+        const stops = epochs.map((e, i) => ({ id: e.id, u: scale.positions[i]! }));
+        const stateAt = (position: number) => visualMap.visualState(scale.timeAt(position));
+        Object.assign(window, { __cosmicBench: { stops, stateAt, scene: scene.bench } });
+      }
     }
     sceneNote.hidden = scene !== null;
     document.body.classList.toggle('has-scene', scene !== null);
