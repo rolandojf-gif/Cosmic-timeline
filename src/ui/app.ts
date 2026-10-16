@@ -59,6 +59,16 @@ export function startApp(root: HTMLElement): void {
   let togglePlayAndPanel = (): void => {};
   const flashCard = createFlashCard(() => togglePlayAndPanel());
 
+  // Separate from the cinematic flash card: only shown on true automatic
+  // milestone pauses, never after manual Play/Pause or timeline scrubbing.
+  const continueIcon = el('span', { class: 'resume-cue__icon', 'aria-hidden': 'true' }, '▶');
+  const continueLabel = el('span', { class: 'resume-cue__label' });
+  const continueCue = el('button', {
+    type: 'button',
+    class: 'resume-cue',
+  }, continueIcon, continueLabel);
+  continueCue.hidden = true;
+
   const header = el('header', { class: 'site-header' }, masthead);
 
   const stage = el('main', { class: 'stage', id: 'science-panel' }, el('div', { class: 'scene-window' }), panel.element);
@@ -90,9 +100,12 @@ export function startApp(root: HTMLElement): void {
   let isPlaying = false;
   const control = createTimeControl(
     scale,
-    (next, playing, isMilestonePause) => {
+    (next, playing, isMilestonePause, automaticPause) => {
       u = next;
       isPlaying = playing;
+      const awaitingContinue = !playing && automaticPause === true;
+      continueCue.hidden = !awaitingContinue;
+      control.element.classList.toggle('milestone-awaiting-play', awaitingContinue);
       if (isPlaying) {
         if (!panel.isPinned()) {
           panel.setOpen(false);
@@ -107,6 +120,11 @@ export function startApp(root: HTMLElement): void {
     },
     [panelToggle, languageButton],
   );
+
+  continueCue.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (!control.isPlaying()) togglePlayAndPanel();
+  });
 
   togglePlayAndPanel = () => {
     const playing = control.isPlaying();
@@ -208,6 +226,7 @@ export function startApp(root: HTMLElement): void {
     stage,
     ticker.element,
     flashCard.element,
+    continueCue,
     dock,
     calloutLayer,
   );
@@ -234,6 +253,9 @@ export function startApp(root: HTMLElement): void {
       setText(title, m.meta.title);
       setText(subtitle, m.meta.subtitle);
       setText(panelToggle, mobileLayout.matches ? 'Info' : m.meta.sciencePanel);
+      setText(continueLabel, m.control.continue);
+      continueCue.setAttribute('aria-label', m.control.continueHint);
+      continueCue.setAttribute('title', m.control.continueHint);
       panelToggle.setAttribute('aria-label', m.meta.sciencePanelLabel);
       setText(languageButton, m.meta.switchLanguage);
       languageButton.setAttribute('aria-label', m.meta.switchLanguageLabel);
