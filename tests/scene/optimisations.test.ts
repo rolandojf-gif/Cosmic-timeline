@@ -3,7 +3,7 @@
 // checked by scripts/bench-readback.mjs.
 
 import { describe, expect, it } from 'vitest';
-import { MATTER_VERTEX_SHADER } from '../../src/scene/sceneShaders';
+import { MATTER_FRAGMENT_SHADER, MATTER_VERTEX_SHADER } from '../../src/scene/sceneShaders';
 
 describe('o2: clipping away points of zero brightness', () => {
   it('tests the brightness the fragments receive, after its last factor', () => {
@@ -21,5 +21,29 @@ describe('o2: clipping away points of zero brightness', () => {
     // Largest halo: (4 + 10) px × 5 = 70 px. Smallest viewport side: 200 px.
     const halfSpriteNdc = 70 / 200;
     expect(4 - halfSpriteNdc).toBeGreaterThan(1);
+  });
+});
+
+describe('o4: discarding fragments of zero colour', () => {
+  it('discards on the very colour it would have written, and only when it is 0', () => {
+    const fs = MATTER_FRAGMENT_SHADER;
+    const rgb = fs.indexOf('vec3 rgb = colour * vBright * disc;');
+    const discard = fs.indexOf('if (rgb == vec3(0.0)) discard;');
+    const write = fs.indexOf('fragColour = vec4(rgb, 1.0);');
+    expect(rgb).toBeGreaterThan(0);
+    expect(discard).toBeGreaterThan(rgb);
+    expect(write).toBeGreaterThan(discard);
+    expect(fs.slice(rgb, discard)).toContain('#ifdef DISCARD_DARK_FRAGMENTS');
+  });
+
+  it('covers the sprite corners: disc is exactly 0 from radius 0.5', () => {
+    // smoothstep(0.4, 0.5, x) is exactly 1 for x >= 0.5, as GLSL defines it.
+    const smoothstep = (e0: number, e1: number, x: number) => {
+      const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+      return t * t * (3 - 2 * t);
+    };
+    for (const r of [0.5, 0.6, Math.SQRT1_2]) expect(1 - smoothstep(0.4, 0.5, r)).toBe(0);
+    // Fraction of the square outside the inscribed circle: 1 − π/4.
+    expect(1 - Math.PI / 4).toBeCloseTo(0.2146, 4);
   });
 });

@@ -60,7 +60,8 @@ describe('O1: skipping fully invisible particle layers', () => {
     // If either product changes, the exact-zero argument above must be redone.
     expect(MATTER_VERTEX_SHADER).toContain('vBright = uGas * fade * pow(shown, 1.35) * smoothstep(0.5, 4.0, r);');
     expect(GALAXIES_VERTEX_SHADER).toContain('vFade = (1.0 - smoothstep(0.32 * uBox, 0.48 * uBox, r)) * uVisible;');
-    expect(MATTER_FRAGMENT_SHADER).toContain('fragColour = vec4(colour * vBright * disc, 1.0);');
+    expect(MATTER_FRAGMENT_SHADER).toContain('vec3 rgb = colour * vBright * disc;');
+    expect(MATTER_FRAGMENT_SHADER).toContain('fragColour = vec4(rgb, 1.0);');
     expect(GALAXIES_FRAGMENT_SHADER).toContain('fragColour = vec4(colour * vFade, 1.0);');
   });
 });

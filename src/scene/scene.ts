@@ -426,6 +426,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     for (const material of [matterMaterial, haloMaterial]) {
       if (!material) continue;
       setDefine(material, 'CULL_DARK_POINTS', optimisation.o2);
+      setDefine(material, 'DISCARD_DARK_FRAGMENTS', optimisation.o4);
     }
     scheduleFrame();
   }
