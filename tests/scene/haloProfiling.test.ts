@@ -3,10 +3,11 @@ import { BufferGeometry, Int16BufferAttribute } from 'three';
 import { gpuProbe, haloMode, indexedHaloGeometry } from '../../src/scene/haloProfiling';
 
 describe('original-image halo profiler', () => {
-  it('preserves approved default image and only enables diagnostics explicitly', () => {
-    expect(haloMode('')).toBe('legacy');
+  it('uses measured indexed halos by default with legacy A/B available', () => {
+    expect(haloMode('')).toBe('indexed');
     expect(haloMode('?haloMode=indexed')).toBe('indexed');
-    expect(haloMode('?haloMode=other')).toBe('legacy');
+    expect(haloMode('?haloMode=legacy')).toBe('legacy');
+    expect(haloMode('?haloMode=other')).toBe('indexed');
     expect(gpuProbe('')).toBe('none');
     expect(gpuProbe('?gpuProbe=halos')).toBe('halos');
     expect(gpuProbe('?gpuProbe=bloom')).toBe('bloom');
