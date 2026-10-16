@@ -10,6 +10,7 @@ import type { ParticleScene } from '../scene/scene';
 import { createVisualMap } from '../scene/visualMap';
 import { EPOCHS, createTimeScale, resolveEpochs, type EpochId } from '../timeline';
 import { el, setText } from './dom';
+import { shouldShowContinueCue } from './continueCue';
 import { createFlashCard } from './flashCard';
 import { createInfoPanel } from './infoPanel';
 import { licenceVars } from './licenceVars';
@@ -103,7 +104,7 @@ export function startApp(root: HTMLElement): void {
     (next, playing, isMilestonePause, automaticPause) => {
       u = next;
       isPlaying = playing;
-      const awaitingContinue = !playing && automaticPause === true;
+      const awaitingContinue = shouldShowContinueCue(playing, automaticPause);
       continueCue.hidden = !awaitingContinue;
       control.element.classList.toggle('milestone-awaiting-play', awaitingContinue);
       if (isPlaying) {
