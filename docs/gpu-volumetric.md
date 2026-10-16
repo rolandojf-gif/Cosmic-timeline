@@ -21,8 +21,18 @@ optimisations are introduced:
    zero, galaxies before they become visible, and the volumetric background
    when both its haze and CMB contributions are zero. No point geometry is
    reduced. All layers resume at their original density and brightness.
+3. Once the glowing web appears, avoid the wasted full-field **halo vertex pass**:
+   the original halo shader displayed only indexes divisible by eight. An
+   indexed draw now feeds it exactly those same 262,144 source particles
+   instead of feeding it all 2,097,152 and making the other 7/8 size zero.
+   The matter field is still the entire 2,097,152 particles; every visible
+   halo keeps its original position, glow, bloom and size.
+4. Limit the **framebuffer DPR** to 1.25 on desktop (previously 2) while
+   preserving original particle counts and the bloom stack. Adjust using
+   `?dprcap=1.5` or `?dprcap=2` for direct resolution comparisons.
+   Mobile keeps its previous maximum of 1.5.
 
-For A/B, load `?fps&plasmaScale=1` to render the plasma at full resolution
+For plasma A/B, load `?fps&plasmaScale=1` to render the plasma at full resolution
 through the same HDR path, or use `?fps&plasmaScale=0.5` for the stronger
 low-load variant. The default is `?fps&plasmaScale=0.7`. Query values other
 than 0.5 / 0.7 / 0.85 / 1 revert to the default.
@@ -37,6 +47,10 @@ than 0.5 / 0.7 / 0.85 / 1 revert to the default.
 - Compare `?plasmaScale=0.5`, `0.7` and `1` to establish the appropriate
   laptop budget. Performance gains are expected but are **not measured** here.
 - Check small mobile viewport and desktop, including redrawing after a resize.
+- After recombination, compare GPU and image at `?dprcap=1.25` versus
+  `?dprcap=2` and ensure later galaxies are still dense, illuminated and
+  morphologically unchanged (the version that stripped bloom and particles
+  in PR #15 was deliberately rejected).
 - The benchmark 96% GPU reported in a screenshot is an observed machine-level
   value, **not proof the whole usage belongs to this one browser tab**.
 - Do not merge into `main` until a real-device visual and GPU-use check.
