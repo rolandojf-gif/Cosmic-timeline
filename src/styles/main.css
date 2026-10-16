@@ -526,6 +526,92 @@ a:hover {
   animation: tickerFlashAnim 1.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Discreet continuation affordance at genuine auto-pauses only. The Play
+   control carries the same cue; no layout shift or scientific overlay. */
+.resume-cue {
+  position: fixed;
+  z-index: 35;
+  /* Sit below the centre of the unobstructed scene, safely above the dock. */
+  left: 50%;
+  right: auto;
+  top: auto;
+  bottom: calc(var(--dock-height, 140px) + clamp(44px, 8dvh, 96px));
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 18px;
+  min-height: 44px;
+  border: 1px solid rgb(230 196 143 / 0.68);
+  border-radius: 999px;
+  background: rgb(8 10 17 / 0.85);
+  box-shadow: 0 4px 26px rgb(0 0 0 / 0.46);
+  color: var(--text);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font: 600 0.86rem/1.3 system-ui, sans-serif;
+  letter-spacing: 0.035em;
+  cursor: pointer;
+  animation: resumeCueBreath 3.2s ease-in-out infinite;
+}
+
+.resume-cue__icon {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 0.92rem;
+  transform-origin: center;
+  animation: resumeIconBreath 3.2s ease-in-out infinite;
+}
+.resume-cue:hover,
+.resume-cue:focus-visible {
+  border-color: var(--accent);
+  background: rgb(19 22 32 / 0.94);
+}
+.control.milestone-awaiting-play .playback-btn.play {
+  border-color: var(--accent);
+  color: var(--accent);
+  animation: resumeCueBreath 3.2s ease-in-out infinite;
+}
+
+/* Readable breathing without moving or resizing the centred capsule. */
+@keyframes resumeCueBreath {
+  0%, 100% {
+    border-color: rgb(230 196 143 / 0.46);
+    box-shadow: 0 3px 18px rgb(0 0 0 / 0.46), 0 0 0 0 rgb(230 196 143 / 0);
+  }
+  50% {
+    border-color: rgb(230 196 143 / 0.92);
+    box-shadow: 0 4px 24px rgb(0 0 0 / 0.5), 0 0 0 4px rgb(230 196 143 / 0.15), 0 0 22px rgb(230 196 143 / 0.26);
+  }
+}
+
+/* Animate only the glyph's scale, keeping layout stable and movement subtle. */
+@keyframes resumeIconBreath {
+  0%, 100% { opacity: 0.74; transform: scale(0.91); text-shadow: 0 0 0 transparent; }
+  50% { opacity: 1; transform: scale(1.12); text-shadow: 0 0 12px rgb(230 196 143 / 0.65); }
+}
+
+/* Expanded mobile reading sheet takes priority over the playback hint. */
+@media (max-width: 599px) {
+  .resume-cue {
+    /* Above the compact milestone sheet, but lower than the old top cue. */
+    top: auto;
+    bottom: calc(var(--dock-height, 140px) + min(30dvh, 240px) + 16px);
+    white-space: nowrap;
+    min-height: 44px;
+    padding: 10px 17px;
+    font-size: 0.82rem;
+  }
+  .stage.drawer-expanded ~ .resume-cue { display: none; }
+}
+
+/* Centre on the visible cosmos rather than the scientific left column. */
+@media (min-width: 900px) {
+  .stage.drawer-open ~ .resume-cue {
+    left: calc(440px + (100% - 440px) / 2);
+  }
+}
+
 /* Floating Milestone Flash Card */
 
 .milestone-flash {
@@ -1510,6 +1596,11 @@ a:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .resume-cue,
+  .resume-cue__icon,
+  .control.milestone-awaiting-play .playback-btn.play {
+    animation: none !important;
+  }
   *,
   *::before,
   *::after {
