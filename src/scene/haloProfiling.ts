@@ -6,8 +6,8 @@ import { BufferGeometry, Uint32BufferAttribute } from 'three';
  * the remaining vertices avoids submitting those seven invisible points.
  * gl_VertexID in WebGL2 indexed draws reads the source vertex index.
  *
- * This is an experimental opt-in ONLY. The default is the approved legacy
- * renderer until hardware measurements and visual A/B comparisons succeed.
+ * Indexed rendering is now the default after laptop A/B validation.
+ * Set ?haloMode=legacy to compare with the original full draw.
  */
 export function indexedHaloGeometry(source: BufferGeometry): BufferGeometry {
   const count = source.getAttribute('position').count;
@@ -33,5 +33,5 @@ export function gpuProbe(search: string): GpuProbe {
 }
 
 export function haloMode(search: string): 'legacy' | 'indexed' {
-  return new URLSearchParams(search).get('haloMode') === 'indexed' ? 'indexed' : 'legacy';
+  return new URLSearchParams(search).get('haloMode') === 'legacy' ? 'legacy' : 'indexed';
 }
