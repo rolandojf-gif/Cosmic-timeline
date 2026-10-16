@@ -40,6 +40,7 @@ import { generateCosmicWeb } from './cosmicWebLoader';
 import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
 import { cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
+import { ProbePass, benchRequested, readCanvas, readFloatTarget, type BenchBuffer, type SceneBench } from './sceneBench';
 import {
   BACKGROUND_FRAGMENT_SHADER,
   BACKGROUND_VERTEX_SHADER,
@@ -78,6 +79,8 @@ export interface ParticleScene {
   /** Ease towards control position u (or jump with reduced motion / direct sync). */
   show(u: number, immediate?: boolean, playing?: boolean): void;
   dispose(): void;
+  /** Readback hooks, only with ?bench in the URL. */
+  readonly bench?: SceneBench | undefined;
 }
 
 function buildMatterGeometry(web: CosmicWeb, n: number): BufferGeometry {
@@ -248,12 +251,21 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   composer.renderTarget2.texture.type = HalfFloatType;
   composer.addPass(new RenderPass(scene, camera));
 
+  // ?bench: probes that copy the image after each pass (they draw nothing).
+  const benchMode = benchRequested(window.location.search);
+  const probes = benchMode
+    ? { scene: new ProbePass(), postBloom: new ProbePass(), output: new ProbePass() }
+    : null;
+  if (probes) composer.addPass(probes.scene);
+
   let bloomPass: UnrealBloomPass | null = null;
   if (!options.mobile) {
     bloomPass = new UnrealBloomPass(new Vector2(innerWidth, innerHeight), 0.6, 0.5, 0.7);
     composer.addPass(bloomPass);
+    if (probes) composer.addPass(probes.postBloom);
   }
   composer.addPass(new OutputPass());
+  if (probes) composer.addPass(probes.output);
 
   const gradingPass = new ShaderPass({
     uniforms: { tDiffuse: { value: null }, uSeed: { value: 0.37 } },
@@ -272,6 +284,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let targetPsi: Vector3 | null = null;
 
   const N = options.mobile ? 64 : 128;
+  let resolveWebReady: () => void = () => {};
+  const webReady = new Promise<void>((resolve) => {
+    resolveWebReady = resolve;
+  });
   const initialProjScale = innerHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
 
   void generateCosmicWeb(
@@ -370,6 +386,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     scene.add(galaxies);
 
     scheduleFrame();
+    resolveWebReady();
   });
 
   // --- Animation loop, tweens and camera drift ---
@@ -759,8 +776,48 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   document.addEventListener('visibilitychange', onVisibilityChange);
   resize();
 
+  // A bench capture is an ordinary paused frame: same step(), same composer.
+  let benchClock = 0;
+  const bench: SceneBench | undefined = probes
+    ? {
+        ready: webReady,
+        capture(u: number): Record<string, BenchBuffer> {
+          if (animFrameId) {
+            cancelAnimationFrame(animFrameId);
+            animFrameId = 0;
+          }
+          isRunning = false;
+          currentU = u;
+          playbackActive = false;
+          isFirstJump = false;
+          tween.jump(u);
+          visualSeconds = 0;
+          lastMotionTimestamp = 0;
+          benchClock = Math.max(benchClock, lastRenderedMs, performance.now()) + 1000;
+          for (const probe of Object.values(probes)) {
+            probe.captured = null;
+            probe.armed = true;
+          }
+          step(benchClock);
+          const out: Record<string, BenchBuffer> = {};
+          for (const [name, probe] of Object.entries(probes)) {
+            probe.armed = false;
+            if (probe.captured) out[name] = probe.captured;
+          }
+          out.canvas = readCanvas(renderer);
+          if (bloomPass) {
+            out.bright = readFloatTarget(renderer, bloomPass.renderTargetBright);
+            out.bloom = readFloatTarget(renderer, bloomPass.renderTargetsHorizontal[0]!);
+          }
+          renderer.setRenderTarget(null);
+          return out;
+        },
+      }
+    : undefined;
+
   return {
     element: canvas,
+    bench,
     show(u: number, immediate?: boolean, playing = false) {
       currentU = u;
       playbackActive = playing;
