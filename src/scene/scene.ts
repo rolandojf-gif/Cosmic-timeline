@@ -42,6 +42,7 @@ import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
 import { cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
 import { plasmaRenderScale, scaledBufferSize, visibleLayers } from './plasmaQuality';
+import { buildSparseHaloGeometry, scenePixelRatio } from './haloBudget';
 import {
   BACKGROUND_FRAGMENT_SHADER,
   BACKGROUND_VERTEX_SHADER,
@@ -168,7 +169,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   const canvas = renderer.domElement;
   canvas.setAttribute('aria-hidden', 'true');
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, options.mobile ? 1.5 : 2));
+  // Retain full cosmic particles and every bloom pass; cap costly framebuffer
+  // pixels. ?dprcap=2 restores the original for exact visual comparison.
+  renderer.setPixelRatio(scenePixelRatio(window.devicePixelRatio || 1, options.mobile, window.location.search));
   renderer.toneMapping = ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1;
 
@@ -303,6 +306,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   // --- Matter & Galaxies: populated when Cosmic Web worker resolves ---
   let matterGeometry: BufferGeometry | null = null;
+  let haloGeometry: BufferGeometry | null = null;
   let matterMaterial: ShaderMaterial | null = null;
   let haloMaterial: ShaderMaterial | null = null;
   let matterPoints: Points | null = null;
@@ -378,7 +382,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
     haloMaterial = matterMaterial.clone();
     haloMaterial.uniforms.uHalo!.value = 0.6;
-    haloPoints = new Points(matterGeometry, haloMaterial);
+    // Same i%8 === 0 original halo vertices, just indexed; eliminates the
+    // wasted 7/8 vertex shader executions without dimming any glow.
+    haloGeometry = buildSparseHaloGeometry(matterGeometry);
+    haloPoints = new Points(haloGeometry, haloMaterial);
     haloPoints.frustumCulled = false;
     scene.add(haloPoints);
 
@@ -860,6 +867,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       compositeMesh.geometry.dispose();
       plasmaTarget.dispose();
 
+      haloGeometry?.dispose();
       matterGeometry?.dispose();
       matterMaterial?.dispose();
       haloMaterial?.dispose();
