@@ -40,6 +40,7 @@ import { generateCosmicWeb } from './cosmicWebLoader';
 import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
 import { cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
+import { drawnLayers, skipInvisibleLayers } from './layerCulling';
 import { ProbePass, benchRequested, readCanvas, readFloatTarget, type BenchBuffer, type SceneBench } from './sceneBench';
 import {
   BACKGROUND_FRAGMENT_SHADER,
@@ -280,6 +281,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let haloMaterial: ShaderMaterial | null = null;
   let galaxiesGeometry: BufferGeometry | null = null;
   let galaxiesMaterial: ShaderMaterial | null = null;
+  let matterPoints: Points | null = null;
+  let haloPoints: Points | null = null;
+  let galaxyPoints: Points | null = null;
   let targetQ: Vector3 | null = null;
   let targetPsi: Vector3 | null = null;
 
@@ -349,12 +353,14 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     const matter = new Points(matterGeometry, matterMaterial);
     matter.frustumCulled = false;
     scene.add(matter);
+    matterPoints = matter;
 
     haloMaterial = matterMaterial.clone();
     haloMaterial.uniforms.uHalo!.value = 0.6;
     const halo = new Points(matterGeometry, haloMaterial);
     halo.frustumCulled = false;
     scene.add(halo);
+    haloPoints = halo;
 
     const firstState = options.stateAt(currentU);
     const { geometry: galGeom, boost, targetQ: tQ, targetPsi: tPsi } = buildGalaxies(web, firstState.dFirstStars, N);
@@ -384,6 +390,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     const galaxies = new Points(galaxiesGeometry, galaxiesMaterial);
     galaxies.frustumCulled = false;
     scene.add(galaxies);
+    galaxyPoints = galaxies;
 
     scheduleFrame();
     resolveWebReady();
@@ -399,6 +406,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let playbackActive = false;
   // Keep original scene quality: only limit how often composer.render() runs.
   const fpsCap = sceneFpsCap(window.location.search);
+  // O1: layers that would add exactly +0 to every RGB value are not drawn.
+  const skipInvisibleDefault = skipInvisibleLayers(window.location.search);
+  let skipInvisible = skipInvisibleDefault;
   let lastRenderedMs = 0;
   // Advance visual time only while playing, transitioning, or interacting.
   // This prevents camera/background animation from jumping after a long pause.
@@ -585,6 +595,11 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       galaxiesMaterial.uniforms.uCam!.value.copy(camBox);
       galaxiesMaterial.uniforms.uVisible!.value = state.galaxiesVisible;
     }
+
+    const drawn = drawnLayers(state, skipInvisible);
+    if (matterPoints) matterPoints.visible = drawn.matter;
+    if (haloPoints) haloPoints.visible = drawn.matter;
+    if (galaxyPoints) galaxyPoints.visible = drawn.galaxies;
 
     // Bloom parameters
     if (bloomPass) {
@@ -781,6 +796,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   const bench: SceneBench | undefined = probes
     ? {
         ready: webReady,
+        setOptimisation(on: boolean | null): void {
+          skipInvisible = on ?? skipInvisibleDefault;
+        },
         capture(u: number): Record<string, BenchBuffer> {
           if (animFrameId) {
             cancelAnimationFrame(animFrameId);

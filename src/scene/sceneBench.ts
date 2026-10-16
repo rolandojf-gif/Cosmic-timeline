@@ -69,4 +69,6 @@ export interface SceneBench {
    * paused) and returns every intermediate buffer by name.
    */
   capture(u: number): Record<string, BenchBuffer>;
+  /** Turns the optimisation under test off/on (null: back to the URL default). */
+  setOptimisation(on: boolean | null): void;
 }
