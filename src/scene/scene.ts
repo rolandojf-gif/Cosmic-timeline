@@ -27,6 +27,7 @@ import {
   SRGBColorSpace,
   Vector2,
   Vector3,
+  WebGLRenderTarget,
   WebGLRenderer,
 } from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -40,6 +41,7 @@ import { generateCosmicWeb } from './cosmicWebLoader';
 import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
 import { cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
+import { plasmaRenderScale, scaledBufferSize, visibleLayers } from './plasmaQuality';
 import {
   BACKGROUND_FRAGMENT_SHADER,
   BACKGROUND_VERTEX_SHADER,
@@ -237,10 +239,47 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     fragmentShader: BACKGROUND_FRAGMENT_SHADER,
   });
 
-  const background = new Mesh(new PlaneGeometry(2, 2), bgMaterial);
-  background.frustumCulled = false;
-  background.renderOrder = -1;
-  scene.add(background);
+  // The plasma has ~28 expensive volume samples per fragment. Render just
+  // that layer to a lower-resolution HDR target, then bilinearly upscale it.
+  // Full-density matter, galaxies, bloom and the grading pass remain unchanged.
+  const plasmaScene = new Scene();
+  const plasmaMesh = new Mesh(new PlaneGeometry(2, 2), bgMaterial);
+  plasmaMesh.frustumCulled = false;
+  plasmaScene.add(plasmaMesh);
+  const plasmaScale = plasmaRenderScale(window.location.search);
+  const plasmaTarget = new WebGLRenderTarget(1, 1, {
+    type: HalfFloatType,
+    minFilter: LinearFilter,
+    magFilter: LinearFilter,
+    depthBuffer: false,
+    stencilBuffer: false,
+  });
+  const compositeMaterial = new ShaderMaterial({
+    glslVersion: GLSL3,
+    depthTest: false,
+    depthWrite: false,
+    uniforms: { uPlasma: { value: plasmaTarget.texture } },
+    vertexShader: `
+      out vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = vec4(position.xy, 0.0, 1.0);
+      }
+    `,
+    fragmentShader: `
+      precision highp float;
+      uniform sampler2D uPlasma;
+      in vec2 vUv;
+      out vec4 fragColour;
+      void main() {
+        fragColour = texture(uPlasma, vUv);
+      }
+    `,
+  });
+  const compositeMesh = new Mesh(new PlaneGeometry(2, 2), compositeMaterial);
+  compositeMesh.frustumCulled = false;
+  compositeMesh.renderOrder = -1;
+  scene.add(compositeMesh);
 
   // --- Post-processing Composer ---
   const composer = new EffectComposer(renderer);
@@ -266,6 +305,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let matterGeometry: BufferGeometry | null = null;
   let matterMaterial: ShaderMaterial | null = null;
   let haloMaterial: ShaderMaterial | null = null;
+  let matterPoints: Points | null = null;
+  let haloPoints: Points | null = null;
+  let galaxyPoints: Points | null = null;
   let galaxiesGeometry: BufferGeometry | null = null;
   let galaxiesMaterial: ShaderMaterial | null = null;
   let targetQ: Vector3 | null = null;
@@ -330,15 +372,15 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       fragmentShader: MATTER_FRAGMENT_SHADER,
     });
 
-    const matter = new Points(matterGeometry, matterMaterial);
-    matter.frustumCulled = false;
-    scene.add(matter);
+    matterPoints = new Points(matterGeometry, matterMaterial);
+    matterPoints.frustumCulled = false;
+    scene.add(matterPoints);
 
     haloMaterial = matterMaterial.clone();
     haloMaterial.uniforms.uHalo!.value = 0.6;
-    const halo = new Points(matterGeometry, haloMaterial);
-    halo.frustumCulled = false;
-    scene.add(halo);
+    haloPoints = new Points(matterGeometry, haloMaterial);
+    haloPoints.frustumCulled = false;
+    scene.add(haloPoints);
 
     const firstState = options.stateAt(currentU);
     const { geometry: galGeom, boost, targetQ: tQ, targetPsi: tPsi } = buildGalaxies(web, firstState.dFirstStars, N);
@@ -365,9 +407,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       fragmentShader: GALAXIES_FRAGMENT_SHADER,
     });
 
-    const galaxies = new Points(galaxiesGeometry, galaxiesMaterial);
-    galaxies.frustumCulled = false;
-    scene.add(galaxies);
+    galaxyPoints = new Points(galaxiesGeometry, galaxiesMaterial);
+    galaxyPoints.frustumCulled = false;
+    scene.add(galaxyPoints);
 
     scheduleFrame();
   });
@@ -430,6 +472,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     const height = canvas.clientHeight || window.innerHeight;
     renderer.setSize(width, height, false);
     composer.setSize(width, height);
+    // The separate volumetric target accounts for physical pixel ratio.
+    const size = scaledBufferSize(width, height, renderer.getPixelRatio(), plasmaScale);
+    plasmaTarget.setSize(size.width, size.height);
     if (bloomPass) bloomPass.resolution.set(width, height);
     updateProjection();
     scheduleFrame();
@@ -569,7 +614,24 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       galaxiesMaterial.uniforms.uVisible!.value = state.galaxiesVisible;
     }
 
-    // Bloom parameters
+    // Skip vertex and fill work that is mathematically invisible in this
+    // epoch. This is particularly important for early opaque plasma, where
+    // the original program drew 2 * 128^3 fully black particles per frame.
+    const layers = visibleLayers(state);
+    if (matterPoints) matterPoints.visible = layers.matter;
+    if (haloPoints) haloPoints.visible = layers.halos;
+    if (galaxyPoints) galaxyPoints.visible = layers.galaxies;
+    compositeMesh.visible = layers.plasma;
+
+    // The original 28-sample shader and emissive range are preserved in
+    // a HalfFloat HDR texture so recombination colours and bloom survive.
+    if (layers.plasma) {
+      renderer.setRenderTarget(plasmaTarget);
+      renderer.render(plasmaScene, camera);
+      renderer.setRenderTarget(null);
+    }
+
+    // Bloom and colour grading remain at the original screen resolution.
     if (bloomPass) {
       bloomPass.strength = state.bloomStrength;
       bloomPass.threshold = state.bloomThreshold;
@@ -793,7 +855,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
       noise.dispose();
       bgMaterial.dispose();
-      background.geometry.dispose();
+      plasmaMesh.geometry.dispose();
+      compositeMaterial.dispose();
+      compositeMesh.geometry.dispose();
+      plasmaTarget.dispose();
 
       matterGeometry?.dispose();
       matterMaterial?.dispose();
