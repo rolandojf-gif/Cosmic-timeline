@@ -150,6 +150,12 @@ export const MATTER_VERTEX_SHADER = /* glsl */ `
     gl_PointSize = size;
     vBright *= 9.0 / max(size * size, 1.0);
     gl_Position = projectionMatrix * mv;
+#ifdef CULL_DARK_POINTS
+    // o2: a point whose brightness is exactly 0 adds ±0 to every pixel it
+    // covers (beyond the fade radius, in emptied voids, too close). Put it
+    // outside the clip volume, sprite included, so it is never rasterised.
+    if (vBright == 0.0) gl_Position = vec4(4.0, 4.0, 4.0, 1.0);
+#endif
   }
 `;
 
@@ -165,7 +171,13 @@ export const MATTER_FRAGMENT_SHADER = /* glsl */ `
     vec3 mid = vec3(0.75, 0.45, 0.95);
     vec3 dense = vec3(1.0, 0.78, 0.55);
     vec3 colour = mix(mix(gas, mid, smoothstep(0.0, 0.45, vDense)), dense, smoothstep(0.45, 1.0, vDense)) * mix(0.05, 0.02, vDense);
-    fragColour = vec4(colour * vBright * disc, 1.0);
+    vec3 rgb = colour * vBright * disc;
+#ifdef DISCARD_DARK_FRAGMENTS
+    // o4: a fragment whose colour is exactly 0 (the sprite's corners, where
+    // disc is 0) adds ±0 to the pixel; dropping it saves the blend write.
+    if (rgb == vec3(0.0)) discard;
+#endif
+    fragColour = vec4(rgb, 1.0);
   }
 `;
 

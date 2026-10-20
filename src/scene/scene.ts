@@ -40,6 +40,11 @@ import { generateCosmicWeb } from './cosmicWebLoader';
 import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
 import { cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
+import { diagnosticsFromUrl } from './diagnostics';
+import { createGpuFrameTimer } from './gpuTimer';
+import { drawnLayers } from './layerCulling';
+import { optimisationsFromUrl, type OptimisationId } from './optimisations';
+import { ProbePass, benchRequested, readCanvas, readFloatTarget, type BenchBuffer, type SceneBench } from './sceneBench';
 import {
   BACKGROUND_FRAGMENT_SHADER,
   BACKGROUND_VERTEX_SHADER,
@@ -78,6 +83,8 @@ export interface ParticleScene {
   /** Ease towards control position u (or jump with reduced motion / direct sync). */
   show(u: number, immediate?: boolean, playing?: boolean): void;
   dispose(): void;
+  /** Readback hooks, only with ?bench in the URL. */
+  readonly bench?: SceneBench | undefined;
 }
 
 function buildMatterGeometry(web: CosmicWeb, n: number): BufferGeometry {
@@ -154,6 +161,13 @@ function buildGalaxies(
   const targetPsi = new Vector3(galPsi[6] ?? 0, galPsi[7] ?? 0, galPsi[8] ?? 0);
 
   return { geometry, boost, targetQ, targetPsi };
+}
+
+function setDefine(material: ShaderMaterial, name: string, on: boolean): void {
+  if (on === (name in material.defines)) return;
+  if (on) material.defines[name] = '';
+  else delete material.defines[name];
+  material.needsUpdate = true;
 }
 
 export function createParticleScene(options: SceneOptions): ParticleScene | null {
@@ -248,12 +262,21 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   composer.renderTarget2.texture.type = HalfFloatType;
   composer.addPass(new RenderPass(scene, camera));
 
+  // ?bench: probes that copy the image after each pass (they draw nothing).
+  const benchMode = benchRequested(window.location.search);
+  const probes = benchMode
+    ? { scene: new ProbePass(), postBloom: new ProbePass(), output: new ProbePass() }
+    : null;
+  if (probes) composer.addPass(probes.scene);
+
   let bloomPass: UnrealBloomPass | null = null;
   if (!options.mobile) {
     bloomPass = new UnrealBloomPass(new Vector2(innerWidth, innerHeight), 0.6, 0.5, 0.7);
     composer.addPass(bloomPass);
+    if (probes) composer.addPass(probes.postBloom);
   }
   composer.addPass(new OutputPass());
+  if (probes) composer.addPass(probes.output);
 
   const gradingPass = new ShaderPass({
     uniforms: { tDiffuse: { value: null }, uSeed: { value: 0.37 } },
@@ -268,10 +291,17 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let haloMaterial: ShaderMaterial | null = null;
   let galaxiesGeometry: BufferGeometry | null = null;
   let galaxiesMaterial: ShaderMaterial | null = null;
+  let matterPoints: Points | null = null;
+  let haloPoints: Points | null = null;
+  let galaxyPoints: Points | null = null;
   let targetQ: Vector3 | null = null;
   let targetPsi: Vector3 | null = null;
 
   const N = options.mobile ? 64 : 128;
+  let resolveWebReady: () => void = () => {};
+  const webReady = new Promise<void>((resolve) => {
+    resolveWebReady = resolve;
+  });
   const initialProjScale = innerHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
 
   void generateCosmicWeb(
@@ -333,18 +363,22 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     const matter = new Points(matterGeometry, matterMaterial);
     matter.frustumCulled = false;
     scene.add(matter);
+    matterPoints = matter;
 
     haloMaterial = matterMaterial.clone();
     haloMaterial.uniforms.uHalo!.value = 0.6;
     const halo = new Points(matterGeometry, haloMaterial);
     halo.frustumCulled = false;
     scene.add(halo);
+    haloPoints = halo;
 
     const firstState = options.stateAt(currentU);
     const { geometry: galGeom, boost, targetQ: tQ, targetPsi: tPsi } = buildGalaxies(web, firstState.dFirstStars, N);
     galaxiesGeometry = galGeom;
     targetQ = tQ;
     targetPsi = tPsi;
+
+    applyOptimisations();
 
     galaxiesMaterial = new ShaderMaterial({
       glslVersion: GLSL3,
@@ -368,8 +402,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     const galaxies = new Points(galaxiesGeometry, galaxiesMaterial);
     galaxies.frustumCulled = false;
     scene.add(galaxies);
+    galaxyPoints = galaxies;
 
     scheduleFrame();
+    resolveWebReady();
   });
 
   // --- Animation loop, tweens and camera drift ---
@@ -382,6 +418,20 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let playbackActive = false;
   // Keep original scene quality: only limit how often composer.render() runs.
   const fpsCap = sceneFpsCap(window.location.search);
+  // Exact optimisations (see optimisations.ts); ?oN=0 turns one off.
+  const optimisationDefaults = optimisationsFromUrl(window.location.search);
+  const optimisation = { ...optimisationDefaults };
+
+  // Applies the optimisations that live in materials and geometry (o1 is
+  // decided per frame in step()).
+  function applyOptimisations(): void {
+    for (const material of [matterMaterial, haloMaterial]) {
+      if (!material) continue;
+      setDefine(material, 'CULL_DARK_POINTS', optimisation.o2);
+      setDefine(material, 'DISCARD_DARK_FRAGMENTS', optimisation.o4);
+    }
+    scheduleFrame();
+  }
   let lastRenderedMs = 0;
   // Advance visual time only while playing, transitioning, or interacting.
   // This prevents camera/background animation from jumping after a long pause.
@@ -394,8 +444,18 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   fpsEl.className = 'scene-fps';
   fpsEl.style.cssText =
     'position:fixed;bottom:12px;right:12px;padding:4px 8px;background:rgba(0,0,0,0.8);color:#4ade80;font:11px monospace;border-radius:4px;z-index:9999;pointer-events:none;letter-spacing:0.05em;border:1px solid rgba(255,255,255,0.1);';
+  fpsEl.style.whiteSpace = 'pre';
   fpsEl.hidden = !fpsVisible;
   document.body.appendChild(fpsEl);
+  // GPU time per frame (when the browser allows it) and what is being drawn,
+  // so a measurement on another machine says which GPU and settings it is.
+  const gpuTimer = createGpuFrameTimer(renderer.getContext() as WebGL2RenderingContext);
+  const diagnostics = diagnosticsFromUrl(window.location.search);
+  const rendererName = (() => {
+    const gl = renderer.getContext();
+    const info = gl.getExtension('WEBGL_debug_renderer_info');
+    return String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+  })();
 
   let lastFpsTime = performance.now();
   let frameCount = 0;
@@ -569,13 +629,21 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       galaxiesMaterial.uniforms.uVisible!.value = state.galaxiesVisible;
     }
 
+    const drawn = drawnLayers(state, optimisation.o1);
+    if (matterPoints) matterPoints.visible = drawn.matter && !diagnostics.has('nomatter');
+    if (haloPoints) haloPoints.visible = drawn.matter && !diagnostics.has('nomatter') && !diagnostics.has('nohalo');
+    if (galaxyPoints) galaxyPoints.visible = drawn.galaxies && !diagnostics.has('nogalaxies');
+    if (bloomPass) bloomPass.enabled = !diagnostics.has('nobloom');
+
     // Bloom parameters
     if (bloomPass) {
       bloomPass.strength = state.bloomStrength;
       bloomPass.threshold = state.bloomThreshold;
     }
 
+    if (fpsVisible) gpuTimer.begin();
     composer.render();
+    if (fpsVisible) gpuTimer.end();
 
     // Target galaxy screen projection for local landmark callouts (Milky Way / Solar System / Earth)
     if (options.onTargetScreenPos && targetQ && targetPsi) {
@@ -602,7 +670,17 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       if (fpsVisible) {
         const fps = Math.round((frameCount * 1000) / (timestamp - lastFpsTime));
         const ms = ((timestamp - lastFpsTime) / frameCount).toFixed(1);
-        fpsEl.textContent = `${fps} fps · ${ms} ms`;
+        const gpuMs = gpuTimer.takeMean();
+        const gpu = !gpuTimer.available ? 'GPU n/d' : Number.isNaN(gpuMs) ? 'GPU …' : `GPU ${gpuMs.toFixed(1)} ms`;
+        const off = Object.entries(optimisation)
+          .filter(([, on]) => !on)
+          .map(([id]) => `${id}=0`);
+        const extra = [...diagnostics, ...off];
+        fpsEl.textContent =
+          `${fps} fps · ${ms} ms · ${gpu}\n` +
+          `${renderer.domElement.width}×${renderer.domElement.height} px · DPR ${renderer.getPixelRatio()}\n` +
+          rendererName +
+          (extra.length > 0 ? `\n${extra.join(' ')}` : '');
       }
       frameCount = 0;
       lastFpsTime = timestamp;
@@ -759,8 +837,52 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   document.addEventListener('visibilitychange', onVisibilityChange);
   resize();
 
+  // A bench capture is an ordinary paused frame: same step(), same composer.
+  let benchClock = 0;
+  const bench: SceneBench | undefined = probes
+    ? {
+        ready: webReady,
+        setOptimisation(id: OptimisationId, on: boolean | null): void {
+          optimisation[id] = on ?? optimisationDefaults[id];
+          applyOptimisations();
+        },
+        capture(u: number): Record<string, BenchBuffer> {
+          if (animFrameId) {
+            cancelAnimationFrame(animFrameId);
+            animFrameId = 0;
+          }
+          isRunning = false;
+          currentU = u;
+          playbackActive = false;
+          isFirstJump = false;
+          tween.jump(u);
+          visualSeconds = 0;
+          lastMotionTimestamp = 0;
+          benchClock = Math.max(benchClock, lastRenderedMs, performance.now()) + 1000;
+          for (const probe of Object.values(probes)) {
+            probe.captured = null;
+            probe.armed = true;
+          }
+          step(benchClock);
+          const out: Record<string, BenchBuffer> = {};
+          for (const [name, probe] of Object.entries(probes)) {
+            probe.armed = false;
+            if (probe.captured) out[name] = probe.captured;
+          }
+          out.canvas = readCanvas(renderer);
+          if (bloomPass) {
+            out.bright = readFloatTarget(renderer, bloomPass.renderTargetBright);
+            out.bloom = readFloatTarget(renderer, bloomPass.renderTargetsHorizontal[0]!);
+          }
+          renderer.setRenderTarget(null);
+          return out;
+        },
+      }
+    : undefined;
+
   return {
     element: canvas,
+    bench,
     show(u: number, immediate?: boolean, playing = false) {
       currentU = u;
       playbackActive = playing;
