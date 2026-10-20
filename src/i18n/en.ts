@@ -26,6 +26,8 @@ export const en = {
     rulerCaption: 'True time scale, in seconds: one tick per factor of ten.',
     keyboardHint: 'Arrows: fine steps (longer with Shift). Page Up and Page Down: next or previous stop.',
     play: 'Play',
+    continue: 'Continue',
+    continueHint: 'Continue the journey. You can also tap the cosmic scene or Play.',
     pause: 'Pause',
     reset: 'Reset',
     prevStop: 'Previous epoch',
