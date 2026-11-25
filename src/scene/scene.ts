@@ -42,7 +42,7 @@ import { createTween } from './tween';
 import { cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
 import { diagnosticsFromUrl } from './diagnostics';
 import { createGpuFrameTimer } from './gpuTimer';
-import { drawnLayers } from './layerCulling';
+import { drawnLayers, shouldDrawBackground } from './layerCulling';
 import { optimisationsFromUrl, type OptimisationId } from './optimisations';
 import { ProbePass, benchRequested, readCanvas, readFloatTarget, type BenchBuffer, type SceneBench } from './sceneBench';
 import {
@@ -415,6 +415,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     scene.add(galaxies);
     galaxyPoints = galaxies;
 
+    applyOptimisations();
     scheduleFrame();
     resolveWebReady();
   }).catch((error) => {
@@ -444,6 +445,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       if (!material) continue;
       setDefine(material, 'CULL_DARK_POINTS', optimisation.o2);
       setDefine(material, 'DISCARD_DARK_FRAGMENTS', optimisation.o4);
+    }
+    if (galaxiesMaterial) {
+      setDefine(galaxiesMaterial, 'CULL_DARK_POINTS', optimisation.o2);
     }
     scheduleFrame();
   }
@@ -646,6 +650,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     }
 
     const drawn = drawnLayers(state, optimisation.o1);
+    background.visible = shouldDrawBackground(state, optimisation.o1);
     if (matterPoints) matterPoints.visible = drawn.matter && !diagnostics.has('nomatter');
     if (haloPoints) haloPoints.visible = drawn.matter && !diagnostics.has('nomatter') && !diagnostics.has('nohalo');
     if (galaxyPoints) galaxyPoints.visible = drawn.galaxies && !diagnostics.has('nogalaxies');

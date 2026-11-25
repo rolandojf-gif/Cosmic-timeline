@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { createCosmology } from '../../src/physics';
-import { drawnLayers } from '../../src/scene/layerCulling';
+import { drawnLayers, shouldDrawBackground } from '../../src/scene/layerCulling';
 import { optimisationsFromUrl } from '../../src/scene/optimisations';
 import {
   GALAXIES_FRAGMENT_SHADER,
@@ -63,5 +63,23 @@ describe('O1: skipping fully invisible particle layers', () => {
     expect(MATTER_FRAGMENT_SHADER).toContain('vec3 rgb = colour * vBright * disc;');
     expect(MATTER_FRAGMENT_SHADER).toContain('fragColour = vec4(rgb, 1.0);');
     expect(GALAXIES_FRAGMENT_SHADER).toContain('fragColour = vec4(colour * vFade, 1.0);');
+  });
+
+  it('skips the fullscreen background quad only when both haze and CMB sky are inactive', () => {
+    expect(shouldDrawBackground({ haze: 0, cmbLevel: 0 }, true)).toBe(false);
+    expect(shouldDrawBackground({ haze: 0.001, cmbLevel: 0 }, true)).toBe(false);
+    expect(shouldDrawBackground({ haze: 0.002, cmbLevel: 0 }, true)).toBe(true);
+    expect(shouldDrawBackground({ haze: 0, cmbLevel: 1e-6 }, true)).toBe(true);
+    expect(shouldDrawBackground({ haze: 0, cmbLevel: 0 }, false)).toBe(true);
+    // Late universe stops (firstStars through today) skip the background draw.
+    for (const id of ['firstStars', 'reionization', 'milkyWay', 'solarSystem', 'earth', 'today']) {
+      const e = epochs.find((x) => x.id === id)!;
+      expect(shouldDrawBackground(map.visualState(e.anchor), true)).toBe(false);
+    }
+    // Plasma and recombination draw the background.
+    for (const id of ['planck', 'inflation', 'quarks', 'hadrons', 'nucleosynthesis', 'recombination']) {
+      const e = epochs.find((x) => x.id === id)!;
+      expect(shouldDrawBackground(map.visualState(e.anchor), true)).toBe(true);
+    }
   });
 });
