@@ -5,7 +5,7 @@
 // so the control's resolution never limits which instant can be reached.
 
 import type { TimeScale } from '../timeline';
-import { positionAfterKey } from './controlKeys';
+import { positionAfterKey, snapToStop } from './controlKeys';
 import { el, setText } from './dom';
 import { formatPowerOfTen } from './format';
 
@@ -32,6 +32,8 @@ export interface TimeControl {
   setTexts(texts: ControlTexts): void;
   setValueText(valueText: string): void;
   jumpTo(position: number, autoPlay?: boolean, isMilestone?: boolean): void;
+  stepPrev(): void;
+  stepNext(): void;
   setPlaying(playing: boolean, isMilestone?: boolean): void;
   isPlaying(): boolean;
   togglePlay(): void;
@@ -216,13 +218,21 @@ export function createTimeControl(
     }
   }
 
-  const btnPrev = el('button', { type: 'button', class: 'playback-btn prev' });
-  setText(btnPrev, '⏮');
-  btnPrev.addEventListener('click', () => {
+  function stepPrev(): void {
     const prevAnchor = [...milestoneAnchors].reverse().find((m) => m < u - 0.008);
     const target = prevAnchor !== undefined ? prevAnchor : 0;
     jumpTo(target, isPlaying && !autoPauseEnabled, true);
-  });
+  }
+
+  function stepNext(): void {
+    const nextAnchor = milestoneAnchors.find((m) => m > u + 0.008);
+    const target = nextAnchor !== undefined ? nextAnchor : 1;
+    jumpTo(target, isPlaying && !autoPauseEnabled, true);
+  }
+
+  const btnPrev = el('button', { type: 'button', class: 'playback-btn prev' });
+  setText(btnPrev, '⏮');
+  btnPrev.addEventListener('click', stepPrev);
 
   const btnPlay = el('button', { type: 'button', class: 'playback-btn play' });
   setText(btnPlay, '▶');
@@ -238,11 +248,7 @@ export function createTimeControl(
 
   const btnNext = el('button', { type: 'button', class: 'playback-btn next' });
   setText(btnNext, '⏭');
-  btnNext.addEventListener('click', () => {
-    const nextAnchor = milestoneAnchors.find((m) => m > u + 0.008);
-    const target = nextAnchor !== undefined ? nextAnchor : 1;
-    jumpTo(target, isPlaying && !autoPauseEnabled, true);
-  });
+  btnNext.addEventListener('click', stepNext);
 
   const autoPauseIcon = el('span', { class: 'autopause-icon' }, '⏸');
   const autoPauseText = el('span', { class: 'autopause-text' });
@@ -357,21 +363,22 @@ export function createTimeControl(
     change(next);
   });
 
-  const positionFromPointer = (clientX: number): number => {
+  const positionFromPointer = (clientX: number, snap: boolean): number => {
     const rect = rail.getBoundingClientRect();
-    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    const raw = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    return snap ? snapToStop(raw, milestoneAnchors) : raw;
   };
   slider.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return;
     setPlaying(false);
     slider.setPointerCapture(event.pointerId);
     slider.focus({ preventScroll: true });
-    change(positionFromPointer(event.clientX));
+    change(positionFromPointer(event.clientX, !event.shiftKey));
   });
   slider.addEventListener('pointermove', (event) => {
     if (slider.hasPointerCapture(event.pointerId)) {
       setPlaying(false);
-      change(positionFromPointer(event.clientX));
+      change(positionFromPointer(event.clientX, !event.shiftKey));
     }
   });
 
@@ -415,6 +422,8 @@ export function createTimeControl(
       }
     },
     jumpTo,
+    stepPrev,
+    stepNext,
     setPlaying,
     isPlaying: () => isPlaying,
     togglePlay: () => setPlaying(!isPlaying),

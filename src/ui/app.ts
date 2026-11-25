@@ -17,6 +17,7 @@ import { licenceVars } from './licenceVars';
 import { createLicenseLine } from './licenseLine';
 import { createTicker } from './ticker';
 import { createTimeControl } from './timeControl';
+import { buildShareUrl, initialPositionFromUrl } from './urlState';
 import { panelView, type Context } from './view';
 
 export function startApp(root: HTMLElement): void {
@@ -38,8 +39,9 @@ export function startApp(root: HTMLElement): void {
 
   let locale: Locale = detectLocale(location.search, navigator.languages);
   const mobileLayout = matchMedia('(max-width: 599px)');
-  // The journey starts at the beginning of the control.
-  let u = 0;
+  // Start at ?epoch=... or ?t=... when provided, otherwise at the Planck epoch.
+  const initialPos = initialPositionFromUrl(location.search, epochs, scale);
+  let u = initialPos.u;
   let localeChanged = true;
   let frame = 0;
 
@@ -93,6 +95,20 @@ export function startApp(root: HTMLElement): void {
       panel.update(lastView, MESSAGES[locale]);
       panelDirty = false;
     }
+  });
+
+  panel.setOnShare(async () => {
+    const shareUrl = buildShareUrl(location.href, u, epochs, scale, locale);
+    history.replaceState(null, '', shareUrl);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        return true;
+      }
+    } catch {
+      // Fallback below when clipboard API is blocked.
+    }
+    return false;
   });
 
   panelToggle.addEventListener('click', () => {
@@ -273,6 +289,46 @@ export function startApp(root: HTMLElement): void {
     schedule();
   });
 
+  // Global keyboard shortcuts (Space: play/pause, Escape: close panel,
+  // [ / ] or ArrowLeft / ArrowRight when slider is not focused: step milestones).
+  window.addEventListener('keydown', (event) => {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    const target = event.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable)
+    ) {
+      return;
+    }
+    if (event.key === 'Escape' && panel.isOpen()) {
+      event.preventDefault();
+      panel.setPinned(false);
+      panel.setOpen(false);
+      return;
+    }
+    const isInteractiveTarget =
+      target !== null &&
+      (target.closest('button, a, summary, [role="slider"]') !== null);
+    if ((event.key === ' ' || event.key === 'Spacebar') && !isInteractiveTarget) {
+      event.preventDefault();
+      control.togglePlay();
+      return;
+    }
+    const onSlider = target?.closest('[role="slider"]') !== null;
+    if (!onSlider) {
+      if (event.key === '[' || (!isInteractiveTarget && event.key === 'ArrowLeft')) {
+        event.preventDefault();
+        control.stepPrev();
+      } else if (event.key === ']' || (!isInteractiveTarget && event.key === 'ArrowRight')) {
+        event.preventDefault();
+        control.stepNext();
+      }
+    }
+  });
+
   function render(): void {
     frame = 0;
     const m = MESSAGES[locale];
@@ -371,6 +427,10 @@ export function startApp(root: HTMLElement): void {
   }
 
   render();
+  if (initialPos.explicit) {
+    if (mobileLayout.matches) panel.setExpanded(false);
+    panel.setOpen(true);
+  }
   void loadScene();
 
   async function loadScene(): Promise<void> {

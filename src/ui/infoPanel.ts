@@ -19,6 +19,7 @@ export interface InfoPanel {
   setPinned(pinned: boolean): void;
   setExpanded(expanded: boolean): void;
   setOnOpenChange(callback: (open: boolean, pinned: boolean, expanded: boolean) => void): void;
+  setOnShare(callback: () => Promise<boolean> | boolean): void;
   update(view: PanelView, m: Messages): void;
 }
 
@@ -126,6 +127,10 @@ export function createInfoPanel(): InfoPanel {
     class: 'drawer-btn drawer-expand',
     'aria-expanded': 'false',
   });
+  const shareBtn = el('button', {
+    type: 'button',
+    class: 'drawer-btn drawer-share',
+  });
   const pinBtn = el('button', {
     type: 'button',
     class: 'drawer-btn drawer-pin',
@@ -140,7 +145,7 @@ export function createInfoPanel(): InfoPanel {
     },
     '✕',
   );
-  const drawerActions = el('div', { class: 'drawer-actions' }, expandBtn, pinBtn, closeBtn);
+  const drawerActions = el('div', { class: 'drawer-actions' }, expandBtn, shareBtn, pinBtn, closeBtn);
   const drawerHeader = el('div', { class: 'drawer-header' }, drawerTitle, drawerActions);
   const mobileBrief = el('p', { class: 'mobile-brief' });
   const stickyHeader = el('div', { class: 'drawer-sticky-header' }, drawerHeader, instant, mobileBrief);
@@ -162,6 +167,30 @@ export function createInfoPanel(): InfoPanel {
   let isPinned = false;
   let isExpanded = false;
   let onOpenChange: ((open: boolean, pinned: boolean, expanded: boolean) => void) | null = null;
+  let onShare: (() => Promise<boolean> | boolean) | null = null;
+  let copiedTimer: ReturnType<typeof setTimeout> | null = null;
+  let isCopied = false;
+
+  function syncShareLabel(): void {
+    if (!renderedMessages) return;
+    shareBtn.classList.toggle('copied', isCopied);
+    setText(shareBtn, isCopied ? renderedMessages.panel.linkCopied : renderedMessages.panel.shareLink);
+    shareBtn.setAttribute('aria-label', renderedMessages.panel.shareLinkLabel);
+  }
+
+  shareBtn.addEventListener('click', () => {
+    void Promise.resolve(onShare?.()).then((ok) => {
+      if (!ok) return;
+      isCopied = true;
+      syncShareLabel();
+      if (copiedTimer !== null) clearTimeout(copiedTimer);
+      copiedTimer = setTimeout(() => {
+        copiedTimer = null;
+        isCopied = false;
+        syncShareLabel();
+      }, 2000);
+    });
+  });
 
   function syncState(): void {
     expandBtn.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
@@ -222,11 +251,16 @@ export function createInfoPanel(): InfoPanel {
     setOnOpenChange(callback) {
       onOpenChange = callback;
     },
+    setOnShare(callback) {
+      onShare = callback;
+    },
     update(view, m) {
       const languageChanged = m !== renderedMessages;
+      renderedMessages = m;
       setText(drawerTitle, m.panel.drawerTitle);
       setText(expandBtn, isExpanded ? m.panel.lessDetails : m.panel.moreDetails);
       setText(pinBtn, isPinned ? m.panel.unpinPanel : m.panel.pinPanel);
+      syncShareLabel();
       closeBtn.setAttribute('aria-label', m.panel.closePanel);
       setText(timeLabel, m.panel.time);
       setText(time, view.time);

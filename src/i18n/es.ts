@@ -50,7 +50,7 @@ export const es = {
     valueText: '{time}, {epoch}',
     stops: 'Paradas',
     rulerCaption: 'Escala real del tiempo, en segundos: una marca por cada factor diez.',
-    keyboardHint: 'Flechas: avance fino (con Mayús, más largo). Re Pág y Av Pág: parada siguiente o anterior.',
+    keyboardHint: 'Flechas: avance fino (con Mayús, más largo). Re Pág y Av Pág: parada siguiente o anterior. Espacio: reproducir o pausar. Escape: cerrar panel.',
     play: 'Reproducir',
     continue: 'Continuar',
     continueHint: 'Continuar el viaje. También puedes tocar la escena o pulsar Reproducir.',
@@ -108,6 +108,9 @@ export const es = {
     lessDetails: 'Menos',
     pinPanel: 'Fijar panel',
     unpinPanel: 'Desfijar panel',
+    shareLink: 'Copiar enlace',
+    linkCopied: 'Copiado',
+    shareLinkLabel: 'Copiar enlace a este instante cósmico',
     closePanel: 'Cerrar panel',
   },
   tier: {

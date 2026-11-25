@@ -345,7 +345,8 @@ a:hover {
   background: rgb(25 29 44 / 0.8);
 }
 
-.drawer-btn.drawer-pin.active {
+.drawer-btn.drawer-pin.active,
+.drawer-btn.drawer-share.copied {
   border-color: var(--accent);
   color: var(--accent);
   background: rgb(230 196 143 / 0.16);
@@ -1366,6 +1367,10 @@ a:hover {
   }
 
   .drawer-pin {
+    display: none;
+  }
+
+  .stage:not(.drawer-expanded) .drawer-share {
     display: none;
   }
 

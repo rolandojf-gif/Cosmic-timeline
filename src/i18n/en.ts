@@ -24,7 +24,7 @@ export const en = {
     valueText: '{time}, {epoch}',
     stops: 'Stops',
     rulerCaption: 'True time scale, in seconds: one tick per factor of ten.',
-    keyboardHint: 'Arrows: fine steps (longer with Shift). Page Up and Page Down: next or previous stop.',
+    keyboardHint: 'Arrows: fine steps (longer with Shift). Page Up and Page Down: next or previous stop. Space: play or pause. Escape: close panel.',
     play: 'Play',
     continue: 'Continue',
     continueHint: 'Continue the journey. You can also tap the cosmic scene or Play.',
@@ -82,6 +82,9 @@ export const en = {
     lessDetails: 'Less',
     pinPanel: 'Pin panel',
     unpinPanel: 'Unpin panel',
+    shareLink: 'Copy link',
+    linkCopied: 'Copied',
+    shareLinkLabel: 'Copy link to this cosmic instant',
     closePanel: 'Close panel',
   },
   tier: {
