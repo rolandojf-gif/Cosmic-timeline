@@ -363,7 +363,12 @@ export const es = {
     grading: {
       name: 'etalonaje y postproceso',
       detail:
-        'La imagen final pasa por un mapeo de tonos para comprimir el rango dinámico del resplandor, un ligero viñeteado en los bordes y un grano sutil para evitar bandas de color en los degradados suaves.',
+        'La imagen final pasa por un mapeo de tonos para comprimir el rango dinámico del resplandor, un ligero viñeteado en los bordes y un grano sutil para evitar bandas de color en los degradados suaves. En el régimen de plasma se mantiene la saturación neutra para respetar el tono real del cuerpo negro.',
+    },
+    reionizationBubbles: {
+      name: 'burbujas de reionización',
+      detail:
+        'La fracción global de hidrógeno reionizado sigue la transición en tangente hiperbólica de Planck 2018 centrada en z = {zRe}. La geometría tridimensional de las burbujas, el brillo cian de los frentes de fotoionización y la tenue bruma del gas neutro restante son una representación visual para distinguir el medio en transición.',
     },
     milkyWayPin: {
       name: 'posición de la Vía Láctea',
@@ -451,6 +456,8 @@ export const es = {
   scene: {
     unavailable: 'La escena no está disponible en este navegador: necesita WebGL.',
     loadFailed: 'No se ha podido cargar la escena. El panel y el control funcionan igual; recarga la página para volver a intentarlo.',
+    loadingWeb: 'Generando la red cósmica…',
+    webFailed: 'No se ha podido generar la red cósmica en este dispositivo.',
   },
 };
 

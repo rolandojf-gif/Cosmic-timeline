@@ -65,21 +65,22 @@ describe('O1: skipping fully invisible particle layers', () => {
     expect(GALAXIES_FRAGMENT_SHADER).toContain('fragColour = vec4(colour * vFade, 1.0);');
   });
 
-  it('skips the fullscreen background quad only when both haze and CMB sky are inactive', () => {
-    expect(shouldDrawBackground({ haze: 0, cmbLevel: 0 }, true)).toBe(false);
-    expect(shouldDrawBackground({ haze: 0.001, cmbLevel: 0 }, true)).toBe(false);
-    expect(shouldDrawBackground({ haze: 0.002, cmbLevel: 0 }, true)).toBe(true);
-    expect(shouldDrawBackground({ haze: 0, cmbLevel: 1e-6 }, true)).toBe(true);
-    expect(shouldDrawBackground({ haze: 0, cmbLevel: 0 }, false)).toBe(true);
-    // Late universe stops (firstStars through today) skip the background draw.
-    for (const id of ['firstStars', 'reionization', 'milkyWay', 'solarSystem', 'earth', 'today']) {
+  it('skips the fullscreen background quad only when haze, CMB sky and reionization bubbles are all inactive', () => {
+    expect(shouldDrawBackground({ haze: 0, cmbLevel: 0, reionBubbles: 0 }, true)).toBe(false);
+    expect(shouldDrawBackground({ haze: 0.001, cmbLevel: 0, reionBubbles: 0.001 }, true)).toBe(false);
+    expect(shouldDrawBackground({ haze: 0.002, cmbLevel: 0, reionBubbles: 0 }, true)).toBe(true);
+    expect(shouldDrawBackground({ haze: 0, cmbLevel: 1e-6, reionBubbles: 0 }, true)).toBe(true);
+    expect(shouldDrawBackground({ haze: 0, cmbLevel: 0, reionBubbles: 0.002 }, true)).toBe(true);
+    expect(shouldDrawBackground({ haze: 0, cmbLevel: 0, reionBubbles: 0 }, false)).toBe(true);
+    // Late universe stops outside reionization skip the background draw.
+    for (const id of ['firstStars', 'solarSystem', 'earth', 'today']) {
       const e = epochs.find((x) => x.id === id)!;
-      expect(shouldDrawBackground(map.visualState(e.anchor), true)).toBe(false);
+      expect(shouldDrawBackground(map.visualState(e.anchor), true), id).toBe(false);
     }
-    // Plasma and recombination draw the background.
-    for (const id of ['planck', 'inflation', 'quarks', 'hadrons', 'nucleosynthesis', 'recombination']) {
+    // Plasma, recombination and reionization draw the volumetric background.
+    for (const id of ['planck', 'inflation', 'quarks', 'hadrons', 'nucleosynthesis', 'recombination', 'reionization']) {
       const e = epochs.find((x) => x.id === id)!;
-      expect(shouldDrawBackground(map.visualState(e.anchor), true)).toBe(true);
+      expect(shouldDrawBackground(map.visualState(e.anchor), true), id).toBe(true);
     }
   });
 });

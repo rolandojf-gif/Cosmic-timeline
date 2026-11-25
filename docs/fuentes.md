@@ -9,7 +9,12 @@ Una fuente nueva entra aquí antes de usarse en el código, con su DOI o identif
 ### `planck2018-vi`
 Planck Collaboration (2020). Planck 2018 results. VI. Cosmological parameters. *Astronomy & Astrophysics* 641, A6. [doi:10.1051/0004-6361/201833910](https://doi.org/10.1051/0004-6361/201833910) · [arXiv:1807.06209](https://arxiv.org/abs/1807.06209)
 
-Se usa la Tabla 2, última columna (TT,TE,EE+lowE+lensing+BAO): H₀ = 67,66 ± 0,42 km s⁻¹ Mpc⁻¹; Ω_m = 0,3111 ± 0,0056; Ω_b h² = 0,02242 ± 0,00014; n_s = 0,9665 ± 0,0038; σ₈ = 0,8102 ± 0,0060 (entradas del modelo y de la red cósmica). Valores con los que se contrasta el modelo: Ω_Λ = 0,6889 ± 0,0056; edad 13,787 ± 0,020 Gyr; z\* = 1089,80 ± 0,21; z_eq = 3387 ± 21; z_re = 7,82 ± 0,71.
+Se usa la Tabla 2, última columna (TT,TE,EE+lowE+lensing+BAO): H₀ = 67,66 ± 0,42 km s⁻¹ Mpc⁻¹; Ω_m = 0,3111 ± 0,0056; Ω_b h² = 0,02242 ± 0,00014; n_s = 0,9665 ± 0,0038; σ₈ = 0,8102 ± 0,0060 (entradas del modelo y de la red cósmica). Valores con los que se contrasta el modelo: Ω_Λ = 0,6889 ± 0,0056; edad 13,787 ± 0,020 Gyr; z\* = 1089,80 ± 0,21; z_eq = 3387 ± 21; z_re = 7,82 ± 0,71 (con anchura fija Δz = 0,5 en el modelo tanh de reionización).
+
+### `lewis2008`
+Lewis, A. (2008). Cosmological parameters from WMAP 5-year temperature maps. *Physical Review D* 78, 023002. [doi:10.1103/PhysRevD.78.023002](https://doi.org/10.1103/PhysRevD.78.023002) · [arXiv:0804.3865](https://arxiv.org/abs/0804.3865)
+
+Apéndice B: parametrización estándar en tangente hiperbólica (`tanh`) de la historia de reionización cósmica empleada por CAMB y por el análisis de referencia de Planck 2018 (`src/physics/reionization.ts`), con $y(z) = (1 + z)^{3/2}$, $\Delta y = \frac{3}{2}(1 + z_{\mathrm{re}})^{1/2}\Delta z$ y $\Delta z = 0{,}5$.
 
 ### `fixsen2009`
 Fixsen, D. J. (2009). The temperature of the cosmic microwave background. *The Astrophysical Journal* 707, 916–920. [doi:10.1088/0004-637X/707/2/916](https://doi.org/10.1088/0004-637X/707/2/916)

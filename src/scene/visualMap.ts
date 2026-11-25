@@ -16,6 +16,7 @@ import {
   PLANCK2018,
   PLANCK2018_DERIVED,
   gevToKelvin,
+  reionizationFraction,
   type Cosmology,
 } from '../physics';
 import { createGrowthFactor } from '../physics/growth';
@@ -38,6 +39,7 @@ export type LicenceId =
   | 'camera'
   | 'transitions'
   | 'grading'
+  | 'reionizationBubbles'
   | 'milkyWayPin';
 
 export const VISUAL_LICENCES: readonly LicenceId[] = [
@@ -56,6 +58,7 @@ export const VISUAL_LICENCES: readonly LicenceId[] = [
   'camera',
   'transitions',
   'grading',
+  'reionizationBubbles',
   'milkyWayPin',
 ];
 
@@ -149,6 +152,14 @@ export interface VisualState {
   readonly emit: number;
   readonly stretch: number;
   readonly clump: number;
+  /** Calm lifted emission floor in post-annihilation cooling plasma (nucleosynthesis). */
+  readonly plasmaFloor: number;
+  /** Post-process saturation: 1.0 in opaque plasma (true blackbody hue), 1.2 in late cosmos. */
+  readonly gradingSaturation: number;
+  /** Fraction of cosmic hydrogen reionized after recombination (Planck tanh model), [0, 1]. */
+  readonly ionizedFraction: number;
+  /** Volumetric reionization bubble visibility envelope, peaking at 50% ionization, [0, 1]. */
+  readonly reionBubbles: number;
 }
 
 export interface VisualMap {
@@ -310,6 +321,10 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
           emit,
           stretch,
           clump,
+          plasmaFloor: 0,
+          gradingSaturation: 1.2 - 0.2 * haze,
+          ionizedFraction: 0,
+          reionBubbles: 0,
         };
       }
       const p = state.physical;
@@ -330,14 +345,28 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
       // plasma licence: the QCD crossover (T ≈ 155 MeV, log10 T ≈ 12.25) is the
       // visible boundary between quarks and hadrons. Above it the deconfined
       // plasma is finer, more agitated and brighter; below it (confinement and
-      // annihilation) the fluid calms. `hadronEra` limits the calming to the
-      // hadron epoch, so nucleosynthesis keeps its approved look.
+      // annihilation) the fluid calms. `hadronEra` limits the clumping to the
+      // hadron epoch. Below hadrons (nucleosynthesis through warm radiation era),
+      // `plasmaFloor` lifts the dark valleys and softens density contrast so the
+      // Rayleigh-Jeans blackbody reads as calm incandescence rather than dark blue.
       const qcdFactor = smoothstep((log10T - 11.5) / 2.0);
       const hadronEra = (1 - qcdFactor) * smoothstep((log10T - 9.5) / 1.5);
+      const plasmaFloor = smoothstep((log10T - 4.2) / 1.5) * (1 - smoothstep((log10T - 10.2) / 1.3));
       const baseTurbulence = clamp01((log10T - 3.4) / 12);
-      const turbulence = clamp01(baseTurbulence * (1 - 0.4 * hadronEra));
+      const turbulence = clamp01(baseTurbulence * (1 - 0.4 * hadronEra) * (1 - 0.18 * plasmaFloor));
       const emit = 3.0 + 0.6 * qcdFactor - 0.8 * hadronEra;
       const contrastGain = 1 + 7 * (1 - smoothstep((D - 0.05) / 0.25));
+
+      // Reionization history (Planck 2018 VI / Lewis 2008 tanh model): applies
+      // after recombination once neutral hydrogen exists. The bubble envelope
+      // peaks at x_H = 0.5 (reionization stop, z = 7.82) and vanishes when the
+      // medium is fully neutral (darkAges, firstStars) or ionized (solarSystem–today).
+      const ionizedFraction = haze < 0.5 ? reionizationFraction(p.z) : 0;
+      const reionRaw = haze < 0.5 ? (1 - haze) * Math.pow(Math.max(0, 4 * ionizedFraction * (1 - ionizedFraction)), 1.15) : 0;
+      const reionBubbles = reionRaw < 1e-4 ? 0 : reionRaw;
+      // grading licence: keep true blackbody saturation (1.0) in the opaque
+      // plasma regime so Rayleigh-Jeans blue is not over-saturated into cold navy.
+      const gradingSaturation = 1.2 - 0.2 * haze;
 
       const cmbHot = clampedBlackbodySrgb(T * 1.3);
       const cmbCold = clampedBlackbodySrgb(T * 0.75);
@@ -385,6 +414,10 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
         emit,
         stretch: 0,
         clump: hadronEra,
+        plasmaFloor,
+        gradingSaturation,
+        ionizedFraction,
+        reionBubbles,
       };
     },
   };

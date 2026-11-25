@@ -76,10 +76,35 @@ describe('visual map', () => {
     expect(quarks.bloomStrength).toBeGreaterThan(hadrons.bloomStrength);
   });
 
-  it('leaves nucleosynthesis with its approved emission and bloom', () => {
+  it('leaves nucleosynthesis with its approved emission and bloom, and lifts its calm plasma floor with neutral saturation', () => {
     const s = state('nucleosynthesis');
     expect(s.emit).toBeCloseTo(3, 2);
     expect(s.bloomStrength).toBeCloseTo(0.9, 2);
+    expect(s.plasmaFloor).toBeGreaterThan(0.95);
+    expect(s.gradingSaturation).toBeCloseTo(1.0, 6);
+    expect(state('quarks').plasmaFloor).toBe(0);
+    expect(state('hadrons').plasmaFloor).toBe(0);
+    expect(state('recombination').plasmaFloor).toBe(0);
+    expect(state('today').gradingSaturation).toBeCloseTo(1.2, 6);
+  });
+
+  it('distinguishes reionization (50% ionized, peak bubbles) from firstStars and milkyWay (~98% ionized)', () => {
+    const fs = state('firstStars');
+    const reion = state('reionization');
+    const mw = state('milkyWay');
+    const today = state('today');
+
+    expect(fs.ionizedFraction).toBeLessThan(1e-6);
+    expect(fs.reionBubbles).toBe(0);
+
+    expect(reion.ionizedFraction).toBeCloseTo(0.5, 4);
+    expect(reion.reionBubbles).toBeCloseTo(1.0, 4);
+
+    expect(mw.ionizedFraction).toBeGreaterThan(0.95);
+    expect(mw.reionBubbles).toBeLessThan(0.1);
+
+    expect(today.ionizedFraction).toBeGreaterThan(0.9999);
+    expect(today.reionBubbles).toBe(0);
   });
 
   it('takes the colour from the black body at the model temperature', () => {

@@ -17,7 +17,7 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
   precision highp sampler3D;
   uniform sampler3D uNoise;
   uniform vec3 uOrigin;
-  uniform float uTime, uHaze, uIntensity, uTurbulence, uCmbLevel, uLow, uHigh, uSigma, uEmit, uStretch, uClump;
+  uniform float uTime, uHaze, uIntensity, uTurbulence, uCmbLevel, uLow, uHigh, uSigma, uEmit, uStretch, uClump, uFloor, uIonized, uReion;
   uniform vec3 uColour, uCmbHot, uCmbCold;
   in vec3 vDir;
   out vec4 fragColour;
@@ -86,8 +86,11 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
       float warpAmp = mix(0.5, 1.6, uTurbulence);
       float aWeight = 0.9 - 0.4 * uTurbulence;
       bool doClump = uClump > 0.001;
-      vec3 deep = uColour * 0.3;
+      bool hasFloor = uFloor > 0.001;
+      vec3 deep = uColour * mix(0.3, 0.76, uFloor);
       vec3 hot = mix(uColour, vec3(1.0), 0.6);
+      float baseEmit = mix(0.12, 0.68, uFloor);
+      float peakEmit = mix(uEmit, uEmit * 0.92, uFloor);
       bool doFlare = uIntensity > 1.0;
       float flare = (uIntensity - 1.0) * 4.0;
       float calm = 1.0 - smoothstep(0.0, 0.12, uTurbulence);
@@ -103,9 +106,12 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
       for (int i = 0; i < 28; i++) {
         vec3 p = uOrigin + dir * s;
         float d = density(p, f, sFactor, invSFactor, tSpeed, warpAmp, aWeight, doStretch, doClump);
+        if (hasFloor) {
+          d = mix(d, 0.28 + 0.72 * d, uFloor);
+        }
         float sigma = mix(0.05, 2.0, d) * hazeSigma;
         float ds = 0.015 + s * 0.15;
-        vec3 emission = mix(mix(deep, uColour, smoothstep(0.0, 0.6, d)), hot, smoothstep(0.6, 1.0, d)) * (0.12 + uEmit * d * d * d);
+        vec3 emission = mix(mix(deep, uColour, smoothstep(0.0, 0.6, d)), hot, smoothstep(0.6, 1.0, d)) * (baseEmit + peakEmit * d * d * d);
         // Reheating: incandescent volumetric flash ignites the entire volume at once
         if (doFlare) {
           emission += vec3(1.0, 0.98, 0.91) * flare * (0.5 + 0.5 * d);
@@ -124,7 +130,7 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
         if (transmittance < 0.0001) break;
         s += ds;
       }
-      colour += transmittance * uColour * 0.15;
+      colour += transmittance * uColour * mix(0.15, 0.65, uFloor);
       colour *= uIntensity * uHaze;
       transmittance = 1.0 - uHaze;
     }
@@ -133,6 +139,36 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
       float hotness = smoothstep(-0.7, 0.9, c);
       vec3 sky = mix(uCmbCold * 0.5, uCmbHot * 1.4, hotness) * (0.12 + 1.6 * hotness * hotness);
       colour += sky * uCmbLevel * 1.4;
+    }
+    if (uReion > 0.001) {
+      // 3D volumetric reionization bubbles: ionized H II cavities expand
+      // monotonically with uIonized (Planck tanh history), bordered by luminous
+      // photoionization fronts against subtle neutral H I intergalactic fog.
+      float thresh = mix(0.74, 0.26, uIonized);
+      vec3 rColour = vec3(0.0);
+      float rTrans = 1.0;
+      float rs = 0.08;
+      for (int i = 0; i < 20; i++) {
+        vec3 rp = (uOrigin + dir * rs) * 0.52;
+        float b = n3(rp) * 0.72 + n3(rp * 2.1 + vec3(0.37, 0.19, 0.61)) * 0.28;
+        float signedDist = b - thresh;
+        float front = exp(-(signedDist * signedDist) / 0.0009);
+        float cavity = smoothstep(0.0, 0.16, signedDist);
+        float neutral = smoothstep(0.0, -0.14, signedDist);
+
+        float rds = 0.04 + rs * 0.14;
+        float sigmaR = (front * 0.78 + neutral * 0.34 + cavity * 0.03) * uReion;
+        float absR = 1.0 - exp(-sigmaR * rds * 2.8);
+        vec3 frontCol = mix(vec3(0.03, 0.46, 0.86), vec3(0.18, 0.78, 0.98), front);
+        vec3 cavCol = vec3(0.015, 0.09, 0.18);
+        vec3 neutCol = vec3(0.06, 0.018, 0.042);
+        vec3 emitR = frontCol * front * 0.44 + cavCol * cavity * 0.08 + neutCol * neutral * 0.12;
+        rColour += rTrans * absR * emitR;
+        rTrans *= 1.0 - absR;
+        if (rTrans < 0.01) break;
+        rs += rds;
+      }
+      colour += rColour * uReion;
     }
     fragColour = vec4(colour, 1.0);
   }
@@ -312,6 +348,7 @@ export const GRADING_VERTEX_SHADER = /* glsl */ `
 export const GRADING_FRAGMENT_SHADER = /* glsl */ `
   uniform sampler2D tDiffuse;
   uniform float uSeed;
+  uniform float uSaturation;
   varying vec2 vUv;
   float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233)) + uSeed) * 43758.5453); }
   void main() {
@@ -319,7 +356,7 @@ export const GRADING_FRAGMENT_SHADER = /* glsl */ `
     float vignette = mix(1.0, smoothstep(1.15, 0.35, length(vUv - 0.5) * 1.4), 0.55);
     float grain = (hash(vUv * 1000.0) - 0.5) * 0.02;
     float luma = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
-    vec3 graded = mix(vec3(luma), c.rgb, 1.2);
+    vec3 graded = mix(vec3(luma), c.rgb, uSaturation);
     gl_FragColor = vec4(graded * vignette + grain, 1.0);
   }
 `;
