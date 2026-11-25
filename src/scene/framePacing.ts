@@ -8,14 +8,31 @@
  */
 export const DEFAULT_SCENE_FPS = 30;
 export const VALID_SCENE_FPS = [24, 30, 45, 60] as const;
+export type SceneFpsCap = (typeof VALID_SCENE_FPS)[number];
+export const FPS_CAP_STORAGE_KEY = 'cosmic-timeline:fpscap';
+
+/** Cycle order when toggling from the UI: one click jumps from 30 to 60 fps. */
+const FPS_CYCLE: readonly SceneFpsCap[] = [30, 60, 24, 45];
+
+export function parseFpsCap(raw: string | null | undefined): SceneFpsCap | null {
+  if (raw == null || raw.trim() === '') return null;
+  const parsed = Number(raw);
+  return VALID_SCENE_FPS.includes(parsed as SceneFpsCap) ? (parsed as SceneFpsCap) : null;
+}
 
 /** Optional ?fpscap=24/30/45/60 for visual comparison and GPU diagnostics. */
-export function sceneFpsCap(search: string): number {
-  const requested = new URLSearchParams(search).get('fpscap');
-  const parsed = requested === null ? NaN : Number(requested);
-  return VALID_SCENE_FPS.includes(parsed as (typeof VALID_SCENE_FPS)[number])
-    ? parsed
-    : DEFAULT_SCENE_FPS;
+export function sceneFpsCap(search: string): SceneFpsCap {
+  return parseFpsCap(new URLSearchParams(search).get('fpscap')) ?? DEFAULT_SCENE_FPS;
+}
+
+/** URL ?fpscap overrides persisted preference; falls back to DEFAULT_SCENE_FPS. */
+export function resolveInitialFpsCap(search: string, stored: string | null | undefined): SceneFpsCap {
+  return parseFpsCap(new URLSearchParams(search).get('fpscap')) ?? parseFpsCap(stored) ?? DEFAULT_SCENE_FPS;
+}
+
+export function nextFpsCap(current: SceneFpsCap): SceneFpsCap {
+  const idx = FPS_CYCLE.indexOf(current);
+  return FPS_CYCLE[(idx + 1) % FPS_CYCLE.length]!;
 }
 
 /** Allow a 1 ms margin to avoid missing every second browser refresh. */

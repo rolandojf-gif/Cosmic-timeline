@@ -108,6 +108,7 @@ export interface FlashCardView {
   readonly id: string;
   readonly title: string;
   readonly detail: string;
+  readonly meta: string;
   readonly milestoneLabel: string;
   readonly closeLabel: string;
 }
@@ -409,11 +410,20 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
     milestoneId = 'today';
   }
 
+  const flashMeta = (() => {
+    if (state.physical === null) return time;
+    const p = state.physical;
+    if (p.temperatureK >= 1000) return `${time} · ${formatTemperature(p.temperatureK, locale, m.units)}`;
+    if (p.z >= 0.05) return `${time} · z = ${formatNumber(p.z, locale)}`;
+    return time;
+  })();
+
   const flashCard: FlashCardView | null = milestoneId
     ? {
         id: milestoneId,
         title: m.flash.items[milestoneId].title,
         detail: m.flash.items[milestoneId].detail,
+        meta: flashMeta,
         milestoneLabel: m.flash.milestone,
         closeLabel: m.flash.close,
       }

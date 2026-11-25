@@ -35,6 +35,7 @@ export const en = {
     autoPause: 'Pause at milestones',
     autoPauseLabel: 'Automatically pause when reaching cosmic milestones',
     speed: 'Speed',
+    fpsLabel: 'Change scene frame rate limit',
   },
   panel: {
     time: 'Cosmic time',
@@ -361,6 +362,9 @@ export const en = {
     earthSub: 'Accretion and planetary formation',
     today: 'Milky Way',
     todaySub: 'Our home in the cosmos',
+    focusHint: 'Focus on this galaxy',
+    unfocusHint: 'Return to wide view',
+    dismissHint: 'Click to dismiss',
   },
   ticker: {
     cosmicTime: 'Cosmic time',
@@ -386,7 +390,7 @@ export const en = {
     },
   },
   flash: {
-    close: 'Dismiss notification',
+    close: 'Click to dismiss',
     milestone: 'Cosmic milestone',
     items: {
       reheating: {

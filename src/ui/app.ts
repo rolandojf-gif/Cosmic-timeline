@@ -6,9 +6,15 @@
 
 import { LOCALES, MESSAGES, detectLocale, type Locale } from '../i18n';
 import { PLANCK2018_DERIVED, accelerationOnset, createCosmology, matterLambdaEquality } from '../physics';
+import {
+  FPS_CAP_STORAGE_KEY,
+  nextFpsCap,
+  resolveInitialFpsCap,
+  type SceneFpsCap,
+} from '../scene/framePacing';
 import type { CosmicWebState, ParticleScene } from '../scene/scene';
 import { createVisualMap } from '../scene/visualMap';
-import { EPOCHS, createTimeScale, resolveEpochs, type EpochId } from '../timeline';
+import { EPOCHS, createTimeScale, resolveEpochs } from '../timeline';
 import { el, setText } from './dom';
 import { shouldShowContinueCue } from './continueCue';
 import { createFlashCard } from './flashCard';
@@ -47,7 +53,36 @@ export function startApp(root: HTMLElement): void {
 
   const title = el('h1', { class: 'title' });
   const subtitle = el('p', { class: 'subtitle' });
-  const masthead = el('div', { class: 'masthead' }, el('div', { class: 'title-group' }, title, subtitle));
+
+  let fpsCap: SceneFpsCap = resolveInitialFpsCap(
+    location.search,
+    (() => {
+      try {
+        return localStorage.getItem(FPS_CAP_STORAGE_KEY);
+      } catch {
+        return null;
+      }
+    })(),
+  );
+  const fpsButton = el('button', { type: 'button', class: 'fps-toggle' });
+  setText(fpsButton, `${fpsCap} fps`);
+  fpsButton.addEventListener('click', () => {
+    fpsCap = nextFpsCap(fpsCap);
+    setText(fpsButton, `${fpsCap} fps`);
+    try {
+      localStorage.setItem(FPS_CAP_STORAGE_KEY, String(fpsCap));
+    } catch {
+      // Ignore storage errors in restricted contexts.
+    }
+    scene?.setFpsCap(fpsCap);
+  });
+
+  const masthead = el(
+    'div',
+    { class: 'masthead' },
+    el('div', { class: 'title-group' }, title, subtitle),
+    fpsButton,
+  );
 
   const panelToggle = el('button', {
     type: 'button',
@@ -60,7 +95,7 @@ export function startApp(root: HTMLElement): void {
   const ticker = createTicker();
 
   let togglePlayAndPanel = (): void => {};
-  const flashCard = createFlashCard(() => togglePlayAndPanel());
+  const flashCard = createFlashCard();
 
   // Separate from the cinematic flash card: shown whenever the journey stops
   // (automatic milestone pauses, manual pauses, or milestone jumps), never on
@@ -234,31 +269,40 @@ export function startApp(root: HTMLElement): void {
   let currentTargetEpochId: 'reheating' | 'milkyWay' | 'solarSystem' | 'earth' | 'today' | null = null;
   let targetScreenPos: { x: number; y: number; visible: boolean } | null = null;
   let lastCalloutKey = '';
+  let reheatingCalloutDismissed = false;
+  let calloutFocused = false;
+
+  function syncCalloutHint(): void {
+    const m = MESSAGES[locale];
+    callout.classList.toggle('focused', calloutFocused);
+    if (currentTargetEpochId === 'reheating') {
+      callout.setAttribute('title', m.callout.dismissHint);
+      callout.removeAttribute('aria-pressed');
+    } else if (currentTargetEpochId) {
+      callout.setAttribute('title', calloutFocused ? m.callout.unfocusHint : m.callout.focusHint);
+      callout.setAttribute('aria-pressed', calloutFocused ? 'true' : 'false');
+    }
+  }
 
   callout.addEventListener('click', (e) => {
     e.stopPropagation();
     if (currentTargetEpochId === 'reheating') {
-      control.jumpTo(scale.positionOf(1e-30), true);
+      reheatingCalloutDismissed = true;
+      updateCalloutPosition();
       return;
     }
-    if (currentTargetEpochId) {
-      const sequence: EpochId[] = ['milkyWay', 'solarSystem', 'earth', 'today'];
-      const currentIdx = sequence.indexOf(currentTargetEpochId);
-      if (currentIdx !== -1) {
-        // Always advance cleanly in landmark sequence: Milky Way -> Solar System -> Earth -> Today -> Milky Way
-        const nextIdx = (currentIdx + 1) % sequence.length;
-        const nextEpoch = epochs.find((ep) => ep.id === sequence[nextIdx]);
-        if (nextEpoch) {
-          control.jumpTo(scale.positionOf(nextEpoch.anchor), true);
-        }
-      }
+    if (currentTargetEpochId && scene) {
+      calloutFocused = scene.toggleTargetFocus();
+      syncCalloutHint();
     }
   });
 
   function updateCalloutPosition(): void {
     const pos =
       currentTargetEpochId === 'reheating'
-        ? { x: Math.round(window.innerWidth * 0.65), y: Math.round(window.innerHeight * 0.4), visible: true }
+        ? reheatingCalloutDismissed
+          ? null
+          : { x: Math.round(window.innerWidth * 0.65), y: Math.round(window.innerHeight * 0.4), visible: true }
         : targetScreenPos;
     if (!pos || !pos.visible || !currentTargetEpochId) {
       if (lastCalloutKey !== 'hidden') {
@@ -284,15 +328,17 @@ export function startApp(root: HTMLElement): void {
   });
 
   const dock = el('div', { class: 'dock' }, control.element, sceneNote, licences.element);
-  const updateDockHeight = () => {
+  const updateLayoutMetrics = () => {
     const dockHeight = dock.offsetHeight;
     if (dockHeight > 0) {
       document.documentElement.style.setProperty('--dock-height', `${dockHeight}px`);
     }
+    document.documentElement.style.setProperty('--ticker-height', `${ticker.element.offsetHeight}px`);
   };
-  const dockObserver = new ResizeObserver(updateDockHeight);
-  dockObserver.observe(dock);
-  requestAnimationFrame(updateDockHeight);
+  const layoutObserver = new ResizeObserver(updateLayoutMetrics);
+  layoutObserver.observe(dock);
+  layoutObserver.observe(ticker.element);
+  requestAnimationFrame(updateLayoutMetrics);
 
   root.replaceChildren(
     sceneLayer,
@@ -369,6 +415,8 @@ export function startApp(root: HTMLElement): void {
       document.querySelector('meta[name="description"]')?.setAttribute('content', m.meta.description);
       setText(title, m.meta.title);
       setText(subtitle, m.meta.subtitle);
+      fpsButton.setAttribute('aria-label', m.control.fpsLabel);
+      fpsButton.setAttribute('title', m.control.fpsLabel);
       setText(panelToggle, mobileLayout.matches ? 'Info' : m.meta.sciencePanel);
       setText(continueLabel, m.control.continue);
       continueCue.setAttribute('aria-label', m.control.continueHint);
@@ -443,9 +491,16 @@ export function startApp(root: HTMLElement): void {
       currentTargetEpochId = null;
     }
     // Clear stale screen position when leaving reheating or entering a non-target epoch.
+    if (currentTargetEpochId !== 'reheating') {
+      reheatingCalloutDismissed = false;
+    }
     if (currentTargetEpochId === null || (prevTarget === 'reheating' && currentTargetEpochId !== 'reheating')) {
       targetScreenPos = null;
+      if (calloutFocused && scene) {
+        calloutFocused = scene.toggleTargetFocus();
+      }
     }
+    syncCalloutHint();
     updateCalloutPosition();
   }
 
@@ -479,6 +534,7 @@ export function startApp(root: HTMLElement): void {
         stateAt: (position) => visualMap.visualState(scale.timeAt(position)),
         reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
         mobile: matchMedia('(max-width: 599px), (pointer: coarse)').matches,
+        fpsCap,
         onTargetScreenPos: (pos) => {
           if (currentTargetEpochId === 'reheating') return;
           targetScreenPos = pos;
@@ -508,6 +564,7 @@ export function startApp(root: HTMLElement): void {
         Object.assign(window, { __cosmicBench: { stops, stateAt, scene: scene.bench } });
       }
     }
+    fpsButton.hidden = scene === null;
     sceneNote.hidden = scene !== null;
     document.body.classList.toggle('has-scene', scene !== null);
   }
