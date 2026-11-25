@@ -69,6 +69,8 @@ const COLLAPSE = 1.686;
 const WIDE_FROM_PX = 900;
 const WIDE_SHIFT = 0.1;
 
+export type CosmicWebState = 'loading' | 'ready' | 'error';
+
 export interface SceneOptions {
   /** Visual state at a control position u ∈ [0, 1]. */
   readonly stateAt: (u: number) => VisualState;
@@ -76,6 +78,7 @@ export interface SceneOptions {
   readonly mobile: boolean;
   readonly onTargetScreenPos?: (pos: { x: number; y: number; visible: boolean }) => void;
   readonly onSceneClick?: () => void;
+  readonly onWebStateChange?: (state: CosmicWebState) => void;
 }
 
 export interface ParticleScene {
@@ -249,6 +252,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     uEmit: { value: 3 },
     uStretch: { value: 0 },
     uClump: { value: 0 },
+    uFloor: { value: 0 },
+    uIonized: { value: 0 },
+    uReion: { value: 0 },
   };
 
   const bgMaterial = new ShaderMaterial({
@@ -288,7 +294,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   if (probes) composer.addPass(probes.output);
 
   const gradingPass = new ShaderPass({
-    uniforms: { tDiffuse: { value: null }, uSeed: { value: 0.37 } },
+    uniforms: { tDiffuse: { value: null }, uSeed: { value: 0.37 }, uSaturation: { value: 1.2 } },
     vertexShader: GRADING_VERTEX_SHADER,
     fragmentShader: GRADING_FRAGMENT_SHADER,
   });
@@ -313,6 +319,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   });
 
   const webAbort = new AbortController();
+  options.onWebStateChange?.('loading');
 
   void generateCosmicWeb(
     {
@@ -417,9 +424,13 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
     applyOptimisations();
     scheduleFrame();
+    options.onWebStateChange?.('ready');
     resolveWebReady();
   }).catch((error) => {
-    console.error('cosmic-timeline: cosmic web generation failed', error);
+    if (!disposed) {
+      console.error('cosmic-timeline: cosmic web generation failed', error);
+      options.onWebStateChange?.('error');
+    }
     resolveWebReady();
   });
 
@@ -627,6 +638,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     bgMaterial.uniforms.uCmbLevel!.value = state.cmbLevel;
     bgMaterial.uniforms.uStretch!.value = state.stretch;
     bgMaterial.uniforms.uClump!.value = state.clump;
+    bgMaterial.uniforms.uFloor!.value = state.plasmaFloor;
+    bgMaterial.uniforms.uIonized!.value = state.ionizedFraction;
+    bgMaterial.uniforms.uReion!.value = state.reionBubbles;
+    gradingPass.uniforms.uSaturation!.value = state.gradingSaturation;
 
     // Matter uniforms
     if (matterMaterial && haloMaterial) {

@@ -94,7 +94,11 @@ Resultado: la radiación deja de verse hacia los 3,15 millones de años (z ≈ 2
 
 ## `grading`
 
-**Etalonaje y postproceso.** La composición en pantalla utiliza mapeo de tonos ACES Filmic para preservar los matices de luminosidad sin saturar bruscamente en blanco, viñeteado óptico suave hacia las esquinas y un grano muy fino (0,02) para evitar bandas de color en los degradados del plasma.
+**Etalonaje y postproceso.** La composición en pantalla utiliza mapeo de tonos ACES Filmic para preservar los matices de luminosidad sin saturar bruscamente en blanco, viñeteado óptico suave hacia las esquinas y un grano muy fino (0,02) para evitar bandas de color en los degradados del plasma. En el régimen de plasma opaco la saturación se mantiene en 1,0 (frente a 1,2 en la red cósmica tardía) para respetar fielmente el tono de cuerpo negro sin exagerar el azul en el límite de Rayleigh-Jeans; además, durante la nucleosíntesis se eleva el suelo de luminancia y se suaviza el contraste de los valles (`plasmaFloor`) para leerla como incandescencia calmada.
+
+## `reionizationBubbles`
+
+**Burbujas de reionización.** La fracción global de hidrógeno reionizado $x_{\mathrm{H}}(z)$ sale directamente del modelo en tangente hiperbólica de Planck 2018 (`planck2018-vi`, `lewis2008`, con $z_{\mathrm{re}} = 7{,}82$ y $\Delta z = 0{,}5$: 50 % ionizado en la parada de reionización y ~98 % en la de la Vía Láctea). Lo que es licencia visual es su puesta en escena: la geometría volumétrica tridimensional de las burbujas sobre la textura de ruido, el resplandor cian de los frentes de fotoionización y la tenue bruma del gas neutro restante.
 
 ## `milkyWayPin`
 

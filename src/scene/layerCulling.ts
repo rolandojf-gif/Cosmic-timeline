@@ -31,9 +31,13 @@ export function drawnLayers(state: Pick<VisualState, 'gasLevel' | 'galaxiesVisib
 
 /**
  * The raymarched background shader writes (0, 0, 0, 1) — identical to the
- * RenderPass clear colour — whenever both haze and CMB sky are inactive.
+ * RenderPass clear colour — whenever haze, CMB sky and reionization bubbles
+ * are all inactive.
  */
-export function shouldDrawBackground(state: Pick<VisualState, 'haze' | 'cmbLevel'>, skip: boolean): boolean {
+export function shouldDrawBackground(
+  state: Pick<VisualState, 'haze' | 'cmbLevel' | 'reionBubbles'>,
+  skip: boolean,
+): boolean {
   if (!skip) return true;
-  return state.haze > 0.001 || state.cmbLevel > 0.0;
+  return state.haze > 0.001 || state.cmbLevel > 0.0 || state.reionBubbles > 0.001;
 }

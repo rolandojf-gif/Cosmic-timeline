@@ -6,7 +6,7 @@
 
 import { LOCALES, MESSAGES, detectLocale, type Locale } from '../i18n';
 import { PLANCK2018_DERIVED, accelerationOnset, createCosmology, matterLambdaEquality } from '../physics';
-import type { ParticleScene } from '../scene/scene';
+import type { CosmicWebState, ParticleScene } from '../scene/scene';
 import { createVisualMap } from '../scene/visualMap';
 import { EPOCHS, createTimeScale, resolveEpochs, type EpochId } from '../timeline';
 import { el, setText } from './dom';
@@ -181,6 +181,31 @@ export function startApp(root: HTMLElement): void {
   // Why the scene is missing, when it is: no WebGL, or the chunk failed to load.
   let sceneProblem: 'unavailable' | 'loadFailed' = 'unavailable';
 
+  // Discreet cosmic-web loading status: visible only when the current instant
+  // needs the late-universe particle web and the worker has not finished yet.
+  let webState: CosmicWebState = 'loading';
+  let sceneReadyForWeb = false;
+  const webStatusDot = el('span', { class: 'web-status__dot', 'aria-hidden': 'true' });
+  const webStatusText = el('span', { class: 'web-status__text' });
+  const webStatus = el(
+    'div',
+    { class: 'web-status', role: 'status', 'aria-live': 'polite' },
+    webStatusDot,
+    webStatusText,
+  );
+  webStatus.hidden = true;
+
+  function syncWebStatus(t: number): void {
+    const m = MESSAGES[locale];
+    const visual = visualMap.visualState(t);
+    const needsWeb = visual.gasLevel > 0 || visual.galaxiesVisible > 0;
+    const show = sceneReadyForWeb && needsWeb && webState !== 'ready';
+    webStatus.hidden = !show;
+    if (!show) return;
+    webStatus.classList.toggle('web-status--error', webState === 'error');
+    setText(webStatusText, webState === 'error' ? m.scene.webFailed : m.scene.loadingWeb);
+  }
+
   // 3D scene callout for Milky Way / Solar System / Earth landmarks
   const calloutTitle = el('span', { class: 'callout-title' });
   const calloutSub = el('span', { class: 'callout-subtitle' });
@@ -275,6 +300,7 @@ export function startApp(root: HTMLElement): void {
     stage,
     ticker.element,
     flashCard.element,
+    webStatus,
     continueCue,
     dock,
     calloutLayer,
@@ -381,6 +407,7 @@ export function startApp(root: HTMLElement): void {
     ticker.update(view.ticker);
     flashCard.show(view.flashCard, isPlaying);
     scene?.show(u, isPlaying, isPlaying);
+    syncWebStatus(t);
     control.update(u, view.epochIndex);
     control.setValueText(view.valueText);
 
@@ -458,6 +485,10 @@ export function startApp(root: HTMLElement): void {
           updateCalloutPosition();
         },
         onSceneClick: () => togglePlayAndPanel(),
+        onWebStateChange: (nextState) => {
+          webState = nextState;
+          syncWebStatus(scale.timeAt(u));
+        },
       });
       // Field generation and WebGL setup, after the panel is already visible.
       performance.measure('cosmic-timeline:scene', { start: sceneStart });
@@ -466,8 +497,10 @@ export function startApp(root: HTMLElement): void {
       scene = null;
     }
     if (scene) {
+      sceneReadyForWeb = true;
       sceneLayer.append(scene.element);
       scene.show(u, control.isPlaying(), control.isPlaying());
+      syncWebStatus(scale.timeAt(u));
       if (scene.bench) {
         // ?bench: hooks for scripts/bench-readback.mjs (validation only).
         const stops = epochs.map((e, i) => ({ id: e.id, u: scale.positions[i]! }));

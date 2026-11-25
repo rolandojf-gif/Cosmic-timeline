@@ -337,7 +337,12 @@ export const en = {
     grading: {
       name: 'grading and post-processing',
       detail:
-        'The final image undergoes tone mapping to compress the dynamic range of glowing light, subtle edge vignetting, and fine grain to prevent colour banding across soft gradients.',
+        'The final image undergoes tone mapping to compress the dynamic range of glowing light, subtle edge vignetting, and fine grain to prevent colour banding across soft gradients. In the plasma regime, saturation stays neutral to preserve the true black-body hue.',
+    },
+    reionizationBubbles: {
+      name: 'reionization bubbles',
+      detail:
+        'The global fraction of reionized hydrogen follows the Planck 2018 hyperbolic-tangent transition centred at z = {zRe}. The three-dimensional geometry of the bubbles, the cyan glow of photoionization fronts and the faint haze of the remaining neutral gas are a visual representation to distinguish the transitioning medium.',
     },
     milkyWayPin: {
       name: 'Milky Way location',
@@ -425,5 +430,7 @@ export const en = {
   scene: {
     unavailable: 'The scene is not available in this browser: it needs WebGL.',
     loadFailed: 'The scene could not be loaded. The panel and the control work as usual; reload the page to try again.',
+    loadingWeb: 'Generating cosmic web…',
+    webFailed: 'The cosmic web could not be generated on this device.',
   },
 } satisfies Messages;

@@ -211,6 +211,53 @@ a:hover {
   font-size: 0.72rem;
 }
 
+/* Discreet cosmic-web generation indicator: only shown while landing on or
+   jumping to a late-universe epoch before the background worker finishes. */
+.web-status {
+  position: fixed;
+  z-index: 30;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border: 1px solid var(--glass-line);
+  border-radius: 999px;
+  background: rgb(8 10 17 / 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.5);
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  white-space: nowrap;
+  transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.web-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgb(230 196 143 / 0.65);
+  flex-shrink: 0;
+  animation: webStatusPulse 1.6s ease-in-out infinite;
+}
+
+.web-status--error .web-status__dot {
+  background: var(--muted);
+  box-shadow: none;
+  animation: none;
+}
+
+@keyframes webStatusPulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
 /* Header */
 
 .site-header {
@@ -603,12 +650,19 @@ a:hover {
     padding: 10px 17px;
     font-size: 0.82rem;
   }
-  .stage.drawer-expanded ~ .resume-cue { display: none; }
+  .stage.drawer-expanded ~ .resume-cue,
+  .stage.drawer-expanded ~ .web-status { display: none; }
+  .web-status {
+    top: 36%;
+    font-size: 0.78rem;
+    padding: 8px 14px;
+  }
 }
 
 /* Centre on the visible cosmos rather than the scientific left column. */
 @media (min-width: 900px) {
-  .stage.drawer-open ~ .resume-cue {
+  .stage.drawer-open ~ .resume-cue,
+  .stage.drawer-open ~ .web-status {
     left: calc(440px + (100% - 440px) / 2);
   }
 }

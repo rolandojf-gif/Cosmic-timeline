@@ -35,6 +35,7 @@ export function licenceVars(locale: Locale, m: Messages, growth: number): Licenc
     camera: {},
     transitions: { duration: formatDuration(TRANSITION_SECONDS, locale, m.units) },
     grading: {},
+    reionizationBubbles: { zRe: formatNumber(PLANCK2018_DERIVED.zReionization.value, locale) },
     milkyWayPin: {},
   };
 }
