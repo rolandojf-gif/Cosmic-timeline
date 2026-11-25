@@ -168,6 +168,14 @@ const mixTriple = (a: Triple, b: Triple, f: number): Triple => [
   a[2] + (b[2] - a[2]) * f,
 ];
 
+const DRAPER_SRGB: Triple = blackbodySrgb(DRAPER_POINT_K);
+const SATURATION_SRGB: Triple = blackbodySrgb(COLOUR_SATURATION_K);
+const clampedBlackbodySrgb = (kelvin: number): Triple => {
+  if (kelvin <= DRAPER_POINT_K) return DRAPER_SRGB;
+  if (kelvin >= COLOUR_SATURATION_K) return SATURATION_SRGB;
+  return blackbodySrgb(kelvin);
+};
+
 export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedEpoch[]): VisualMap {
   const tEW = cosmology.timeAtTemperature(gevToKelvin(ELECTROWEAK_CROSSOVER_GEV));
   const lgEW = Math.log10(tEW);
@@ -243,7 +251,7 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
           // space at once with hot plasma. No centre, no outside: the whole
           // field ignites. A brief peak, then it cools into the quark plasma
           // and ends exactly on its state at the electroweak crossover.
-          const quarkColour = blackbodySrgb(COLOUR_SATURATION_K);
+          const quarkColour = SATURATION_SRGB;
           if (lg < REHEAT_PEAK_FROM) {
             const r = smoothstep((lg + 32.0) / (REHEAT_PEAK_FROM + 32.0));
             intensity = 0.15 + (REHEAT_PEAK_INTENSITY - 0.15) * r;
@@ -331,8 +339,8 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
       const emit = 3.0 + 0.6 * qcdFactor - 0.8 * hadronEra;
       const contrastGain = 1 + 7 * (1 - smoothstep((D - 0.05) / 0.25));
 
-      const cmbHot = blackbodySrgb(Math.min(Math.max(T * 1.3, DRAPER_POINT_K), COLOUR_SATURATION_K));
-      const cmbCold = blackbodySrgb(Math.min(Math.max(T * 0.75, DRAPER_POINT_K), COLOUR_SATURATION_K));
+      const cmbHot = clampedBlackbodySrgb(T * 1.3);
+      const cmbCold = clampedBlackbodySrgb(T * 0.75);
       const cmbLevel = 3 * intensity * (1 - haze);
 
       const lateness = smoothstep(Math.log(Math.max(D, 1e-4) / 0.05) / Math.log(1 / 0.05));
@@ -353,7 +361,7 @@ export function createVisualMap(cosmology: Cosmology, epochs: readonly ResolvedE
         // Below the Draper point the glow is zero, and the colour-matching fit
         // tails give meaningless hues there, so the hue is held at its value
         // at the Draper point.
-        colour: blackbodySrgb(Math.min(Math.max(T, DRAPER_POINT_K), COLOUR_SATURATION_K)),
+        colour: clampedBlackbodySrgb(T),
         glow: visible * level,
         haze,
         gas: haze < 1 ? GAS_LEVEL * (1 - haze) : 0,

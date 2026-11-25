@@ -84,8 +84,15 @@ export function startApp(root: HTMLElement): void {
     panelToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
+  let panelDirty = true;
+  let lastView: ReturnType<typeof panelView> | null = null;
+
   panel.setOnOpenChange((open, pinned, expanded) => {
     updateDrawerClasses(open, pinned, expanded);
+    if (open && panelDirty && lastView) {
+      panel.update(lastView, MESSAGES[locale]);
+      panelDirty = false;
+    }
   });
 
   panelToggle.addEventListener('click', () => {
@@ -271,6 +278,8 @@ export function startApp(root: HTMLElement): void {
     const m = MESSAGES[locale];
     const t = scale.timeAt(u);
     const view = panelView(context, t, locale, m);
+    lastView = view;
+    const isLocaleUpdate = localeChanged;
 
     if (localeChanged) {
       document.documentElement.lang = locale;
@@ -288,30 +297,36 @@ export function startApp(root: HTMLElement): void {
       languageButton.setAttribute('lang', locale === 'es' ? 'en' : 'es');
       licences.update(m, licenceVars(locale, m, visualMap.growth));
       setText(sceneNote, m.scene[sceneProblem]);
+      control.setTexts({
+        label: m.control.label,
+        valueText: view.valueText,
+        stopsLabel: m.control.stops,
+        stopLabels: epochs.map((e) => m.epochs[e.id].short),
+        rulerCaption: m.control.rulerCaption,
+        keyboardHint: m.control.keyboardHint,
+        play: m.control.play,
+        pause: m.control.pause,
+        reset: m.control.reset,
+        prevStop: m.control.prevStop,
+        nextStop: m.control.nextStop,
+        autoPause: m.control.autoPause,
+        autoPauseLabel: m.control.autoPauseLabel,
+        speed: m.control.speed,
+      });
       localeChanged = false;
     }
 
-    panel.update(view, m);
+    if (panel.isOpen() || isLocaleUpdate) {
+      panel.update(view, m);
+      panelDirty = false;
+    } else {
+      panelDirty = true;
+    }
     ticker.update(view.ticker);
     flashCard.show(view.flashCard, isPlaying);
     scene?.show(u, isPlaying, isPlaying);
     control.update(u, view.epochIndex);
-    control.setTexts({
-      label: m.control.label,
-      valueText: view.valueText,
-      stopsLabel: m.control.stops,
-      stopLabels: epochs.map((e) => m.epochs[e.id].short),
-      rulerCaption: m.control.rulerCaption,
-      keyboardHint: m.control.keyboardHint,
-      play: m.control.play,
-      pause: m.control.pause,
-      reset: m.control.reset,
-      prevStop: m.control.prevStop,
-      nextStop: m.control.nextStop,
-      autoPause: m.control.autoPause,
-      autoPauseLabel: m.control.autoPauseLabel,
-      speed: m.control.speed,
-    });
+    control.setValueText(view.valueText);
 
     const currentEpoch = epochs[view.epochIndex];
     const epochId = currentEpoch?.id;

@@ -294,8 +294,6 @@ a:hover {
   top: 0;
   z-index: 10;
   background: rgb(6 8 14 / 0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   padding: 16px 20px 12px;
   margin: 0 -20px 16px;
   border-bottom: 1px solid var(--line);
@@ -409,7 +407,9 @@ a:hover {
   border-radius: 16px;
   box-shadow: 0 10px 40px rgb(0 0 0 / 0.65), 0 0 24px rgb(230 196 143 / 0.08);
   pointer-events: auto;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .ticker-col {
@@ -802,8 +802,6 @@ a:hover {
   background: rgb(185 166 217 / 0.05);
   border: 1px solid rgb(185 166 217 / 0.22);
   border-radius: var(--radius);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
 .speculative-header {
@@ -1018,8 +1016,7 @@ a:hover {
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
-  backdrop-filter: blur(8px);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .autopause-btn:hover {
@@ -1066,8 +1063,7 @@ a:hover {
   font-size: 0.78rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
-  backdrop-filter: blur(8px);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .panel-toggle::before {

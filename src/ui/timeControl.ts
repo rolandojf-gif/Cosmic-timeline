@@ -30,6 +30,7 @@ export interface TimeControl {
   readonly element: HTMLElement;
   update(u: number, currentStop: number): void;
   setTexts(texts: ControlTexts): void;
+  setValueText(valueText: string): void;
   jumpTo(position: number, autoPlay?: boolean, isMilestone?: boolean): void;
   setPlaying(playing: boolean, isMilestone?: boolean): void;
   isPlaying(): boolean;
@@ -407,6 +408,11 @@ export function createTimeControl(
       texts.stopLabels.forEach((label, i) => setText(stopButtons[i]!, label));
       setText(rulerCaption, texts.rulerCaption);
       setText(hint, texts.keyboardHint);
+    },
+    setValueText(valueText) {
+      if (slider.getAttribute('aria-valuetext') !== valueText) {
+        slider.setAttribute('aria-valuetext', valueText);
+      }
     },
     jumpTo,
     setPlaying,

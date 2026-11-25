@@ -54,6 +54,9 @@ export interface CosmicWeb {
   readonly sigma: number;
   /** Local maxima of `delta`, highest first: grid index and δ today. */
   readonly peaks: readonly { readonly index: number; readonly delta: number }[];
+  /** Optional pre-quantised GPU attributes built off the main thread. */
+  readonly psiInt16?: Int16Array;
+  readonly lambdaInt16?: Int16Array;
 }
 
 /** Mulberry32: small, fast, seeded PRNG. */
@@ -72,18 +75,28 @@ function random(seed: number): () => number {
  * No-wiggle transfer function of Eisenstein & Hu 1998 (ApJ 496, 605, eqs. 26,
  * 28–31), k in h/Mpc.
  */
-export function transferNoWiggle(kh: number, s: WebSpectrum): number {
+function createTransferNoWiggle(s: WebSpectrum): (kh: number) => number {
   const omh2 = s.omegaM * s.h * s.h;
   const fb = s.omegaBh2 / omh2;
-  const theta = s.TCMB0 / 2.7;
-  const k = kh * s.h; // Mpc⁻¹
+  const theta2 = (s.TCMB0 / 2.7) ** 2;
   const soundHorizon = (44.5 * Math.log(9.83 / omh2)) / Math.sqrt(1 + 10 * s.omegaBh2 ** 0.75);
   const alpha = 1 - 0.328 * Math.log(431 * omh2) * fb + 0.38 * Math.log(22.3 * omh2) * fb * fb;
-  const gammaEff = s.omegaM * s.h * (alpha + (1 - alpha) / (1 + (0.43 * k * soundHorizon) ** 4));
-  const q = (kh * theta * theta) / gammaEff;
-  const L0 = Math.log(2 * Math.E + 1.8 * q);
-  const C0 = 14.2 + 731 / (1 + 62.5 * q);
-  return L0 / (L0 + C0 * q * q);
+  const omh = s.omegaM * s.h;
+  const kScale = 0.43 * s.h * soundHorizon;
+  const twoE = 2 * Math.E;
+  return (kh: number): number => {
+    const ks = kScale * kh;
+    const ks2 = ks * ks;
+    const gammaEff = omh * (alpha + (1 - alpha) / (1 + ks2 * ks2));
+    const q = (kh * theta2) / gammaEff;
+    const L0 = Math.log(twoE + 1.8 * q);
+    const C0 = 14.2 + 731 / (1 + 62.5 * q);
+    return L0 / (L0 + C0 * q * q);
+  };
+}
+
+export function transferNoWiggle(kh: number, s: WebSpectrum): number {
+  return createTransferNoWiggle(s)(kh);
 }
 
 /** Top-hat window in Fourier space. */
@@ -131,86 +144,125 @@ export function createCosmicWeb(spectrum: WebSpectrum, options: WebOptions): Cos
   // white noise W, the expected variance of δ(x) filtered by w(k) is
   // (1/n³) Σ_k S(k)² w(k)².
   const fundamental = (2 * Math.PI) / boxMpcH;
+  const transfer = createTransferNoWiggle(spectrum);
+  const halfNs = 0.5 * spectrum.ns;
   const shape = new Float64Array(n3);
   let variance8 = 0;
   for (let k3 = 0; k3 < n; k3++) {
     const kz = frequency(k3, n) * fundamental;
+    const kz2 = kz * kz;
     for (let k2 = 0; k2 < n; k2++) {
       const ky = frequency(k2, n) * fundamental;
+      const kyz2 = ky * ky + kz2;
+      const rowOff = n * (k2 + n * k3);
       for (let k1 = 0; k1 < n; k1++) {
         const kx = frequency(k1, n) * fundamental;
-        const index = k1 + n * (k2 + n * k3);
-        const k = Math.sqrt(kx * kx + ky * ky + kz * kz);
-        if (k === 0) continue;
-        const s = Math.sqrt(k ** spectrum.ns) * transferNoWiggle(k, spectrum);
-        shape[index] = s;
-        variance8 += s * s * topHat(8 * k) ** 2;
+        const k2sum = kx * kx + kyz2;
+        if (k2sum === 0) continue;
+        const k = Math.sqrt(k2sum);
+        const s = Math.pow(k, halfNs) * transfer(k);
+        shape[k1 + rowOff] = s;
+        const w = topHat(8 * k);
+        variance8 += s * s * w * w;
       }
     }
   }
   const amplitude = spectrum.sigma8 / Math.sqrt(variance8 / n3);
 
   // ψ_k = i k δ_k / k², smoothed; packed two real fields per complex transform:
-  // (ψx + i ψy) and (ψz + i δ).
-  const aRe = new Float64Array(n3), aIm = new Float64Array(n3);
-  const bRe = new Float64Array(n3), bIm = new Float64Array(n3);
+  // (ψx + i ψy) reused in-place inside (re, im) to save 32 MB at 128³, and (ψz + i δ) in (bRe, bIm).
+  const bRe = new Float64Array(n3);
+  const bIm = new Float64Array(n3);
+  const halfSmooth2 = -0.5 * smoothingMpcH * smoothingMpcH;
+  const halfN = n >> 1;
   for (let k3 = 0; k3 < n; k3++) {
     const kz = frequency(k3, n) * fundamental;
+    const kz2 = kz * kz;
+    const nyq3 = k3 === halfN;
     for (let k2 = 0; k2 < n; k2++) {
       const ky = frequency(k2, n) * fundamental;
+      const kyz2 = ky * ky + kz2;
+      const nyq23 = nyq3 || k2 === halfN;
+      const rowOff = n * (k2 + n * k3);
       for (let k1 = 0; k1 < n; k1++) {
+        const index = k1 + rowOff;
         const kx = frequency(k1, n) * fundamental;
-        const index = k1 + n * (k2 + n * k3);
-        const k2sum = kx * kx + ky * ky + kz * kz;
+        const k2sum = kx * kx + kyz2;
         // The mean, and the Nyquist planes, whose odd ik factor is not Hermitian.
-        if (k2sum === 0 || k1 === n / 2 || k2 === n / 2 || k3 === n / 2) continue;
-        const g = amplitude * shape[index]! * Math.exp(-0.5 * k2sum * smoothingMpcH * smoothingMpcH);
+        if (k2sum === 0 || nyq23 || k1 === halfN) {
+          re[index] = 0;
+          im[index] = 0;
+          continue;
+        }
+        const g = amplitude * shape[index]! * Math.exp(halfSmooth2 * k2sum);
         const dr = re[index]! * g; // δ_k
         const di = im[index]! * g;
         // i k/k² δ_k = (−di + i dr) k/k²
-        const cx = kx / k2sum, cy = ky / k2sum, cz = kz / k2sum;
+        const invK2 = 1 / k2sum;
+        const cx = kx * invK2;
+        const cy = ky * invK2;
+        const cz = kz * invK2;
         // ψx + i ψy: (ψx_k) + i (ψy_k)
-        aRe[index] = -di * cx - dr * cy;
-        aIm[index] = dr * cx - di * cy;
+        re[index] = -di * cx - dr * cy;
+        im[index] = dr * cx - di * cy;
         // ψz + i δ
         bRe[index] = -di * cz - di;
         bIm[index] = dr * cz + dr;
       }
     }
   }
-  fft3d(aRe, aIm, n, true);
+  fft3d(re, im, n, true);
   fft3d(bRe, bIm, n, true);
 
   const displacement = new Float32Array(3 * n3);
   const delta = new Float32Array(n3);
+  const invN3 = 1 / n3;
+  const invN3Box = invN3 / boxMpcH;
   let sum2 = 0;
   for (let i = 0; i < n3; i++) {
-    displacement[3 * i] = aRe[i]! / n3 / boxMpcH;
-    displacement[3 * i + 1] = aIm[i]! / n3 / boxMpcH;
-    displacement[3 * i + 2] = bRe[i]! / n3 / boxMpcH;
-    const d = bIm[i]! / n3;
+    displacement[3 * i] = re[i]! * invN3Box;
+    displacement[3 * i + 1] = im[i]! * invN3Box;
+    displacement[3 * i + 2] = bRe[i]! * invN3Box;
+    const d = bIm[i]! * invN3;
     delta[i] = d;
     sum2 += d * d;
   }
 
   // Deformation tensor −∂ψ_i/∂q_j by central differences (ψ in box units,
-  // q in box units: spacing 1/n).
+  // q in box units: spacing 1/n). n is a power of two (enforced by fft3d).
   const eigenvalues = new Float32Array(3 * n3);
-  const at = (i: number, j: number, k: number): number => ((i + n) % n) + n * (((j + n) % n) + n * ((k + n) % n));
+  const mask = n - 1;
+  const n2 = n * n;
   const h = n / 2; // 1 / (2 Δq)
   for (let k = 0; k < n; k++) {
+    const kOff = k * n2;
+    const kpOff = ((k + 1) & mask) * n2;
+    const kmOff = ((k - 1) & mask) * n2;
     for (let j = 0; j < n; j++) {
+      const jOff = j * n;
+      const jpOff = ((j + 1) & mask) * n;
+      const jmOff = ((j - 1) & mask) * n;
+      const jkOff = jOff + kOff;
+      const jpkOff = jpOff + kOff;
+      const jmkOff = jmOff + kOff;
+      const jkpOff = jOff + kpOff;
+      const jkmOff = jOff + kmOff;
       for (let i = 0; i < n; i++) {
-        const xp = 3 * at(i + 1, j, k), xm = 3 * at(i - 1, j, k);
-        const yp = 3 * at(i, j + 1, k), ym = 3 * at(i, j - 1, k);
-        const zp = 3 * at(i, j, k + 1), zm = 3 * at(i, j, k - 1);
+        const ip = (i + 1) & mask;
+        const imIdx = (i - 1) & mask;
+        const xp = 3 * (ip + jkOff);
+        const xm = 3 * (imIdx + jkOff);
+        const yp = 3 * (i + jpkOff);
+        const ym = 3 * (i + jmkOff);
+        const zp = 3 * (i + jkpOff);
+        const zm = 3 * (i + jkmOff);
         const dxx = -(displacement[xp]! - displacement[xm]!) * h;
         const dyy = -(displacement[yp + 1]! - displacement[ym + 1]!) * h;
         const dzz = -(displacement[zp + 2]! - displacement[zm + 2]!) * h;
         const dxy = -0.5 * ((displacement[yp]! - displacement[ym]!) + (displacement[xp + 1]! - displacement[xm + 1]!)) * h;
         const dyz = -0.5 * ((displacement[zp + 1]! - displacement[zm + 1]!) + (displacement[yp + 2]! - displacement[ym + 2]!)) * h;
         const dxz = -0.5 * ((displacement[zp]! - displacement[zm]!) + (displacement[xp + 2]! - displacement[xm + 2]!)) * h;
-        symmetricEigenvalues(dxx, dyy, dzz, dxy, dyz, dxz, eigenvalues, 3 * (i + n * (j + n * k)));
+        symmetricEigenvalues(dxx, dyy, dzz, dxy, dyz, dxz, eigenvalues, 3 * (i + jkOff));
       }
     }
   }
@@ -218,20 +270,45 @@ export function createCosmicWeb(spectrum: WebSpectrum, options: WebOptions): Cos
   // Local maxima of δ in the 26-neighbourhood.
   const peaks: { index: number; delta: number }[] = [];
   for (let k = 0; k < n; k++) {
+    const k0 = ((k - 1) & mask) * n2;
+    const k1 = k * n2;
+    const k2 = ((k + 1) & mask) * n2;
     for (let j = 0; j < n; j++) {
+      const j0 = ((j - 1) & mask) * n;
+      const j1 = j * n;
+      const j2 = ((j + 1) & mask) * n;
+      const rowOff = j1 + k1;
       for (let i = 0; i < n; i++) {
-        const index = i + n * (j + n * k);
+        const index = i + rowOff;
         const d = delta[index]!;
         if (d <= 0) continue;
+        const i0 = (i - 1) & mask;
+        const i2 = (i + 1) & mask;
+        // Fast 6-face check eliminates >90% of non-peaks before scanning diagonals.
+        if (
+          delta[i0 + rowOff]! >= d ||
+          delta[i2 + rowOff]! >= d ||
+          delta[i + j0 + k1]! >= d ||
+          delta[i + j2 + k1]! >= d ||
+          delta[i + j1 + k0]! >= d ||
+          delta[i + j1 + k2]! >= d
+        ) {
+          continue;
+        }
         let isPeak = true;
-        for (let dk = -1; dk <= 1 && isPeak; dk++)
-          for (let dj = -1; dj <= 1 && isPeak; dj++)
-            for (let di = -1; di <= 1; di++) {
-              if ((di || dj || dk) && delta[at(i + di, j + dj, k + dk)]! >= d) {
-                isPeak = false;
-                break;
-              }
+        for (let dk = -1; dk <= 1 && isPeak; dk++) {
+          const ko = dk === -1 ? k0 : dk === 0 ? k1 : k2;
+          for (let dj = -1; dj <= 1 && isPeak; dj++) {
+            const jko = (dj === -1 ? j0 : dj === 0 ? j1 : j2) + ko;
+            if (
+              (i0 + jko !== index && delta[i0 + jko]! >= d) ||
+              (i + jko !== index && delta[i + jko]! >= d) ||
+              (i2 + jko !== index && delta[i2 + jko]! >= d)
+            ) {
+              isPeak = false;
             }
+          }
+        }
         if (isPeak) peaks.push({ index, delta: d });
       }
     }

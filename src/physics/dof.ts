@@ -25,6 +25,7 @@ export const GRHO_TODAY = DOF_GRHO[0]!;
 export const DOF_T_MAX_GEV = DOF_T_GEV[DOF_T_GEV.length - 1]!;
 
 const DOF_T_MIN_K = gevToKelvin(DOF_T_GEV[0]!);
+const LN_GS_TODAY_THIRD = Math.log(GS_TODAY) / 3;
 
 /** g*s at photon temperature T [GeV]. */
 export function gStarS(tGeV: number): number {
@@ -51,34 +52,43 @@ export function standardModelThermalHistory(TCMB0: number): ThermalHistory {
   const scaleFactorAtTemperature = (temperatureK: number): number =>
     (TCMB0 / temperatureK) * Math.cbrt(GS_TODAY / gStarS(kelvinToGeV(temperatureK)));
 
-  const temperatureAtScaleFactor = (a: number): number => {
+  const solveLnTAndGs = (a: number): { lnTempK: number; gs: number } | null => {
     // Below the table g*s is constant, so T = T0/a exactly.
-    if (TCMB0 / a <= DOF_T_MIN_K) return TCMB0 / a;
+    if (TCMB0 / a <= DOF_T_MIN_K) return null;
     // Solve F(u) = u + ln g*s(e^u)/3 - ln(T0 g*s0^(1/3) / a) = 0 for u = ln T.
     // F is strictly increasing (d ln g*s / d ln T > -0.01 in the table), so
     // the root is unique; the secant method converges in a few steps.
-    const target = Math.log(TCMB0 / a) + Math.log(GS_TODAY) / 3;
-    const f = (u: number): number => u + Math.log(gsInterp.evaluate(u + LN_K_GEV)) / 3 - target;
-    let u0 = Math.log(TCMB0 / a);
-    let f0 = f(u0);
+    const lnTNaive = Math.log(TCMB0 / a);
+    const target = lnTNaive + LN_GS_TODAY_THIRD;
+    let u0 = lnTNaive;
+    let gs0 = gsInterp.evaluate(u0 + LN_K_GEV);
+    let f0 = u0 + Math.log(gs0) / 3 - target;
     let u1 = u0 - f0;
-    let f1 = f(u1);
+    let gs1 = gsInterp.evaluate(u1 + LN_K_GEV);
+    let f1 = u1 + Math.log(gs1) / 3 - target;
     for (let k = 0; k < 60 && f1 !== 0; k++) {
       const slope = (f1 - f0) / (u1 - u0);
       const u2 = slope > 0 && Number.isFinite(slope) ? u1 - f1 / slope : u1 - f1;
       u0 = u1;
       f0 = f1;
       u1 = u2;
-      f1 = f(u1);
+      gs1 = gsInterp.evaluate(u1 + LN_K_GEV);
+      f1 = u1 + Math.log(gs1) / 3 - target;
       if (Math.abs(u1 - u0) <= 1e-15 * Math.max(1, Math.abs(u1))) break;
     }
-    return Math.exp(u1);
+    return { lnTempK: u1, gs: gs1 };
+  };
+
+  const temperatureAtScaleFactor = (a: number): number => {
+    const solved = solveLnTAndGs(a);
+    return solved === null ? TCMB0 / a : Math.exp(solved.lnTempK);
   };
 
   const radiationFactor = (a: number): number => {
-    const tGeV = kelvinToGeV(temperatureAtScaleFactor(a));
-    const gs = gStarS(tGeV);
-    return (gStarRho(tGeV) / GRHO_TODAY) * Math.pow(GS_TODAY / gs, 4 / 3);
+    const solved = solveLnTAndGs(a);
+    if (solved === null) return 1;
+    const grho = grhoInterp.evaluate(solved.lnTempK + LN_K_GEV);
+    return (grho / GRHO_TODAY) * Math.pow(GS_TODAY / solved.gs, 4 / 3);
   };
 
   return { scaleFactorAtTemperature, temperatureAtScaleFactor, radiationFactor };

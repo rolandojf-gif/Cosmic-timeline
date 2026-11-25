@@ -88,12 +88,16 @@ export interface ParticleScene {
 }
 
 function buildMatterGeometry(web: CosmicWeb, n: number): BufferGeometry {
-  const n3 = n * n * n;
-  const psi = new Int16Array(3 * n3);
-  const lambda = new Int16Array(3 * n3);
-  for (let i = 0; i < 3 * n3; i++) {
-    psi[i] = Math.round(Math.max(-1, Math.min(1, web.displacement[i]! / PSI_SCALE)) * 32767);
-    lambda[i] = Math.round(Math.max(-1, Math.min(1, web.eigenvalues[i]! / LAMBDA_SCALE)) * 32767);
+  let psi = web.psiInt16;
+  let lambda = web.lambdaInt16;
+  if (!psi || !lambda) {
+    const n3 = n * n * n;
+    psi = new Int16Array(3 * n3);
+    lambda = new Int16Array(3 * n3);
+    for (let i = 0; i < 3 * n3; i++) {
+      psi[i] = Math.round(Math.max(-1, Math.min(1, web.displacement[i]! / PSI_SCALE)) * 32767);
+      lambda[i] = Math.round(Math.max(-1, Math.min(1, web.eigenvalues[i]! / LAMBDA_SCALE)) * 32767);
+    }
   }
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new Int16BufferAttribute(psi, 3, true));
@@ -212,6 +216,11 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   const baseLookQuat = new Quaternion().setFromUnitVectors(new Vector3(0, 0, -1), baseLookDir);
   const rotEuler = new Euler(0, 0, 0, 'YXZ');
   const rotQuat = new Quaternion();
+  // Preallocated scratch vectors to avoid per-frame / per-pointer allocations.
+  const driftOffset = new Vector3();
+  const targetWorld = new Vector3();
+  const panRight = new Vector3();
+  const panUp = new Vector3();
 
   // --- Background: 3D noise texture and raymarched plasma/CMB sky ---
   const noiseSize = 64;
@@ -303,6 +312,8 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     resolveWebReady = resolve;
   });
 
+  const webAbort = new AbortController();
+
   void generateCosmicWeb(
     {
       omegaM: PLANCK2018.omegaM,
@@ -313,6 +324,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       sigma8: PLANCK2018.sigma8,
     },
     { n: N, boxMpcH: BOX, smoothingMpcH: 2.5, seed: 11 },
+    { quantiseForScene: true, signal: webAbort.signal },
   ).then((web) => {
     if (disposed) return;
 
@@ -559,7 +571,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     // Continuous subtle camera drift with parallax: steady forward glide through the periodic box
     if (!options.reducedMotion) {
       const driftSpeed = 0.0003;
-      const driftOffset = new Vector3(
+      driftOffset.set(
         (visualSeconds * driftSpeed * 0.8) % 1,
         (visualSeconds * driftSpeed * 0.4) % 1,
         (visualSeconds * driftSpeed * 0.6) % 1,
@@ -658,13 +670,18 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       dx -= Math.round(dx);
       dy -= Math.round(dy);
       dz -= Math.round(dz);
-      const worldPos = new Vector3(dx * BOX, dy * BOX, dz * BOX);
-      const proj = worldPos.clone().project(camera);
+      targetWorld.set(dx * BOX, dy * BOX, dz * BOX).project(camera);
       const width = canvas.clientWidth || window.innerWidth;
       const height = canvas.clientHeight || window.innerHeight;
-      const sx = (proj.x * 0.5 + 0.5) * width;
-      const sy = (-proj.y * 0.5 + 0.5) * height;
-      const inView = proj.z > 0 && proj.z < 1 && proj.x >= -0.9 && proj.x <= 0.9 && proj.y >= -0.9 && proj.y <= 0.9;
+      const sx = (targetWorld.x * 0.5 + 0.5) * width;
+      const sy = (-targetWorld.y * 0.5 + 0.5) * height;
+      const inView =
+        targetWorld.z > 0 &&
+        targetWorld.z < 1 &&
+        targetWorld.x >= -0.9 &&
+        targetWorld.x <= 0.9 &&
+        targetWorld.y >= -0.9 &&
+        targetWorld.y <= 0.9;
       options.onTargetScreenPos({ x: sx, y: sy, visible: inView && state.galaxiesVisible > 0.05 });
     }
 
@@ -792,10 +809,10 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       if (e.shiftKey || e.button === 2) {
         // Lateral pan through periodic box space
         const panSpeed = (0.0006 * targetFov) / DEFAULT_FOV;
-        const right = new Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-        const up = new Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-        targetPan.addScaledVector(right, -dx * panSpeed);
-        targetPan.addScaledVector(up, dy * panSpeed);
+        panRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
+        panUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
+        targetPan.addScaledVector(panRight, -dx * panSpeed);
+        targetPan.addScaledVector(panUp, dy * panSpeed);
       } else {
         // Orbit / Look around
         const rotSpeed = 0.0035;
@@ -925,6 +942,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     },
     dispose() {
       disposed = true;
+      webAbort.abort();
       if (animFrameId) {
         cancelAnimationFrame(animFrameId);
         animFrameId = 0;
