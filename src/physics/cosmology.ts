@@ -24,7 +24,7 @@ import {
   standardModelThermalHistory,
   type ThermalHistory,
 } from './dof';
-import { compositeGaussLegendre5, gaussLegendre5 } from './integrate';
+import { GL5_NODES, GL5_WEIGHTS, compositeGaussLegendre5 } from './integrate';
 import { findInterval, hermite, hermiteDerivative } from './interp';
 import { PLANCK2018, type CosmologyParams } from './params';
 import { ELECTROWEAK_CROSSOVER_GEV, NEUTRON_FREEZE_OUT_GEV, type Tier } from './validity';
@@ -137,10 +137,6 @@ export function createCosmology(
 
   // Integrands in x = ln a.
   const dtdx = (x: number): number => 1 / hubbleAtScaleFactor(Math.exp(x));
-  const dchidx = (x: number): number => {
-    const a = Math.exp(x);
-    return SPEED_OF_LIGHT / (a * hubbleAtScaleFactor(a));
-  };
 
   const defaultLnAMin = Math.floor(
     Math.log(thermal.scaleFactorAtTemperature(gevToKelvin(DOF_T_MAX_GEV))),
@@ -152,6 +148,31 @@ export function createCosmology(
   const earlyTail = (f: (x: number) => number, x: number): number =>
     compositeGaussLegendre5(f, x - EARLY_TAIL_LN_A, x, EARLY_TAIL_PANELS);
 
+  // Evaluate dt/dx = 1/H and dchi/dx = c/(aH) at the same quadrature nodes so
+  // H(a) (and g*(T)) is solved once per node instead of twice.
+  const accumulatePair = (x0: number, x1: number, panels: number): [number, number] => {
+    const h = (x1 - x0) / panels;
+    let dtSum = 0;
+    let dchiSum = 0;
+    for (let p = 0; p < panels; p++) {
+      const a0 = x0 + p * h;
+      const half = 0.5 * h;
+      const mid = a0 + half;
+      let panelT = 0;
+      let panelChi = 0;
+      for (let k = 0; k < 5; k++) {
+        const w = GL5_WEIGHTS[k]!;
+        const a = Math.exp(mid + half * GL5_NODES[k]!);
+        const invH = 1 / hubbleAtScaleFactor(a);
+        panelT += w * invH;
+        panelChi += w * (SPEED_OF_LIGHT / a) * invH;
+      }
+      dtSum += panelT * half;
+      dchiSum += panelChi * half;
+    }
+    return [dtSum, dchiSum];
+  };
+
   const n = Math.max(2, Math.ceil(-lnAMin * nodesPerLnA) + 1);
   const lnA = new Float64Array(n);
   const lnT = new Float64Array(n);
@@ -159,12 +180,12 @@ export function createCosmology(
   for (let i = 0; i < n; i++) lnA[i] = lnAMin * (1 - i / (n - 1));
   lnA[n - 1] = 0;
 
-  let t = earlyTail(dtdx, lnA[0]!);
-  let chi = earlyTail(dchidx, lnA[0]!);
+  let [t, chi] = accumulatePair(lnA[0]! - EARLY_TAIL_LN_A, lnA[0]!, EARLY_TAIL_PANELS);
   for (let i = 0; i < n; i++) {
     if (i > 0) {
-      t += gaussLegendre5(dtdx, lnA[i - 1]!, lnA[i]!);
-      chi += gaussLegendre5(dchidx, lnA[i - 1]!, lnA[i]!);
+      const [dtStep, dchiStep] = accumulatePair(lnA[i - 1]!, lnA[i]!, 1);
+      t += dtStep;
+      chi += dchiStep;
     }
     lnT[i] = Math.log(t);
     slope[i] = 1 / (t * hubbleAtScaleFactor(Math.exp(lnA[i]!)));

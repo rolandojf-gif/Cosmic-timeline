@@ -197,6 +197,20 @@ export function buildSpeculativeView(t: number, tEW: number, locale: Locale, m: 
   };
 }
 
+const MODEL_SOURCE_LIST: readonly Source[] = MODEL_SOURCES.map((id) => SOURCES[id]);
+const COMPARISON_SOURCE_LIST: readonly Source[] = COMPARISON_SOURCES.map((id) => SOURCES[id]);
+const tEwCache = new WeakMap<Cosmology, number>();
+const landmarkCache = new WeakMap<Context, Map<string, readonly { readonly text: string; readonly sources: readonly Source[] }[]>>();
+
+function electroweakTime(cosmology: Cosmology): number {
+  let cached = tEwCache.get(cosmology);
+  if (cached === undefined) {
+    cached = cosmology.timeAtTemperature(gevToKelvin(ELECTROWEAK_CROSSOVER_GEV));
+    tEwCache.set(cosmology, cached);
+  }
+  return cached;
+}
+
 export function panelView(context: Context, t: number, locale: Locale, m: Messages): PanelView {
   const { cosmology, epochs, milestones } = context;
   const duration = (seconds: number): string => formatDuration(seconds, locale, m.units);
@@ -208,8 +222,9 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
 
   const time = duration(t);
   const lookbackSeconds = cosmology.age - t;
+  const lookback = lookbackSeconds > 0 ? duration(lookbackSeconds) : null;
 
-  const tEW = cosmology.timeAtTemperature(gevToKelvin(ELECTROWEAK_CROSSOVER_GEV));
+  const tEW = electroweakTime(cosmology);
 
   let epochName = text.name;
   let rawDescription = text.description;
@@ -239,32 +254,42 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
     darkEnergy: duration(cosmology.age - milestones.darkEnergy),
   });
 
-  const landmarks = resolved.landmarks.map((landmark) => {
-    const landmarkText = (m.landmarks as Readonly<Record<string, { name: string; description: string }>>)[
-      landmark.id
-    ];
-    if (!landmarkText) throw new Error(`no text for landmark ${landmark.id}`);
-    let zStr = '—';
-    if (landmark.source.at.kind === 'redshift') {
-      zStr = formatNumber(landmark.source.at.z, locale);
-    } else {
-      const p = cosmology.stateAt(landmark.time).physical;
-      if (p !== null) {
-        zStr = formatNumber(1 / p.a - 1, locale);
+  let ctxLandmarks = landmarkCache.get(context);
+  if (!ctxLandmarks) {
+    ctxLandmarks = new Map();
+    landmarkCache.set(context, ctxLandmarks);
+  }
+  const lmKey = `${locale}:${epochIndex}`;
+  let landmarks = ctxLandmarks.get(lmKey);
+  if (!landmarks) {
+    landmarks = resolved.landmarks.map((landmark) => {
+      const landmarkText = (m.landmarks as Readonly<Record<string, { name: string; description: string }>>)[
+        landmark.id
+      ];
+      if (!landmarkText) throw new Error(`no text for landmark ${landmark.id}`);
+      let zStr = '—';
+      if (landmark.source.at.kind === 'redshift') {
+        zStr = formatNumber(landmark.source.at.z, locale);
+      } else {
+        const p = cosmology.stateAt(landmark.time).physical;
+        if (p !== null) {
+          zStr = formatNumber(1 / p.a - 1, locale);
+        }
       }
-    }
-    return {
-      text: fill(m.panel.landmark, {
-        name: landmarkText.name,
-        z: zStr,
-        time: duration(landmark.time),
-        description: fill(landmarkText.description, {
-          date: landmark.source.recordAsOf ? formatDate(landmark.source.recordAsOf, locale) : '',
+      return {
+        text: fill(m.panel.landmark, {
+          name: landmarkText.name,
+          z: zStr,
+          time: duration(landmark.time),
+          description: fill(landmarkText.description, {
+            date: landmark.source.recordAsOf ? formatDate(landmark.source.recordAsOf, locale) : '',
+          }),
         }),
-      }),
-      sources: landmark.source.sources.map((id) => SOURCES[id]),
-    };
-  });
+        sources: landmark.source.sources.map((id) => SOURCES[id]),
+      };
+    });
+    ctxLandmarks.set(lmKey, landmarks);
+  }
 
   let human: HumanRow[] | null = null;
   let technical: TechnicalRow[] | null = null;
@@ -355,8 +380,8 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
   const ticker: TickerView = {
     cosmicTimeLabel: m.ticker.cosmicTime,
     time,
-    lookbackLabel: lookbackSeconds > 0 ? m.ticker.lookback : null,
-    lookback: lookbackSeconds > 0 ? duration(lookbackSeconds) : null,
+    lookbackLabel: lookback !== null ? m.ticker.lookback : null,
+    lookback,
     epochLabel: m.ticker.epoch,
     epochName,
     keyDataLabel: m.ticker.keyData,
@@ -397,7 +422,7 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
   return {
     epochIndex,
     time,
-    lookback: lookbackSeconds > 0 ? duration(lookbackSeconds) : null,
+    lookback,
     epochName,
     evidence: m.evidence[epoch.evidence],
     interval: intervalText,
@@ -411,8 +436,8 @@ export function panelView(context: Context, t: number, locale: Locale, m: Messag
     tierKey: state.tier,
     tierBadge: m.meta.tierBadges[state.tier],
     speculative: state.physical === null ? buildSpeculativeView(t, tEW, locale, m) : null,
-    modelSources: MODEL_SOURCES.map((id) => SOURCES[id]),
-    comparisonSources: COMPARISON_SOURCES.map((id) => SOURCES[id]),
+    modelSources: MODEL_SOURCE_LIST,
+    comparisonSources: COMPARISON_SOURCE_LIST,
     valueText: fill(m.control.valueText, { time, epoch: epochName }),
     ticker,
     flashCard,

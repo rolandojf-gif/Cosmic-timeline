@@ -17,6 +17,7 @@ import { licenceVars } from './licenceVars';
 import { createLicenseLine } from './licenseLine';
 import { createTicker } from './ticker';
 import { createTimeControl } from './timeControl';
+import { buildShareUrl, initialPositionFromUrl } from './urlState';
 import { panelView, type Context } from './view';
 
 export function startApp(root: HTMLElement): void {
@@ -38,8 +39,9 @@ export function startApp(root: HTMLElement): void {
 
   let locale: Locale = detectLocale(location.search, navigator.languages);
   const mobileLayout = matchMedia('(max-width: 599px)');
-  // The journey starts at the beginning of the control.
-  let u = 0;
+  // Start at ?epoch=... or ?t=... when provided, otherwise at the Planck epoch.
+  const initialPos = initialPositionFromUrl(location.search, epochs, scale);
+  let u = initialPos.u;
   let localeChanged = true;
   let frame = 0;
 
@@ -60,8 +62,9 @@ export function startApp(root: HTMLElement): void {
   let togglePlayAndPanel = (): void => {};
   const flashCard = createFlashCard(() => togglePlayAndPanel());
 
-  // Separate from the cinematic flash card: only shown on true automatic
-  // milestone pauses, never after manual Play/Pause or timeline scrubbing.
+  // Separate from the cinematic flash card: shown whenever the journey stops
+  // (automatic milestone pauses, manual pauses, or milestone jumps), never on
+  // initial load or while scrubbing the slider.
   const continueIcon = el('span', { class: 'resume-cue__icon', 'aria-hidden': 'true' }, '▶');
   const continueLabel = el('span', { class: 'resume-cue__label' });
   const continueCue = el('button', {
@@ -83,8 +86,29 @@ export function startApp(root: HTMLElement): void {
     panelToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
+  let panelDirty = true;
+  let lastView: ReturnType<typeof panelView> | null = null;
+
   panel.setOnOpenChange((open, pinned, expanded) => {
     updateDrawerClasses(open, pinned, expanded);
+    if (open && panelDirty && lastView) {
+      panel.update(lastView, MESSAGES[locale]);
+      panelDirty = false;
+    }
+  });
+
+  panel.setOnShare(async () => {
+    const shareUrl = buildShareUrl(location.href, u, epochs, scale, locale);
+    history.replaceState(null, '', shareUrl);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        return true;
+      }
+    } catch {
+      // Fallback below when clipboard API is blocked.
+    }
+    return false;
   });
 
   panelToggle.addEventListener('click', () => {
@@ -176,8 +200,15 @@ export function startApp(root: HTMLElement): void {
 
   const calloutLayer = el('div', { class: 'callout-layer' }, callout);
 
+  function syncResponsiveToggleLabel(): void {
+    const m = MESSAGES[locale];
+    setText(panelToggle, mobileLayout.matches ? 'Info' : m.meta.sciencePanel);
+  }
+  mobileLayout.addEventListener('change', syncResponsiveToggleLabel);
+
   let currentTargetEpochId: 'reheating' | 'milkyWay' | 'solarSystem' | 'earth' | 'today' | null = null;
   let targetScreenPos: { x: number; y: number; visible: boolean } | null = null;
+  let lastCalloutKey = '';
 
   callout.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -200,16 +231,32 @@ export function startApp(root: HTMLElement): void {
   });
 
   function updateCalloutPosition(): void {
-    if (!targetScreenPos || !targetScreenPos.visible || !currentTargetEpochId) {
-      callout.classList.remove('visible');
-      callout.hidden = true;
+    const pos =
+      currentTargetEpochId === 'reheating'
+        ? { x: Math.round(window.innerWidth * 0.65), y: Math.round(window.innerHeight * 0.4), visible: true }
+        : targetScreenPos;
+    if (!pos || !pos.visible || !currentTargetEpochId) {
+      if (lastCalloutKey !== 'hidden') {
+        callout.classList.remove('visible');
+        callout.hidden = true;
+        lastCalloutKey = 'hidden';
+      }
       return;
     }
-    callout.hidden = false;
-    callout.style.left = `${targetScreenPos.x}px`;
-    callout.style.top = `${targetScreenPos.y}px`;
-    callout.classList.add('visible');
+    const x = Math.round(pos.x);
+    const y = Math.round(pos.y);
+    const key = `${x},${y}`;
+    if (key !== lastCalloutKey) {
+      callout.hidden = false;
+      callout.style.left = `${x}px`;
+      callout.style.top = `${y}px`;
+      callout.classList.add('visible');
+      lastCalloutKey = key;
+    }
   }
+  window.addEventListener('resize', () => {
+    if (currentTargetEpochId === 'reheating') updateCalloutPosition();
+  });
 
   const dock = el('div', { class: 'dock' }, control.element, sceneNote, licences.element);
   const updateDockHeight = () => {
@@ -242,11 +289,53 @@ export function startApp(root: HTMLElement): void {
     schedule();
   });
 
+  // Global keyboard shortcuts (Space: play/pause, Escape: close panel,
+  // [ / ] or ArrowLeft / ArrowRight when slider is not focused: step milestones).
+  window.addEventListener('keydown', (event) => {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    const target = event.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable)
+    ) {
+      return;
+    }
+    if (event.key === 'Escape' && panel.isOpen()) {
+      event.preventDefault();
+      panel.setPinned(false);
+      panel.setOpen(false);
+      return;
+    }
+    const isInteractiveTarget =
+      target !== null &&
+      (target.closest('button, a, summary, [role="slider"]') !== null);
+    if ((event.key === ' ' || event.key === 'Spacebar') && !isInteractiveTarget) {
+      event.preventDefault();
+      control.togglePlay();
+      return;
+    }
+    const onSlider = target?.closest('[role="slider"]') !== null;
+    if (!onSlider) {
+      if (event.key === '[' || (!isInteractiveTarget && event.key === 'ArrowLeft')) {
+        event.preventDefault();
+        control.stepPrev();
+      } else if (event.key === ']' || (!isInteractiveTarget && event.key === 'ArrowRight')) {
+        event.preventDefault();
+        control.stepNext();
+      }
+    }
+  });
+
   function render(): void {
     frame = 0;
     const m = MESSAGES[locale];
     const t = scale.timeAt(u);
     const view = panelView(context, t, locale, m);
+    lastView = view;
+    const isLocaleUpdate = localeChanged;
 
     if (localeChanged) {
       document.documentElement.lang = locale;
@@ -264,39 +353,45 @@ export function startApp(root: HTMLElement): void {
       languageButton.setAttribute('lang', locale === 'es' ? 'en' : 'es');
       licences.update(m, licenceVars(locale, m, visualMap.growth));
       setText(sceneNote, m.scene[sceneProblem]);
+      control.setTexts({
+        label: m.control.label,
+        valueText: view.valueText,
+        stopsLabel: m.control.stops,
+        stopLabels: epochs.map((e) => m.epochs[e.id].short),
+        rulerCaption: m.control.rulerCaption,
+        keyboardHint: m.control.keyboardHint,
+        play: m.control.play,
+        pause: m.control.pause,
+        reset: m.control.reset,
+        prevStop: m.control.prevStop,
+        nextStop: m.control.nextStop,
+        autoPause: m.control.autoPause,
+        autoPauseLabel: m.control.autoPauseLabel,
+        speed: m.control.speed,
+      });
       localeChanged = false;
     }
 
-    panel.update(view, m);
+    if (panel.isOpen() || isLocaleUpdate) {
+      panel.update(view, m);
+      panelDirty = false;
+    } else {
+      panelDirty = true;
+    }
     ticker.update(view.ticker);
     flashCard.show(view.flashCard, isPlaying);
     scene?.show(u, isPlaying, isPlaying);
     control.update(u, view.epochIndex);
-    control.setTexts({
-      label: m.control.label,
-      valueText: view.valueText,
-      stopsLabel: m.control.stops,
-      stopLabels: epochs.map((e) => m.epochs[e.id].short),
-      rulerCaption: m.control.rulerCaption,
-      keyboardHint: m.control.keyboardHint,
-      play: m.control.play,
-      pause: m.control.pause,
-      reset: m.control.reset,
-      prevStop: m.control.prevStop,
-      nextStop: m.control.nextStop,
-      autoPause: m.control.autoPause,
-      autoPauseLabel: m.control.autoPauseLabel,
-      speed: m.control.speed,
-    });
+    control.setValueText(view.valueText);
 
     const currentEpoch = epochs[view.epochIndex];
     const epochId = currentEpoch?.id;
+    const prevTarget = currentTargetEpochId;
     if (epochId === 'inflation' && t >= 1e-32 && t <= 1e-28) {
       currentTargetEpochId = 'reheating';
       setText(calloutTitle, m.callout.reheating);
       setText(calloutSub, m.callout.reheatingSub);
       callout.setAttribute('aria-label', `${m.callout.reheating}: ${m.callout.reheatingSub}`);
-      targetScreenPos = { x: Math.round(window.innerWidth * 0.65), y: Math.round(window.innerHeight * 0.40), visible: true };
     } else if (epochId === 'milkyWay') {
       currentTargetEpochId = 'milkyWay';
       setText(calloutTitle, m.callout.milkyWay);
@@ -320,6 +415,10 @@ export function startApp(root: HTMLElement): void {
     } else {
       currentTargetEpochId = null;
     }
+    // Clear stale screen position when leaving reheating or entering a non-target epoch.
+    if (currentTargetEpochId === null || (prevTarget === 'reheating' && currentTargetEpochId !== 'reheating')) {
+      targetScreenPos = null;
+    }
     updateCalloutPosition();
   }
 
@@ -328,6 +427,10 @@ export function startApp(root: HTMLElement): void {
   }
 
   render();
+  if (initialPos.explicit) {
+    if (mobileLayout.matches) panel.setExpanded(false);
+    panel.setOpen(true);
+  }
   void loadScene();
 
   async function loadScene(): Promise<void> {

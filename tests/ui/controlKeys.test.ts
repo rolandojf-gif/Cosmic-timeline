@@ -1,7 +1,7 @@
 // Keyboard behaviour of the time control (WAI-ARIA slider pattern).
 
 import { describe, expect, it } from 'vitest';
-import { COARSE_STEP, FINE_STEP, positionAfterKey } from '../../src/ui/controlKeys';
+import { COARSE_STEP, FINE_STEP, SNAP_THRESHOLD, positionAfterKey, snapToStop } from '../../src/ui/controlKeys';
 
 const stops = [0, 0.1, 0.3, 0.6, 1];
 
@@ -30,5 +30,13 @@ describe('time control keys', () => {
     expect(positionAfterKey('Home', false, 0.4, stops)).toBe(0);
     expect(positionAfterKey('End', false, 0.4, stops)).toBe(1);
     expect(positionAfterKey('a', false, 0.4, stops)).toBeNull();
+  });
+
+  it('softly snaps pointer scrubbing to nearby milestone stops', () => {
+    expect(snapToStop(0.3 + SNAP_THRESHOLD * 0.5, stops)).toBe(0.3);
+    expect(snapToStop(0.6 - SNAP_THRESHOLD * 0.8, stops)).toBe(0.6);
+    expect(snapToStop(0.45, stops)).toBe(0.45);
+    expect(snapToStop(-0.1, stops)).toBe(0);
+    expect(snapToStop(1.2, stops)).toBe(1);
   });
 });

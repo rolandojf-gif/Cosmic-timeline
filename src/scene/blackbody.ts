@@ -35,6 +35,26 @@ export function colourMatching(nm: number): Triple {
 const NM_MIN = 360;
 const NM_MAX = 830;
 const NM_STEP = 1;
+const NM_COUNT = (NM_MAX - NM_MIN) / NM_STEP + 1;
+
+// Precompute wavelength-only terms and CIE 1931 2° weights once at module load
+// (identical values for every temperature T).
+const LOG_LAMBDA_5 = new Float64Array(NM_COUNT);
+const C2_OVER_LAMBDA = new Float64Array(NM_COUNT);
+const CM_X = new Float64Array(NM_COUNT);
+const CM_Y = new Float64Array(NM_COUNT);
+const CM_Z = new Float64Array(NM_COUNT);
+const LOG_RADIANCE_BUF = new Float64Array(NM_COUNT);
+
+for (let i = 0; i < NM_COUNT; i++) {
+  const nm = NM_MIN + i * NM_STEP;
+  LOG_LAMBDA_5[i] = -5 * Math.log(nm / 1000);
+  C2_OVER_LAMBDA[i] = SECOND_RADIATION_CONSTANT / (nm * 1e-9);
+  const [x, y, z] = colourMatching(nm);
+  CM_X[i] = x;
+  CM_Y[i] = y;
+  CM_Z[i] = z;
+}
 
 /** ln(eˣ − 1) without overflow for large x nor loss of precision for small x. */
 const logExpm1 = (x: number): number => (x > 30 ? x + Math.log1p(-Math.exp(-x)) : Math.log(Math.expm1(x)));
@@ -47,22 +67,22 @@ const logExpm1 = (x: number): number => (x > 30 ? x + Math.log1p(-Math.exp(-x)) 
  * (10¹⁵ K). Only ratios are meaningful; the overall scale is arbitrary.
  */
 export function blackbodyXYZ(kelvin: number): Triple {
-  const logRadiance: number[] = [];
-  for (let nm = NM_MIN; nm <= NM_MAX; nm += NM_STEP) {
-    // λ in µm keeps λ⁻⁵ of order one.
-    logRadiance.push(-5 * Math.log(nm / 1000) - logExpm1(SECOND_RADIATION_CONSTANT / (nm * 1e-9 * kelvin)));
+  const invT = 1 / kelvin;
+  let peak = -Infinity;
+  for (let i = 0; i < NM_COUNT; i++) {
+    const lr = LOG_LAMBDA_5[i]! - logExpm1(C2_OVER_LAMBDA[i]! * invT);
+    LOG_RADIANCE_BUF[i] = lr;
+    if (lr > peak) peak = lr;
   }
-  const peak = Math.max(...logRadiance);
   let X = 0;
   let Y = 0;
   let Z = 0;
-  logRadiance.forEach((log, i) => {
-    const radiance = Math.exp(log - peak);
-    const [x, y, z] = colourMatching(NM_MIN + i * NM_STEP);
-    X += radiance * x;
-    Y += radiance * y;
-    Z += radiance * z;
-  });
+  for (let i = 0; i < NM_COUNT; i++) {
+    const radiance = Math.exp(LOG_RADIANCE_BUF[i]! - peak);
+    X += radiance * CM_X[i]!;
+    Y += radiance * CM_Y[i]!;
+    Z += radiance * CM_Z[i]!;
+  }
   return [X, Y, Z];
 }
 

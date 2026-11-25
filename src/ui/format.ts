@@ -24,6 +24,12 @@ const PLAIN_MAX = 1e6;
 
 const numberFormats = new Map<string, Intl.NumberFormat>();
 const pluralRules = new Map<string, Intl.PluralRules>();
+const celsiusFormats = new Map<Locale, Intl.NumberFormat>();
+const percentFormats = new Map<Locale, Intl.NumberFormat>();
+const dateFormats = new Map<Locale, Intl.DateTimeFormat>();
+const durationLadders = new WeakMap<Units, readonly Rung[]>();
+const lengthLadders = new WeakMap<Units, readonly Rung[]>();
+const countLadders = new WeakMap<Units, readonly Rung[]>();
 
 function numberFormat(locale: Locale, digits: number): Intl.NumberFormat {
   const key = `${locale}:${digits}`;
@@ -136,37 +142,45 @@ const DAY = 86_400;
 
 /** A duration in seconds, in the most readable unit. */
 export function formatDuration(seconds: number, locale: Locale, units: Units): string {
-  const ladder: Rung[] = [
-    // Below a picosecond there is no everyday word: seconds in scientific
-    // notation. Only the speculative tier reaches it; the model's values start
-    // at the electroweak crossover, ~10⁻¹¹ s.
-    { unit: 1, from: 0, template: units.seconds },
-    { unit: 1e-12, from: 1e-12, template: units.picoseconds },
-    { unit: 1e-9, from: 1e-9, template: units.nanoseconds },
-    { unit: 1e-6, from: 1e-6, template: units.microseconds },
-    { unit: 1e-3, from: 1e-3, template: units.milliseconds },
-    { unit: 1, from: 1, template: units.seconds },
-    { unit: MINUTE, from: MINUTE, template: units.minutes },
-    { unit: HOUR, from: HOUR, template: units.hours },
-    { unit: DAY, from: DAY, template: units.days },
-    { unit: JULIAN_YEAR, from: JULIAN_YEAR, template: units.years },
-    { unit: 1e6 * JULIAN_YEAR, from: 1e6 * JULIAN_YEAR, template: units.millionYears },
-    { unit: 1e9 * JULIAN_YEAR, from: 1e9 * JULIAN_YEAR, template: units.billionYears },
-  ];
+  let ladder = durationLadders.get(units);
+  if (!ladder) {
+    ladder = [
+      // Below a picosecond there is no everyday word: seconds in scientific
+      // notation. Only the speculative tier reaches it; the model's values start
+      // at the electroweak crossover, ~10⁻¹¹ s.
+      { unit: 1, from: 0, template: units.seconds },
+      { unit: 1e-12, from: 1e-12, template: units.picoseconds },
+      { unit: 1e-9, from: 1e-9, template: units.nanoseconds },
+      { unit: 1e-6, from: 1e-6, template: units.microseconds },
+      { unit: 1e-3, from: 1e-3, template: units.milliseconds },
+      { unit: 1, from: 1, template: units.seconds },
+      { unit: MINUTE, from: MINUTE, template: units.minutes },
+      { unit: HOUR, from: HOUR, template: units.hours },
+      { unit: DAY, from: DAY, template: units.days },
+      { unit: JULIAN_YEAR, from: JULIAN_YEAR, template: units.years },
+      { unit: 1e6 * JULIAN_YEAR, from: 1e6 * JULIAN_YEAR, template: units.millionYears },
+      { unit: 1e9 * JULIAN_YEAR, from: 1e9 * JULIAN_YEAR, template: units.billionYears },
+    ];
+    durationLadders.set(units, ladder);
+  }
   return formatWithLadder(seconds, ladder, locale, units);
 }
 
 /** A length in metres: mm, m, km, astronomical units or light-years. */
 export function formatLength(meters: number, locale: Locale, units: Units): string {
-  const ladder: Rung[] = [
-    { unit: 1e-3, from: 0, template: units.millimeters },
-    { unit: 1, from: 1, template: units.meters },
-    { unit: 1e3, from: 1e3, template: units.kilometers },
-    { unit: ASTRONOMICAL_UNIT, from: 0.01 * ASTRONOMICAL_UNIT, template: units.astronomicalUnits },
-    { unit: LIGHT_YEAR, from: LIGHT_YEAR, template: units.lightYears },
-    { unit: 1e6 * LIGHT_YEAR, from: 1e6 * LIGHT_YEAR, template: units.millionLightYears },
-    { unit: 1e9 * LIGHT_YEAR, from: 1e9 * LIGHT_YEAR, template: units.billionLightYears },
-  ];
+  let ladder = lengthLadders.get(units);
+  if (!ladder) {
+    ladder = [
+      { unit: 1e-3, from: 0, template: units.millimeters },
+      { unit: 1, from: 1, template: units.meters },
+      { unit: 1e3, from: 1e3, template: units.kilometers },
+      { unit: ASTRONOMICAL_UNIT, from: 0.01 * ASTRONOMICAL_UNIT, template: units.astronomicalUnits },
+      { unit: LIGHT_YEAR, from: LIGHT_YEAR, template: units.lightYears },
+      { unit: 1e6 * LIGHT_YEAR, from: 1e6 * LIGHT_YEAR, template: units.millionLightYears },
+      { unit: 1e9 * LIGHT_YEAR, from: 1e9 * LIGHT_YEAR, template: units.billionLightYears },
+    ];
+    lengthLadders.set(units, ladder);
+  }
   return formatWithLadder(meters, ladder, locale, units);
 }
 
@@ -176,23 +190,30 @@ export function formatLength(meters: number, locale: Locale, units: Units): stri
  * Below a million, digits; from 10¹⁸ on, scientific notation.
  */
 export function formatCount(x: number, locale: Locale, units: Units): string {
-  const ladder: Rung[] = [
-    { unit: 1, from: 0, template: '{value}' },
-    { unit: 1e6, from: 1e6, template: units.countMillion },
-    { unit: 1e9, from: 1e9, template: units.countBillion },
-    { unit: 1e12, from: 1e12, template: units.countTrillion },
-    { unit: 1e15, from: 1e15, template: units.countQuadrillion },
-    { unit: 1, from: 1e18, template: '{value}' },
-  ];
+  let ladder = countLadders.get(units);
+  if (!ladder) {
+    ladder = [
+      { unit: 1, from: 0, template: '{value}' },
+      { unit: 1e6, from: 1e6, template: units.countMillion },
+      { unit: 1e9, from: 1e9, template: units.countBillion },
+      { unit: 1e12, from: 1e12, template: units.countTrillion },
+      { unit: 1e15, from: 1e15, template: units.countQuadrillion },
+      { unit: 1, from: 1e18, template: '{value}' },
+    ];
+    countLadders.set(units, ladder);
+  }
   return formatWithLadder(x, ladder, locale, units);
 }
 
 /** Kelvin → whole degrees Celsius, with a true minus sign. */
 export function formatCelsius(kelvin: number, locale: Locale): string {
   const celsius = Math.round(kelvin - CELSIUS_ZERO_K);
-  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 })
-    .format(celsius === 0 ? 0 : celsius)
-    .replace('-', '−');
+  let fmt = celsiusFormats.get(locale);
+  if (!fmt) {
+    fmt = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
+    celsiusFormats.set(locale, fmt);
+  }
+  return fmt.format(celsius === 0 ? 0 : celsius).replace('-', '−');
 }
 
 export function formatTemperature(kelvin: number, locale: Locale, units: Units): string {
@@ -218,9 +239,19 @@ export function formatHubble(perSecond: number, locale: Locale, units: Units): s
 }
 
 export function formatPercent(fraction: number, locale: Locale): string {
-  return new Intl.NumberFormat(locale, { style: 'percent', maximumSignificantDigits: 2 }).format(fraction);
+  let fmt = percentFormats.get(locale);
+  if (!fmt) {
+    fmt = new Intl.NumberFormat(locale, { style: 'percent', maximumSignificantDigits: 2 });
+    percentFormats.set(locale, fmt);
+  }
+  return fmt.format(fraction);
 }
 
 export function formatDate(iso: string, locale: Locale): string {
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
+  let fmt = dateFormats.get(locale);
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' });
+    dateFormats.set(locale, fmt);
+  }
+  return fmt.format(new Date(`${iso}T00:00:00Z`));
 }

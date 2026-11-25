@@ -26,30 +26,38 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
 
   // Turbulent density: domain-warped, ridged noise (filaments of hot
   // plasma); finer, more contorted and faster when hotter.
-  float density(vec3 p, float t) {
-    float f = mix(0.45, 1.5, uTurbulence);
+  // Loop-invariant factors are precomputed once per pixel in main().
+  float density(
+    vec3 p,
+    float f,
+    float sFactor,
+    float invSFactor,
+    float tSpeed,
+    float warpAmp,
+    float aWeight,
+    bool doStretch,
+    bool doClump
+  ) {
     vec3 q = p * f;
     // Anisotropic hyperluminal metric stretching during cosmic inflation
-    if (uStretch > 0.001) {
-      float sFactor = 1.0 + uStretch * 6.5;
-      q = vec3(q.x * sFactor, q.y * sFactor, q.z / sFactor);
+    if (doStretch) {
+      q = vec3(q.x * sFactor, q.y * sFactor, q.z * invSFactor);
     }
-    // Calm, majestic fluid animation speed (no frantic boiling / static noise)
-    float speed = mix(0.003, 0.014, uTurbulence);
+    vec3 qWarp = q * 0.4;
     vec3 warp = vec3(
-      n3(q * 0.4 + vec3(0.0, 0.0, t * speed)),
-      n3(q * 0.4 + vec3(0.31, t * speed, 0.17)),
-      n3(q * 0.4 + vec3(t * speed, 0.53, 0.71))
+      n3(qWarp + vec3(0.0, 0.0, tSpeed)),
+      n3(qWarp + vec3(0.31, tSpeed, 0.17)),
+      n3(qWarp + vec3(tSpeed, 0.53, 0.71))
     );
-    q += (warp - 0.5) * mix(0.5, 1.6, uTurbulence);
+    q += (warp - 0.5) * warpAmp;
     float a = n3(q);
     float b = n3(q * 2.3 + 0.37);
     float c = n3(q * 5.3 + 0.11);
     float ridge = 1.0 - abs(2.0 * b - 1.0);
     float r3 = ridge * ridge * ridge * uTurbulence;
-    float d = a * (0.9 - 0.4 * uTurbulence) + r3 * 0.4 + c * 0.1;
+    float d = a * aWeight + r3 * 0.4 + c * 0.1;
     // Nucleon confinement across hadron epoch: fluid breaks into discrete, dense globules
-    if (uClump > 0.001) {
+    if (doClump) {
       float globules = smoothstep(0.44, 0.72, b) * 1.35;
       d = mix(d, globules, uClump * 0.75);
     }
@@ -69,33 +77,51 @@ export const BACKGROUND_FRAGMENT_SHADER = /* glsl */ `
     vec3 colour = vec3(0.0);
     float transmittance = 1.0;
     if (uHaze > 0.001) {
+      // Precompute loop-invariant terms once per pixel instead of 28 times.
+      float f = mix(0.45, 1.5, uTurbulence);
+      bool doStretch = uStretch > 0.001;
+      float sFactor = 1.0 + uStretch * 6.5;
+      float invSFactor = 1.0 / sFactor;
+      float tSpeed = uTime * mix(0.003, 0.014, uTurbulence);
+      float warpAmp = mix(0.5, 1.6, uTurbulence);
+      float aWeight = 0.9 - 0.4 * uTurbulence;
+      bool doClump = uClump > 0.001;
+      vec3 deep = uColour * 0.3;
+      vec3 hot = mix(uColour, vec3(1.0), 0.6);
+      bool doFlare = uIntensity > 1.0;
+      float flare = (uIntensity - 1.0) * 4.0;
+      float calm = 1.0 - smoothstep(0.0, 0.12, uTurbulence);
+      float emerge = 1.0 - uHaze * uHaze;
+      vec3 cmbBase = mix(uCmbCold, uCmbHot, 0.5) * 0.9;
+      vec3 cmbColdScaled = uCmbCold * 0.4;
+      vec3 cmbHotScaled = uCmbHot * 1.5;
+      float hazeSigma = uHaze * uSigma;
+
       // March into the opaque plasma; it never ends, so what remains of the
       // ray sees more of the same glow.
       float s = 0.02;
       for (int i = 0; i < 28; i++) {
         vec3 p = uOrigin + dir * s;
-        float d = density(p, uTime);
-        float sigma = mix(0.05, 2.0, d) * uHaze * uSigma;
+        float d = density(p, f, sFactor, invSFactor, tSpeed, warpAmp, aWeight, doStretch, doClump);
+        float sigma = mix(0.05, 2.0, d) * hazeSigma;
         float ds = 0.015 + s * 0.15;
-        vec3 deep = uColour * 0.3;
-        vec3 hot = mix(uColour, vec3(1.0), 0.6);
         vec3 emission = mix(mix(deep, uColour, smoothstep(0.0, 0.6, d)), hot, smoothstep(0.6, 1.0, d)) * (0.12 + uEmit * d * d * d);
         // Reheating: incandescent volumetric flash ignites the entire volume at once
-        if (uIntensity > 1.0) {
-          float flare = (uIntensity - 1.0) * 4.0;
+        if (doFlare) {
           emission += vec3(1.0, 0.98, 0.91) * flare * (0.5 + 0.5 * d);
         }
         // Near recombination the plasma is calm: what remains are the hotter
         // and colder regions of the microwave-background pattern.
-        float calm = 1.0 - smoothstep(0.0, 0.12, uTurbulence);
-        // While fully opaque the glow is almost uniform; the pattern emerges as
-        // the fog clears.
-        float emerge = 1.0 - uHaze * uHaze;
-        vec3 cmbPatch = mix(mix(uCmbCold, uCmbHot, 0.5) * 0.9, mix(uCmbCold * 0.4, uCmbHot * 1.5, d) * (0.15 + 1.6 * d * d), emerge);
-        emission = mix(emission, cmbPatch, calm);
+        if (calm > 0.0) {
+          vec3 cmbPatch = mix(cmbBase, mix(cmbColdScaled, cmbHotScaled, d) * (0.15 + 1.6 * d * d), emerge);
+          emission = mix(emission, cmbPatch, calm);
+        }
         float absorbed = 1.0 - exp(-sigma * ds * 6.0);
         colour += transmittance * absorbed * emission;
         transmittance *= 1.0 - absorbed;
+        // Early ray termination once remaining transmittance contributes < 0.01%
+        // (well below 8-bit display precision after ACES tone mapping).
+        if (transmittance < 0.0001) break;
         s += ds;
       }
       colour += transmittance * uColour * 0.15;
@@ -166,7 +192,12 @@ export const MATTER_FRAGMENT_SHADER = /* glsl */ `
   out vec4 fragColour;
   void main() {
     vec2 c = gl_PointCoord - 0.5;
-    float disc = exp(-dot(c, c) * 16.0) * (1.0 - smoothstep(0.4, 0.5, length(c)));
+    float r2 = dot(c, c);
+#ifdef DISCARD_DARK_FRAGMENTS
+    // Early corner discard: r >= 0.5 makes smoothstep(0.4, 0.5, r) == 1.0 → disc == 0.0 → rgb == 0.
+    if (r2 >= 0.25) discard;
+#endif
+    float disc = exp(-r2 * 16.0) * (1.0 - smoothstep(0.4, 0.5, sqrt(r2)));
     vec3 gas = vec3(0.28, 0.30, 0.75);
     vec3 mid = vec3(0.75, 0.45, 0.95);
     vec3 dense = vec3(1.0, 0.78, 0.55);
@@ -191,12 +222,19 @@ export const GALAXIES_VERTEX_SHADER = /* glsl */ `
   out float vKind;
   out float vMember;
   out float vFade;
+  out vec2 vRot;
+  out float vIncl;
+  out float vYoung;
   void main() {
     float growthRatio = uD * aData.x * uBoost / 1.686;
     vAge = log(max(growthRatio, 1e-6));
     vSeed = aData.z;
     vKind = aData.w;
     vMember = aData.y;
+    float a = vSeed * 6.2831;
+    vRot = vec2(cos(a), sin(a));
+    vIncl = mix(0.25, 1.0, fract(vSeed * 7.13));
+    vYoung = 1.0 - smoothstep(0.3, 1.2, vAge);
     vec3 x = position + uD * aPsi;
     vec3 rel = (fract(x - uCam + 0.5) - 0.5) * uBox;
     vec4 mv = modelViewMatrix * vec4(rel, 1.0);
@@ -210,6 +248,9 @@ export const GALAXIES_VERTEX_SHADER = /* glsl */ `
     if (vMember > 0.5) size *= 0.6;
     gl_PointSize = lit > 0.0 ? clamp(size * uProj / max(-mv.z, 0.1), 2.0, 96.0) : 0.0;
     gl_Position = projectionMatrix * mv;
+#ifdef CULL_DARK_POINTS
+    if (vFade == 0.0) gl_Position = vec4(4.0, 4.0, 4.0, 1.0);
+#endif
   }
 `;
 
@@ -220,31 +261,31 @@ export const GALAXIES_FRAGMENT_SHADER = /* glsl */ `
   in float vKind;
   in float vMember;
   in float vFade;
+  in vec2 vRot;
+  in float vIncl;
+  in float vYoung;
   out vec4 fragColour;
   void main() {
     vec2 c = (gl_PointCoord - 0.5) * 2.0;
-    float young = 1.0 - smoothstep(0.3, 1.2, vAge);
-    // Orientation and inclination per galaxy.
-    float a = vSeed * 6.2831;
-    mat2 rot = mat2(cos(a), -sin(a), sin(a), cos(a));
-    vec2 p = rot * c;
-    float incl = mix(0.25, 1.0, fract(vSeed * 7.13));
-    p.y /= incl;
-    float r = length(p);
-    if (r > 1.0) discard;
-    float theta = atan(p.y, p.x);
+    // Orientation and inclination per galaxy (precomputed in vertex shader).
+    vec2 p = vec2(vRot.x * c.x + vRot.y * c.y, -vRot.y * c.x + vRot.x * c.y);
+    p.y /= vIncl;
+    float r2 = dot(p, p);
+    if (r2 > 1.0) discard;
+    float r = sqrt(r2);
     vec3 colour;
-    if (young > 0.5) {
+    if (vYoung > 0.5) {
       // First stars: a hot blue flash.
-      float core = exp(-r * r * 30.0);
+      float core = exp(-r2 * 30.0);
       colour = vec3(0.55, 0.7, 1.0) * (core * 9.0 + exp(-r * 6.0) * 0.6);
     } else {
       bool spiral = vKind < 0.62 && vMember < 0.5;
-      float bulge = exp(-r * r * 60.0);
+      float bulge = exp(-r2 * 60.0);
       float disk = exp(-r * 4.5);
       float body;
       vec3 tint;
       if (spiral) {
+        float theta = atan(p.y, p.x);
         float arms = 0.5 + 0.5 * cos(2.0 * (theta - log(r + 0.02) * 3.2) + vSeed * 9.0);
         body = disk * (0.35 + 0.9 * arms * smoothstep(0.05, 0.25, r));
         tint = mix(vec3(0.55, 0.68, 1.0), vec3(1.0, 0.9, 0.75), bulge);
