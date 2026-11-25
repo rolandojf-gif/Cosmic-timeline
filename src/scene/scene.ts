@@ -93,6 +93,8 @@ export interface ParticleScene {
   show(u: number, immediate?: boolean, playing?: boolean): void;
   /** Update the render frame-rate cap live without recreating WebGL resources. */
   setFpsCap(fps: SceneFpsCap): void;
+  /** Toggle smooth camera zoom/focus on the pinned landmark galaxy; returns new focused state. */
+  toggleTargetFocus(): boolean;
   dispose(): void;
   /** Readback hooks, only with ?bench in the URL. */
   readonly bench?: SceneBench | undefined;
@@ -210,10 +212,12 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   // Interactive camera controls (zoom & pan/orbit)
   const DEFAULT_FOV = 55;
+  const FOCUS_FOV = 24;
   const MIN_FOV = 22;
   const MAX_FOV = 85;
   let targetFov = DEFAULT_FOV;
   let currentFov = DEFAULT_FOV;
+  let targetFocused = false;
 
   let targetYaw = 0;
   let currentYaw = 0;
@@ -225,11 +229,13 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   const baseLookDir = toTop.clone().add(new Vector3(0.12, 0.05, 0)).normalize();
   const baseLookQuat = new Quaternion().setFromUnitVectors(new Vector3(0, 0, -1), baseLookDir);
+  const invBaseLookQuat = baseLookQuat.clone().invert();
   const rotEuler = new Euler(0, 0, 0, 'YXZ');
   const rotQuat = new Quaternion();
   // Preallocated scratch vectors to avoid per-frame / per-pointer allocations.
   const driftOffset = new Vector3();
   const targetWorld = new Vector3();
+  const focusLocalDir = new Vector3();
   const panRight = new Vector3();
   const panUp = new Vector3();
 
@@ -363,6 +369,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       camBox.copy(baseCamBox);
       baseLookDir.copy(toTop).add(new Vector3(0.12, 0.05, 0)).normalize();
       baseLookQuat.setFromUnitVectors(new Vector3(0, 0, -1), baseLookDir);
+      invBaseLookQuat.copy(baseLookQuat).invert();
     }
 
     matterGeometry = buildMatterGeometry(web, N);
@@ -840,6 +847,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       prev.y = e.clientY;
 
       // Primary drag / Shift drag
+      targetFocused = false;
       if (e.shiftKey || e.button === 2) {
         // Lateral pan through periodic box space
         const panSpeed = (0.0006 * targetFov) / DEFAULT_FOV;
@@ -895,6 +903,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   function onDblClick(): void {
     // Double click resets camera view to default orientation and FOV
+    targetFocused = false;
     targetFov = DEFAULT_FOV;
     targetYaw = 0;
     targetPitch = 0;
@@ -978,6 +987,34 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       fpsCap = nextCap;
       lastRenderedMs = 0;
       scheduleFrame();
+    },
+    toggleTargetFocus(): boolean {
+      if (targetFocused || !targetQ || !targetPsi) {
+        targetFocused = false;
+        targetFov = DEFAULT_FOV;
+        targetYaw = 0;
+        targetPitch = 0;
+        targetPan.set(0, 0, 0);
+        scheduleFrame();
+        return false;
+      }
+      const state = options.stateAt(currentU);
+      const D = state.growthD;
+      let dx = targetQ.x + D * targetPsi.x - camBox.x;
+      let dy = targetQ.y + D * targetPsi.y - camBox.y;
+      let dz = targetQ.z + D * targetPsi.z - camBox.z;
+      dx -= Math.round(dx);
+      dy -= Math.round(dy);
+      dz -= Math.round(dz);
+      if (dx === 0 && dy === 0 && dz === 0) return false;
+      focusLocalDir.set(dx, dy, dz).normalize().applyQuaternion(invBaseLookQuat).normalize();
+      const maxPitch = (80 * Math.PI) / 180;
+      targetPitch = Math.max(-maxPitch, Math.min(maxPitch, Math.asin(MathUtils.clamp(focusLocalDir.y, -1, 1))));
+      targetYaw = Math.atan2(-focusLocalDir.x, -focusLocalDir.z);
+      targetFov = FOCUS_FOV;
+      targetFocused = true;
+      scheduleFrame();
+      return true;
     },
     dispose() {
       disposed = true;

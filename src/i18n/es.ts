@@ -388,6 +388,9 @@ export const es = {
     earthSub: 'Acreción y formación planetaria',
     today: 'Vía Láctea',
     todaySub: 'Nuestro lugar en el cosmos',
+    focusHint: 'Enfocar esta galaxia',
+    unfocusHint: 'Volver al encuadre general',
+    dismissHint: 'Clic para ocultar',
   },
   ticker: {
     cosmicTime: 'Tiempo cósmico',

@@ -97,12 +97,13 @@ a:hover {
   cursor: grabbing;
 }
 
-/* 3D Scene Callout Overlay Layer */
+/* 3D Scene Callout Overlay Layer — sits above the canvas (0) and cleanly below
+   the bottom ticker (15), header (20), scientific drawer (25) and dock (40). */
 .callout-layer {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 25;
+  z-index: 10;
 }
 
 .scene-callout {
@@ -160,7 +161,8 @@ a:hover {
 }
 
 .scene-callout:hover .callout-card,
-.scene-callout:focus-visible .callout-card {
+.scene-callout:focus-visible .callout-card,
+.scene-callout.focused .callout-card {
   border-color: var(--accent);
   background: rgb(15 17 25 / 0.95);
   box-shadow: 0 4px 22px rgb(230 196 143 / 0.4);

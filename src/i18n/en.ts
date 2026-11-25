@@ -362,6 +362,9 @@ export const en = {
     earthSub: 'Accretion and planetary formation',
     today: 'Milky Way',
     todaySub: 'Our home in the cosmos',
+    focusHint: 'Focus on this galaxy',
+    unfocusHint: 'Return to wide view',
+    dismissHint: 'Click to dismiss',
   },
   ticker: {
     cosmicTime: 'Cosmic time',
