@@ -47,7 +47,7 @@ const percent = (u: number): string => `${(u * 100).toFixed(3)}%`;
 
 export function createTimeControl(
   scale: TimeScale,
-  onChange: (u: number, isPlaying: boolean, isMilestonePause?: boolean, automaticPause?: boolean) => void,
+  onChange: (u: number, isPlaying: boolean, isMilestonePause?: boolean) => void,
   extraActions?: readonly HTMLElement[],
 ): TimeControl {
   let u = 0;
@@ -55,6 +55,7 @@ export function createTimeControl(
   let isPlaying = false;
   let speed = 1;
   const BASE_DURATION_SECONDS = 60;
+  const MAX_STEP_DT = 0.1;
   let lastTimestamp = 0;
   let animId = 0;
 
@@ -65,9 +66,9 @@ export function createTimeControl(
 
   // Track the position at once: several key presses can arrive before the
   // next render, and each must start from the previous one.
-  const change = (next: number, playing = isPlaying, isMilestonePause = false, automaticPause = false): void => {
+  const change = (next: number, playing = isPlaying, isMilestonePause = false): void => {
     u = next;
-    onChange(next, playing, isMilestonePause, automaticPause);
+    onChange(next, playing, isMilestonePause);
   };
 
   /**
@@ -127,18 +128,24 @@ export function createTimeControl(
 
   function playLoop(timestamp: number): void {
     if (!isPlaying) return;
+    if (document.hidden) {
+      lastTimestamp = 0;
+      animId = requestAnimationFrame(playLoop);
+      return;
+    }
     if (lastTimestamp > 0) {
-      const dt = (timestamp - lastTimestamp) / 1000;
+      // Clamp frame delta so tab switches or OS stalls never jump across epochs.
+      const dt = Math.min(Math.max(0, (timestamp - lastTimestamp) / 1000), MAX_STEP_DT);
       const rate = pacingFactor(u);
       const du = (dt * speed * rate) / BASE_DURATION_SECONDS;
-      let nextU = u + du;
+      const nextU = u + du;
 
       if (autoPauseEnabled) {
         const crossed = milestoneAnchors.find((m) => m > u + 0.0005 && m <= nextU + 0.0005);
         if (crossed !== undefined && Math.abs(crossed - lastPausedMilestone) > 0.002) {
           u = crossed;
           lastPausedMilestone = crossed;
-          setPlaying(false, true, true);
+          setPlaying(false, true);
           return;
         }
       }
@@ -146,7 +153,7 @@ export function createTimeControl(
       if (nextU >= 1) {
         u = 1;
         lastPausedMilestone = 1;
-        setPlaying(false, true, true);
+        setPlaying(false, true);
         return;
       }
       change(nextU, true, false);
@@ -157,7 +164,13 @@ export function createTimeControl(
     }
   }
 
-  function setPlaying(playing: boolean, isMilestone = false, automaticPause = false): void {
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      lastTimestamp = 0;
+    }
+  });
+
+  function setPlaying(playing: boolean, isMilestone = false): void {
     if (isPlaying === playing) return;
     isPlaying = playing;
     if (isPlaying) {
@@ -165,7 +178,7 @@ export function createTimeControl(
         u = 0;
       }
       lastPausedMilestone = u;
-      lastTimestamp = performance.now();
+      lastTimestamp = 0;
       animId = requestAnimationFrame(playLoop);
       btnPlay.classList.add('active');
       btnPlay.setAttribute('aria-pressed', 'true');
@@ -179,7 +192,7 @@ export function createTimeControl(
       btnPlay.setAttribute('aria-pressed', 'false');
       btnPause.classList.add('active');
       btnPause.setAttribute('aria-pressed', 'true');
-      change(u, false, isMilestone, automaticPause);
+      change(u, false, isMilestone);
     }
   }
 
@@ -190,7 +203,7 @@ export function createTimeControl(
       if (!isPlaying) {
         setPlaying(true);
       } else {
-        lastTimestamp = performance.now();
+        lastTimestamp = 0;
         change(position, true, false);
       }
     } else {

@@ -302,7 +302,6 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   const webReady = new Promise<void>((resolve) => {
     resolveWebReady = resolve;
   });
-  const initialProjScale = innerHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
 
   void generateCosmicWeb(
     {
@@ -406,6 +405,9 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
     scheduleFrame();
     resolveWebReady();
+  }).catch((error) => {
+    console.error('cosmic-timeline: cosmic web generation failed', error);
+    resolveWebReady();
   });
 
   // --- Animation loop, tweens and camera drift ---
@@ -413,6 +415,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let currentU = 0;
   let isFirstJump = true;
   let disposed = false;
+  let contextLost = false;
   let animFrameId = 0;
   let isRunning = false;
   let playbackActive = false;
@@ -461,6 +464,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let frameCount = 0;
 
   function onKeyDown(e: KeyboardEvent): void {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.key === 'f' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
       fpsVisible = !fpsVisible;
       fpsEl.hidden = !fpsVisible;
@@ -497,7 +501,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
 
   function step(timestamp: number): void {
     animFrameId = 0;
-    if (disposed || document.hidden) {
+    if (disposed || document.hidden || contextLost) {
       isRunning = false;
       return;
     }
@@ -701,10 +705,32 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   }
 
   function scheduleFrame(): void {
-    if (!isRunning && !document.hidden) {
+    if (!isRunning && !document.hidden && !contextLost && !disposed) {
       animFrameId = requestAnimationFrame(step);
       isRunning = true;
     }
+  }
+
+  function onContextLost(e: Event): void {
+    e.preventDefault();
+    contextLost = true;
+    lastMotionTimestamp = 0;
+    if (animFrameId) {
+      cancelAnimationFrame(animFrameId);
+      animFrameId = 0;
+    }
+    isRunning = false;
+  }
+
+  function onContextRestored(): void {
+    contextLost = false;
+    noise.needsUpdate = true;
+    bgMaterial.needsUpdate = true;
+    if (matterMaterial) matterMaterial.needsUpdate = true;
+    if (haloMaterial) haloMaterial.needsUpdate = true;
+    if (galaxiesMaterial) galaxiesMaterial.needsUpdate = true;
+    resize();
+    scheduleFrame();
   }
 
   function onVisibilityChange(): void {
@@ -831,6 +857,8 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   window.addEventListener('pointercancel', onPointerUp);
   canvas.addEventListener('wheel', onWheel, { passive: false });
   canvas.addEventListener('dblclick', onDblClick);
+  canvas.addEventListener('webglcontextlost', onContextLost);
+  canvas.addEventListener('webglcontextrestored', onContextRestored);
 
   window.addEventListener('keydown', onKeyDown);
   window.addEventListener('resize', resize);
@@ -907,6 +935,8 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       window.removeEventListener('pointercancel', onPointerUp);
       canvas.removeEventListener('wheel', onWheel);
       canvas.removeEventListener('dblclick', onDblClick);
+      canvas.removeEventListener('webglcontextlost', onContextLost);
+      canvas.removeEventListener('webglcontextrestored', onContextRestored);
 
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', resize);

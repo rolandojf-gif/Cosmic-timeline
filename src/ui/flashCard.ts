@@ -49,6 +49,7 @@ export function createFlashCard(onClick?: () => void): FlashCard {
   let currentId: string | null = null;
   let dismissedId: string | null = null;
   let autoDismissTimer: ReturnType<typeof setTimeout> | null = null;
+  let hideTimer: ReturnType<typeof setTimeout> | null = null;
   let isHovered = false;
   let currentPlaying = false;
 
@@ -56,6 +57,13 @@ export function createFlashCard(onClick?: () => void): FlashCard {
     if (autoDismissTimer !== null) {
       clearTimeout(autoDismissTimer);
       autoDismissTimer = null;
+    }
+  }
+
+  function clearHideTimer(): void {
+    if (hideTimer !== null) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
     }
   }
 
@@ -69,8 +77,10 @@ export function createFlashCard(onClick?: () => void): FlashCard {
 
   function dismiss(): void {
     clearTimer();
+    clearHideTimer();
     element.classList.remove('visible');
-    setTimeout(() => {
+    hideTimer = setTimeout(() => {
+      hideTimer = null;
       if (!element.classList.contains('visible')) {
         element.hidden = true;
       }
@@ -97,6 +107,11 @@ export function createFlashCard(onClick?: () => void): FlashCard {
     show(card, isPlaying) {
       currentPlaying = isPlaying;
 
+      if (!isPlaying) {
+        // Cancel any pending playback auto-dismiss so the card stays readable while paused.
+        clearTimer();
+      }
+
       if (!card) {
         if (currentId !== null) {
           currentId = null;
@@ -121,6 +136,7 @@ export function createFlashCard(onClick?: () => void): FlashCard {
       setText(detail, card.detail);
 
       if (element.hidden || !element.classList.contains('visible')) {
+        clearHideTimer();
         element.hidden = false;
         // Trigger reflow for CSS transition
         void element.offsetWidth;

@@ -60,8 +60,9 @@ export function startApp(root: HTMLElement): void {
   let togglePlayAndPanel = (): void => {};
   const flashCard = createFlashCard(() => togglePlayAndPanel());
 
-  // Separate from the cinematic flash card: only shown on true automatic
-  // milestone pauses, never after manual Play/Pause or timeline scrubbing.
+  // Separate from the cinematic flash card: shown whenever the journey stops
+  // (automatic milestone pauses, manual pauses, or milestone jumps), never on
+  // initial load or while scrubbing the slider.
   const continueIcon = el('span', { class: 'resume-cue__icon', 'aria-hidden': 'true' }, '▶');
   const continueLabel = el('span', { class: 'resume-cue__label' });
   const continueCue = el('button', {
@@ -176,8 +177,15 @@ export function startApp(root: HTMLElement): void {
 
   const calloutLayer = el('div', { class: 'callout-layer' }, callout);
 
+  function syncResponsiveToggleLabel(): void {
+    const m = MESSAGES[locale];
+    setText(panelToggle, mobileLayout.matches ? 'Info' : m.meta.sciencePanel);
+  }
+  mobileLayout.addEventListener('change', syncResponsiveToggleLabel);
+
   let currentTargetEpochId: 'reheating' | 'milkyWay' | 'solarSystem' | 'earth' | 'today' | null = null;
   let targetScreenPos: { x: number; y: number; visible: boolean } | null = null;
+  let lastCalloutKey = '';
 
   callout.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -200,16 +208,32 @@ export function startApp(root: HTMLElement): void {
   });
 
   function updateCalloutPosition(): void {
-    if (!targetScreenPos || !targetScreenPos.visible || !currentTargetEpochId) {
-      callout.classList.remove('visible');
-      callout.hidden = true;
+    const pos =
+      currentTargetEpochId === 'reheating'
+        ? { x: Math.round(window.innerWidth * 0.65), y: Math.round(window.innerHeight * 0.4), visible: true }
+        : targetScreenPos;
+    if (!pos || !pos.visible || !currentTargetEpochId) {
+      if (lastCalloutKey !== 'hidden') {
+        callout.classList.remove('visible');
+        callout.hidden = true;
+        lastCalloutKey = 'hidden';
+      }
       return;
     }
-    callout.hidden = false;
-    callout.style.left = `${targetScreenPos.x}px`;
-    callout.style.top = `${targetScreenPos.y}px`;
-    callout.classList.add('visible');
+    const x = Math.round(pos.x);
+    const y = Math.round(pos.y);
+    const key = `${x},${y}`;
+    if (key !== lastCalloutKey) {
+      callout.hidden = false;
+      callout.style.left = `${x}px`;
+      callout.style.top = `${y}px`;
+      callout.classList.add('visible');
+      lastCalloutKey = key;
+    }
   }
+  window.addEventListener('resize', () => {
+    if (currentTargetEpochId === 'reheating') updateCalloutPosition();
+  });
 
   const dock = el('div', { class: 'dock' }, control.element, sceneNote, licences.element);
   const updateDockHeight = () => {
@@ -291,12 +315,12 @@ export function startApp(root: HTMLElement): void {
 
     const currentEpoch = epochs[view.epochIndex];
     const epochId = currentEpoch?.id;
+    const prevTarget = currentTargetEpochId;
     if (epochId === 'inflation' && t >= 1e-32 && t <= 1e-28) {
       currentTargetEpochId = 'reheating';
       setText(calloutTitle, m.callout.reheating);
       setText(calloutSub, m.callout.reheatingSub);
       callout.setAttribute('aria-label', `${m.callout.reheating}: ${m.callout.reheatingSub}`);
-      targetScreenPos = { x: Math.round(window.innerWidth * 0.65), y: Math.round(window.innerHeight * 0.40), visible: true };
     } else if (epochId === 'milkyWay') {
       currentTargetEpochId = 'milkyWay';
       setText(calloutTitle, m.callout.milkyWay);
@@ -319,6 +343,10 @@ export function startApp(root: HTMLElement): void {
       callout.setAttribute('aria-label', `${m.callout.today}: ${m.callout.todaySub}`);
     } else {
       currentTargetEpochId = null;
+    }
+    // Clear stale screen position when leaving reheating or entering a non-target epoch.
+    if (currentTargetEpochId === null || (prevTarget === 'reheating' && currentTargetEpochId !== 'reheating')) {
+      targetScreenPos = null;
     }
     updateCalloutPosition();
   }
