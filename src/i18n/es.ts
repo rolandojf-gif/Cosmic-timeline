@@ -61,6 +61,7 @@ export const es = {
     autoPause: 'Pausa en hitos',
     autoPauseLabel: 'Pausar automáticamente al alcanzar hitos cósmicos',
     speed: 'Velocidad',
+    fpsLabel: 'Cambiar límite de fotogramas por segundo de la escena',
   },
   panel: {
     time: 'Tiempo cósmico',
@@ -412,7 +413,7 @@ export const es = {
     },
   },
   flash: {
-    close: 'Cerrar aviso',
+    close: 'Clic para ocultar',
     milestone: 'Hito cósmico',
     items: {
       reheating: {

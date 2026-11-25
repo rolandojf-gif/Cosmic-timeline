@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_SCENE_FPS, cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from '../../src/scene/framePacing';
+import {
+  DEFAULT_SCENE_FPS,
+  cameraDamping,
+  nextFpsCap,
+  parseFpsCap,
+  resolveInitialFpsCap,
+  sceneFpsCap,
+  sceneNeedsFrames,
+  shouldRenderFrame,
+} from '../../src/scene/framePacing';
 
 describe('cinematic scene frame pacing', () => {
   it('defaults to 30 FPS and only accepts explicitly supported overrides', () => {
@@ -10,6 +19,20 @@ describe('cinematic scene frame pacing', () => {
     expect(sceneFpsCap('?fpscap=60')).toBe(60);
     expect(sceneFpsCap('?fpscap=0')).toBe(30);
     expect(sceneFpsCap('?fpscap=1000')).toBe(30);
+    expect(parseFpsCap('60')).toBe(60);
+    expect(parseFpsCap('120')).toBeNull();
+    expect(parseFpsCap('')).toBeNull();
+  });
+
+  it('prefers URL ?fpscap over stored preference and cycles valid FPS caps cleanly', () => {
+    expect(resolveInitialFpsCap('', '60')).toBe(60);
+    expect(resolveInitialFpsCap('?fpscap=24', '60')).toBe(24);
+    expect(resolveInitialFpsCap('', 'invalid')).toBe(DEFAULT_SCENE_FPS);
+    expect(resolveInitialFpsCap('', null)).toBe(DEFAULT_SCENE_FPS);
+    expect(nextFpsCap(30)).toBe(60);
+    expect(nextFpsCap(60)).toBe(24);
+    expect(nextFpsCap(24)).toBe(45);
+    expect(nextFpsCap(45)).toBe(30);
   });
 
   it('limits GPU submissions to the configured interval, without using setTimeout', () => {

@@ -1,6 +1,6 @@
-// Ephemeral floating card appearing at major milestone transitions.
-// Explains the cosmological milestone in 1–2 impactful sentences,
-// auto-fading after 5 seconds during playback, but staying on pause or hover.
+// Compact, unobtrusive floating bookmark for major cosmic milestones.
+// Displays a concise physical stamp alongside a 1-sentence summary; auto-fades
+// during playback and dismisses immediately on click without altering playback.
 
 import { el, setText } from './dom';
 import type { FlashCardView } from './view';
@@ -11,12 +11,13 @@ export interface FlashCard {
   dismiss(): void;
 }
 
-export function createFlashCard(onClick?: () => void): FlashCard {
-  const icon = el('span', { class: 'flash-icon' }, '✦');
+export function createFlashCard(): FlashCard {
+  const icon = el('span', { class: 'flash-icon', 'aria-hidden': 'true' }, '✦');
   const tag = el('span', { class: 'flash-tag' });
   const tagGroup = el('div', { class: 'flash-tag-group' }, icon, tag);
+  const meta = el('span', { class: 'flash-meta' });
 
-  const header = el('div', { class: 'flash-header' }, tagGroup);
+  const header = el('div', { class: 'flash-header' }, tagGroup, meta);
   const title = el('h4', { class: 'flash-title' });
   const detail = el('p', { class: 'flash-detail' });
 
@@ -33,18 +34,6 @@ export function createFlashCard(onClick?: () => void): FlashCard {
     detail,
   );
   element.hidden = true;
-
-  element.addEventListener('click', (e) => {
-    e.stopPropagation();
-    onClick?.();
-  });
-  element.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      e.stopPropagation();
-      onClick?.();
-    }
-  });
 
   let currentId: string | null = null;
   let dismissedId: string | null = null;
@@ -67,7 +56,7 @@ export function createFlashCard(onClick?: () => void): FlashCard {
     }
   }
 
-  function armTimer(ms = 5000): void {
+  function armTimer(ms = 4500): void {
     clearTimer();
     if (!currentPlaying || isHovered) return;
     autoDismissTimer = setTimeout(() => {
@@ -84,10 +73,21 @@ export function createFlashCard(onClick?: () => void): FlashCard {
       if (!element.classList.contains('visible')) {
         element.hidden = true;
       }
-    }, 400);
+    }, 300);
     dismissedId = currentId;
   }
 
+  element.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dismiss();
+  });
+  element.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      dismiss();
+    }
+  });
 
   element.addEventListener('mouseenter', () => {
     isHovered = true;
@@ -97,7 +97,7 @@ export function createFlashCard(onClick?: () => void): FlashCard {
   element.addEventListener('mouseleave', () => {
     isHovered = false;
     if (currentPlaying && element.classList.contains('visible')) {
-      armTimer(3000);
+      armTimer(2500);
     }
   });
 
@@ -108,7 +108,6 @@ export function createFlashCard(onClick?: () => void): FlashCard {
       currentPlaying = isPlaying;
 
       if (!isPlaying) {
-        // Cancel any pending playback auto-dismiss so the card stays readable while paused.
         clearTimer();
       }
 
@@ -123,29 +122,30 @@ export function createFlashCard(onClick?: () => void): FlashCard {
 
       if (card.id !== currentId) {
         currentId = card.id;
-        dismissedId = null; // New milestone reached: reset dismissal
+        dismissedId = null;
       }
 
       if (dismissedId === card.id) {
-        // User already closed this card for this milestone encounter
         return;
       }
 
       setText(tag, card.milestoneLabel);
+      setText(meta, card.meta);
       setText(title, card.title);
       setText(detail, card.detail);
+      element.setAttribute('aria-label', `${card.title}. ${card.closeLabel}`);
+      element.setAttribute('title', card.closeLabel);
 
       if (element.hidden || !element.classList.contains('visible')) {
         clearHideTimer();
         element.hidden = false;
-        // Trigger reflow for CSS transition
         void element.offsetWidth;
         element.classList.add('visible');
         if (isPlaying) {
-          armTimer(5000);
+          armTimer(4500);
         }
       } else if (isPlaying && autoDismissTimer === null && !isHovered) {
-        armTimer(5000);
+        armTimer(4500);
       }
     },
   };

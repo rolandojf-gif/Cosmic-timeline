@@ -35,6 +35,7 @@ export const en = {
     autoPause: 'Pause at milestones',
     autoPauseLabel: 'Automatically pause when reaching cosmic milestones',
     speed: 'Speed',
+    fpsLabel: 'Change scene frame rate limit',
   },
   panel: {
     time: 'Cosmic time',
@@ -386,7 +387,7 @@ export const en = {
     },
   },
   flash: {
-    close: 'Dismiss notification',
+    close: 'Click to dismiss',
     milestone: 'Cosmic milestone',
     items: {
       reheating: {

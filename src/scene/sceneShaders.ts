@@ -353,6 +353,8 @@ export const GRADING_FRAGMENT_SHADER = /* glsl */ `
   float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233)) + uSeed) * 43758.5453); }
   void main() {
     vec4 c = texture2D(tDiffuse, vUv);
+    c.rgb = ACESFilmicToneMapping(c.rgb);
+    c = sRGBTransferOETF(c);
     float vignette = mix(1.0, smoothstep(1.15, 0.35, length(vUv - 0.5) * 1.4), 0.55);
     float grain = (hash(vUv * 1000.0) - 0.5) * 0.02;
     float luma = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));

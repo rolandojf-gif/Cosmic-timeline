@@ -6,6 +6,12 @@
 
 import { LOCALES, MESSAGES, detectLocale, type Locale } from '../i18n';
 import { PLANCK2018_DERIVED, accelerationOnset, createCosmology, matterLambdaEquality } from '../physics';
+import {
+  FPS_CAP_STORAGE_KEY,
+  nextFpsCap,
+  resolveInitialFpsCap,
+  type SceneFpsCap,
+} from '../scene/framePacing';
 import type { CosmicWebState, ParticleScene } from '../scene/scene';
 import { createVisualMap } from '../scene/visualMap';
 import { EPOCHS, createTimeScale, resolveEpochs, type EpochId } from '../timeline';
@@ -47,7 +53,36 @@ export function startApp(root: HTMLElement): void {
 
   const title = el('h1', { class: 'title' });
   const subtitle = el('p', { class: 'subtitle' });
-  const masthead = el('div', { class: 'masthead' }, el('div', { class: 'title-group' }, title, subtitle));
+
+  let fpsCap: SceneFpsCap = resolveInitialFpsCap(
+    location.search,
+    (() => {
+      try {
+        return localStorage.getItem(FPS_CAP_STORAGE_KEY);
+      } catch {
+        return null;
+      }
+    })(),
+  );
+  const fpsButton = el('button', { type: 'button', class: 'fps-toggle' });
+  setText(fpsButton, `${fpsCap} fps`);
+  fpsButton.addEventListener('click', () => {
+    fpsCap = nextFpsCap(fpsCap);
+    setText(fpsButton, `${fpsCap} fps`);
+    try {
+      localStorage.setItem(FPS_CAP_STORAGE_KEY, String(fpsCap));
+    } catch {
+      // Ignore storage errors in restricted contexts.
+    }
+    scene?.setFpsCap(fpsCap);
+  });
+
+  const masthead = el(
+    'div',
+    { class: 'masthead' },
+    el('div', { class: 'title-group' }, title, subtitle),
+    fpsButton,
+  );
 
   const panelToggle = el('button', {
     type: 'button',
@@ -60,7 +95,7 @@ export function startApp(root: HTMLElement): void {
   const ticker = createTicker();
 
   let togglePlayAndPanel = (): void => {};
-  const flashCard = createFlashCard(() => togglePlayAndPanel());
+  const flashCard = createFlashCard();
 
   // Separate from the cinematic flash card: shown whenever the journey stops
   // (automatic milestone pauses, manual pauses, or milestone jumps), never on
@@ -284,15 +319,17 @@ export function startApp(root: HTMLElement): void {
   });
 
   const dock = el('div', { class: 'dock' }, control.element, sceneNote, licences.element);
-  const updateDockHeight = () => {
+  const updateLayoutMetrics = () => {
     const dockHeight = dock.offsetHeight;
     if (dockHeight > 0) {
       document.documentElement.style.setProperty('--dock-height', `${dockHeight}px`);
     }
+    document.documentElement.style.setProperty('--ticker-height', `${ticker.element.offsetHeight}px`);
   };
-  const dockObserver = new ResizeObserver(updateDockHeight);
-  dockObserver.observe(dock);
-  requestAnimationFrame(updateDockHeight);
+  const layoutObserver = new ResizeObserver(updateLayoutMetrics);
+  layoutObserver.observe(dock);
+  layoutObserver.observe(ticker.element);
+  requestAnimationFrame(updateLayoutMetrics);
 
   root.replaceChildren(
     sceneLayer,
@@ -369,6 +406,8 @@ export function startApp(root: HTMLElement): void {
       document.querySelector('meta[name="description"]')?.setAttribute('content', m.meta.description);
       setText(title, m.meta.title);
       setText(subtitle, m.meta.subtitle);
+      fpsButton.setAttribute('aria-label', m.control.fpsLabel);
+      fpsButton.setAttribute('title', m.control.fpsLabel);
       setText(panelToggle, mobileLayout.matches ? 'Info' : m.meta.sciencePanel);
       setText(continueLabel, m.control.continue);
       continueCue.setAttribute('aria-label', m.control.continueHint);
@@ -479,6 +518,7 @@ export function startApp(root: HTMLElement): void {
         stateAt: (position) => visualMap.visualState(scale.timeAt(position)),
         reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches,
         mobile: matchMedia('(max-width: 599px), (pointer: coarse)').matches,
+        fpsCap,
         onTargetScreenPos: (pos) => {
           if (currentTargetEpochId === 'reheating') return;
           targetScreenPos = pos;
@@ -508,6 +548,7 @@ export function startApp(root: HTMLElement): void {
         Object.assign(window, { __cosmicBench: { stops, stateAt, scene: scene.bench } });
       }
     }
+    fpsButton.hidden = scene === null;
     sceneNote.hidden = scene !== null;
     document.body.classList.toggle('has-scene', scene !== null);
   }

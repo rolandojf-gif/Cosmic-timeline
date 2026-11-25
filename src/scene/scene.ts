@@ -32,14 +32,19 @@ import {
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { PLANCK2018 } from '../physics';
 import type { CosmicWeb } from './cosmicWeb';
 import { generateCosmicWeb } from './cosmicWebLoader';
 import { tileableNoise } from './noise3d';
 import { createTween } from './tween';
-import { cameraDamping, sceneFpsCap, sceneNeedsFrames, shouldRenderFrame } from './framePacing';
+import {
+  cameraDamping,
+  sceneFpsCap,
+  sceneNeedsFrames,
+  shouldRenderFrame,
+  type SceneFpsCap,
+} from './framePacing';
 import { diagnosticsFromUrl } from './diagnostics';
 import { createGpuFrameTimer } from './gpuTimer';
 import { drawnLayers, shouldDrawBackground } from './layerCulling';
@@ -76,6 +81,7 @@ export interface SceneOptions {
   readonly stateAt: (u: number) => VisualState;
   readonly reducedMotion: boolean;
   readonly mobile: boolean;
+  readonly fpsCap?: SceneFpsCap;
   readonly onTargetScreenPos?: (pos: { x: number; y: number; visible: boolean }) => void;
   readonly onSceneClick?: () => void;
   readonly onWebStateChange?: (state: CosmicWebState) => void;
@@ -85,6 +91,8 @@ export interface ParticleScene {
   readonly element: HTMLCanvasElement;
   /** Ease towards control position u (or jump with reduced motion / direct sync). */
   show(u: number, immediate?: boolean, playing?: boolean): void;
+  /** Update the render frame-rate cap live without recreating WebGL resources. */
+  setFpsCap(fps: SceneFpsCap): void;
   dispose(): void;
   /** Readback hooks, only with ?bench in the URL. */
   readonly bench?: SceneBench | undefined;
@@ -280,7 +288,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   // ?bench: probes that copy the image after each pass (they draw nothing).
   const benchMode = benchRequested(window.location.search);
   const probes = benchMode
-    ? { scene: new ProbePass(), postBloom: new ProbePass(), output: new ProbePass() }
+    ? { scene: new ProbePass(), postBloom: new ProbePass() }
     : null;
   if (probes) composer.addPass(probes.scene);
 
@@ -290,11 +298,17 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
     composer.addPass(bloomPass);
     if (probes) composer.addPass(probes.postBloom);
   }
-  composer.addPass(new OutputPass());
-  if (probes) composer.addPass(probes.output);
 
+  // Merged Output (ACES Filmic + sRGB OETF) and Grading (vignette, saturation,
+  // grain) in a single final full-screen pass, avoiding an extra HalfFloat
+  // read/write over the entire viewport each frame.
   const gradingPass = new ShaderPass({
-    uniforms: { tDiffuse: { value: null }, uSeed: { value: 0.37 }, uSaturation: { value: 1.2 } },
+    uniforms: {
+      tDiffuse: { value: null },
+      toneMappingExposure: { value: renderer.toneMappingExposure },
+      uSeed: { value: 0.37 },
+      uSaturation: { value: 1.2 },
+    },
     vertexShader: GRADING_VERTEX_SHADER,
     fragmentShader: GRADING_FRAGMENT_SHADER,
   });
@@ -444,7 +458,7 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
   let isRunning = false;
   let playbackActive = false;
   // Keep original scene quality: only limit how often composer.render() runs.
-  const fpsCap = sceneFpsCap(window.location.search);
+  let fpsCap: SceneFpsCap = options.fpsCap ?? sceneFpsCap(window.location.search);
   // Exact optimisations (see optimisations.ts); ?oN=0 turns one off.
   const optimisationDefaults = optimisationsFromUrl(window.location.search);
   const optimisation = { ...optimisationDefaults };
@@ -958,6 +972,11 @@ export function createParticleScene(options: SceneOptions): ParticleScene | null
       } else {
         tween.retarget(u, nowSec);
       }
+      scheduleFrame();
+    },
+    setFpsCap(nextCap: SceneFpsCap) {
+      fpsCap = nextCap;
+      lastRenderedMs = 0;
       scheduleFrame();
     },
     dispose() {
